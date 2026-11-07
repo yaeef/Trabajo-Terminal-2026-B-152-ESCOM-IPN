@@ -1,0 +1,8 @@
+{% import "correo/_marco.html" as m %}
+{% call m.cta(icono="🔐", titulo="Recuperación de contraseña", enlace=enlace,
+              boton="Restablecer contraseña", expira="30 minutos") %}
+  {% call m.parrafo() %}Recibimos una solicitud para restablecer la contraseña de tu cuenta.{% endcall %}
+  {% call m.parrafo(ultimo=true) %}Haz clic en el siguiente botón para elegir una nueva contraseña.
+    Si tú no solicitaste este cambio, puedes ignorar este correo con seguridad &mdash; tu
+    contraseña actual seguirá siendo válida.{% endcall %}
+{% endcall %}

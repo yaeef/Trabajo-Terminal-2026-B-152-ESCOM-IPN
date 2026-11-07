@@ -1,0 +1,61 @@
+/* Compartido por todas las páginas de src/pages/admin/ (mismo criterio que
+   src/pages/bovedas/bovedas.css: una hoja por grupo de páginas). */
+
+.admin-card {
+    background: #fff;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.02);
+}
+
+[data-theme='dark'] .admin-card {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.admin-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 3px 10px;
+    border-radius: 50px;
+    white-space: nowrap;
+}
+
+.admin-row-clickable {
+    cursor: pointer;
+}
+.admin-row-clickable:hover {
+    background: #f8fafc;
+}
+[data-theme='dark'] .admin-row-clickable:hover {
+    background: #1e293b;
+}
+
+.admin-tabs .nav-link {
+    color: var(--bs-body-color, #334155);
+    font-weight: 600;
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    padding: 0.75rem 1.25rem;
+}
+.admin-tabs .nav-link.active {
+    color: var(--escom-blue);
+    border-bottom-color: var(--escom-blue);
+    background: transparent;
+}
+
+.admin-detail-header {
+    background: #fff;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    padding: 1.75rem;
+}
+[data-theme='dark'] .admin-detail-header {
+    background: #1e293b;
+    border-color: #334155;
+}

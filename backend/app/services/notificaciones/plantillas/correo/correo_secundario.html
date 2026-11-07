@@ -1,0 +1,8 @@
+{% import "correo/_marco.html" as m %}
+{% call m.cta(icono="📧", titulo="Confirma tu correo alternativo", enlace=enlace,
+              boton="Confirmar correo", expira="30 minutos") %}
+  {% call m.parrafo() %}Alguien vinculó esta dirección como correo alternativo en su cuenta del
+    Sistema de Herencia Digital.{% endcall %}
+  {% call m.parrafo(ultimo=true) %}Si fuiste tú, confirma con el botón de abajo. Si no reconoces esta
+    solicitud, simplemente ignora este correo &mdash; no se realizará ningún cambio.{% endcall %}
+{% endcall %}

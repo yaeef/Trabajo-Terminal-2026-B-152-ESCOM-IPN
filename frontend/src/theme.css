@@ -1,0 +1,319 @@
+/* theme.css — capa de modo oscuro. Se importa en main.tsx (antes que el
+   resto). Los selectores [data-theme="dark"] .clase tienen mayor
+   especificidad que las reglas base, así que ganan sin !important.
+   Bootstrap 5.3 (data-bs-theme="dark") ya adapta tablas, form-control,
+   alerts, modales, .btn-light, .bg-light y .text-muted. */
+
+:root {
+    --surface: #ffffff;
+    --surface-2: #f8fafc;
+    --border: #e2e8f0;
+}
+
+:root[data-theme='dark'] {
+    --ipn-maroon: #a83365;
+    --escom-blue: #5aa2e6;
+    --soft-gray: #0f141b;
+    --text-dark: #e6e9ec;
+    --success-green: #3fb950;
+    --surface: #171b21;
+    --surface-2: #1e242c;
+    --border: #2b323b;
+}
+
+[data-theme='dark'] body,
+[data-theme='dark'] .dashboard-shell {
+    background: var(--soft-gray);
+    color: var(--text-dark);
+}
+/* .auth-page / .login-page / .register-page / .recuperacion-page tienen
+   fondo de imagen oscura: solo se oscurece la TARJETA de contenido, no el
+   fondo. */
+[data-theme='dark'] .card-auth,
+[data-theme='dark'] .login-page .card-login,
+[data-theme='dark'] .card-register,
+[data-theme='dark'] .recuperacion-page .card-recuperacion {
+    background: rgba(23, 27, 33, 0.98) !important;
+    color: var(--text-dark) !important;
+}
+[data-theme='dark'] .auth-page .input-group-text,
+[data-theme='dark'] .login-page .input-group-text,
+[data-theme='dark'] .register-page .input-group-text,
+[data-theme='dark'] .recuperacion-page .input-group-text {
+    background: var(--surface-2) !important;
+    border-color: var(--border) !important;
+    color: #9aa4af !important;
+}
+[data-theme='dark'] .section-title {
+    border-bottom-color: var(--border) !important;
+}
+[data-theme='dark'] .success-icon-circle {
+    background: rgba(90, 162, 230, 0.14) !important;
+    border-color: rgba(90, 162, 230, 0.35) !important;
+}
+[data-theme='dark'] .error-icon-circle {
+    background: rgba(248, 81, 73, 0.14) !important;
+    border-color: rgba(248, 81, 73, 0.35) !important;
+}
+
+/* Botón de tema flotante en las pantallas de auth */
+.auth-theme-toggle {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 30;
+}
+
+[data-theme='dark'] .sidebar,
+[data-theme='dark'] .top-bar,
+[data-theme='dark'] .config-card,
+[data-theme='dark'] .vault-item-card,
+[data-theme='dark'] .cust-card,
+[data-theme='dark'] .storage-card,
+[data-theme='dark'] .stat-card,
+[data-theme='dark'] .vault-card,
+[data-theme='dark'] .card-auth,
+[data-theme='dark'] .modal-content {
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--text-dark);
+}
+
+[data-theme='dark'] .passphrase-box,
+[data-theme='dark'] .sss-control-box,
+[data-theme='dark'] .share-card,
+[data-theme='dark'] .pid-row,
+[data-theme='dark'] .channel-row,
+[data-theme='dark'] .share-data,
+[data-theme='dark'] .custodian-avatar,
+[data-theme='dark'] .config-section {
+    background: var(--surface-2);
+    border-color: var(--border);
+}
+
+[data-theme='dark'] .custodian-selector-card,
+[data-theme='dark'] .integration-box {
+    border-color: var(--border);
+}
+
+[data-theme='dark'] .nav-link {
+    color: #9aa4af;
+}
+[data-theme='dark'] .nav-link:hover {
+    background: var(--surface-2);
+    color: var(--escom-blue);
+}
+
+[data-theme='dark'] hr,
+[data-theme='dark'] .border-top,
+[data-theme='dark'] .border,
+[data-theme='dark'] .border-bottom {
+    border-color: var(--border) !important;
+}
+
+[data-theme='dark'] .btn-light {
+    background: var(--surface-2);
+    border-color: var(--border);
+    color: var(--text-dark);
+}
+[data-theme='dark'] .btn-light:hover {
+    background: #2b333d;
+}
+
+/* --- Botón del toggle --- */
+.theme-toggle {
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-dark, #1e293b);
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.2s;
+    flex-shrink: 0;
+}
+.theme-toggle:hover {
+    border-color: var(--escom-blue);
+    color: var(--escom-blue);
+}
+
+/* ============================================================
+   Overrides puntuales: CSS de página con valores claros
+   hardcodeados y especificidad alta (.config-section .form-control,
+   .verification-status, .auth-page .form-control, …). Se usa
+   !important a propósito: esto es la capa de tema.
+   ============================================================ */
+
+[data-theme='dark'] .verification-status,
+[data-theme='dark'] .status-card,
+[data-theme='dark'] .edit-card,
+[data-theme='dark'] .config-section,
+[data-theme='dark'] .mobile-menu-drawer,
+[data-theme='dark'] .stat-card {
+    background: var(--surface) !important;
+    border-color: var(--border) !important;
+    color: var(--text-dark);
+}
+
+[data-theme='dark'] .integration-box {
+    background: var(--surface-2) !important;
+    border-color: var(--border) !important;
+}
+[data-theme='dark'] .config-section-danger {
+    background: #241a1d !important;
+    border-color: #4a2b30 !important;
+}
+
+[data-theme='dark'] .section-desc {
+    border-bottom-color: var(--border) !important;
+    color: #9aa4af;
+}
+
+[data-theme='dark'] .user-profile.is-clickable:hover {
+    background-color: var(--surface-2) !important;
+}
+
+/* Campos de formulario con estilo propio en varias páginas */
+[data-theme='dark'] .form-control,
+[data-theme='dark'] .form-select,
+[data-theme='dark'] .config-section .form-control,
+[data-theme='dark'] .config-section .form-select,
+[data-theme='dark'] .edit-card .form-control,
+[data-theme='dark'] .auth-page .form-control,
+[data-theme='dark'] .auth-page .form-select,
+[data-theme='dark'] .login-page .form-control,
+[data-theme='dark'] .register-page .form-control,
+[data-theme='dark'] .register-page .form-select,
+[data-theme='dark'] .recuperacion-page .form-control {
+    background-color: var(--surface-2) !important;
+    border-color: var(--border) !important;
+    color: var(--text-dark) !important;
+}
+
+[data-theme='dark'] .form-control:focus,
+[data-theme='dark'] .form-select:focus,
+[data-theme='dark'] .config-section .form-control:focus,
+[data-theme='dark'] .config-section .form-select:focus,
+[data-theme='dark'] .edit-card .form-control:focus,
+[data-theme='dark'] .auth-page .form-control:focus,
+[data-theme='dark'] .auth-page .form-select:focus,
+[data-theme='dark'] .login-page .form-control:focus,
+[data-theme='dark'] .register-page .form-control:focus,
+[data-theme='dark'] .register-page .form-select:focus,
+[data-theme='dark'] .recuperacion-page .form-control:focus {
+    background-color: #232b34 !important;
+    border-color: var(--escom-blue) !important;
+    color: var(--text-dark) !important;
+    box-shadow: 0 0 0 0.2rem rgba(90, 162, 230, 0.2) !important;
+}
+
+[data-theme='dark'] .form-control::placeholder {
+    color: #6b7681 !important;
+}
+
+/* Chips / badges con fondo claro */
+[data-theme='dark'] .verif-tag,
+[data-theme='dark'] .status-tag.tag-verified,
+[data-theme='dark'] .tag-verified {
+    background: rgba(63, 185, 80, 0.16) !important;
+}
+[data-theme='dark'] .tag-unverified,
+[data-theme='dark'] .status-tag.tag-unverified {
+    background: rgba(248, 81, 73, 0.16) !important;
+}
+[data-theme='dark'] .k-n-badge,
+[data-theme='dark'] .parentesco-chip,
+[data-theme='dark'] .x-chip {
+    background: rgba(90, 162, 230, 0.16) !important;
+    color: var(--escom-blue) !important;
+}
+[data-theme='dark'] .recuperacion-status {
+    background: rgba(63, 185, 80, 0.16) !important;
+}
+[data-theme='dark'] .recuperacion-info-row {
+    border-bottom-color: var(--border) !important;
+}
+[data-theme='dark'] .recuperacion-dropzone {
+    background: var(--surface-2) !important;
+    border-color: var(--border) !important;
+    color: var(--escom-blue) !important;
+}
+
+/* Íconos/celdas “bg-light” de Bootstrap que quedan muy claras */
+[data-theme='dark'] .bg-light {
+    background-color: var(--surface-2) !important;
+}
+
+/* ============================================================
+   Landing (Home.tsx) — su CSS tiene blancos hardcodeados
+   ============================================================ */
+[data-theme='dark'] .home-page {
+    background-color: var(--soft-gray) !important;
+    color: var(--text-dark) !important;
+}
+[data-theme='dark'] .navbar-clean {
+    background-color: rgba(23, 27, 33, 0.95) !important;
+    border-bottom-color: var(--border) !important;
+}
+[data-theme='dark'] .concept-card,
+[data-theme='dark'] .risk-card,
+[data-theme='dark'] .asset-card,
+[data-theme='dark'] .faq-item {
+    background: var(--surface) !important;
+}
+[data-theme='dark'] .section-band--white {
+    background-color: var(--soft-gray) !important;
+}
+[data-theme='dark'] .section-band--tint {
+    background-color: #12171e !important;
+}
+[data-theme='dark'] .faq-item {
+    border-bottom-color: var(--border) !important;
+}
+[data-theme='dark'] .faq-answer {
+    color: #9aa4af !important;
+}
+[data-theme='dark'] .icon-box {
+    background: rgba(90, 162, 230, 0.14) !important;
+}
+[data-theme='dark'] .legal-notice {
+    background: rgba(220, 53, 69, 0.12) !important;
+}
+[data-theme='dark'] .legal-notice p,
+[data-theme='dark'] .legal-notice h5 {
+    color: #e2a3a3 !important;
+}
+[data-theme='dark'] .faq-accordion {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35) !important;
+}
+[data-theme='dark'] .home-nav-toggler {
+    border-color: var(--border) !important;
+    color: var(--text-dark) !important;
+}
+[data-theme='dark'] .home-nav-menu {
+    background-color: rgba(23, 27, 33, 0.98) !important;
+    border-bottom-color: var(--border) !important;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4) !important;
+}
+[data-theme='dark'] .home-nav-menu > a:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+}
+[data-theme='dark'] .home-nav-link:hover {
+    color: var(--escom-blue) !important;
+}
+/* El botón "Empezar" del hero es idéntico en ambos temas (ver Home.css);
+   solo se blinda por si alguna regla de .btn-light lo tocara en dark. */
+[data-theme='dark'] .home-hero-btn,
+[data-theme='dark'] .home-hero-btn:visited {
+    background-color: #ffffff !important;
+    color: #621132 !important;
+}
+[data-theme='dark'] .home-hero-btn:hover,
+[data-theme='dark'] .home-hero-btn:focus {
+    background-color: #c14a7a !important;
+    color: #ffffff !important;
+}
+

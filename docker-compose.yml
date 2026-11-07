@@ -1,0 +1,144 @@
+
+# -----------------------------
+# Definición de servicios
+# -----------------------------
+
+services:
+  db:
+    image: mariadb:10.11
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db/init:/docker-entrypoint-initdb.d
+    # "Sana" solo cuando acepta conexiones por red con InnoDB listo: durante
+    # la primera inicialización (db/init) MariaDB corre sin red, así que el
+    # backend no arranca antes de tiempo.
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - tt-network
+    restart: unless-stopped
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    ports:
+      - "10000:10000"
+    volumes:
+      - azurite_data:/data
+    command: "azurite --loose --blobHost 0.0.0.0 --skipApiVersionCheck --location /data"
+    networks:
+      - tt-network
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "8025:8025"   # UI web para revisar los correos enviados
+      - "1025:1025"   # SMTP donde el backend entrega los correos
+    networks:
+      - tt-network
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: runtime
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      - ENABLE_DOCS=${ENABLE_DOCS:-true}
+      - AZURE_STORAGE_CONNECTION_STRING=${AZURE_STORAGE_CONNECTION_STRING}
+      - AZURE_BLOB_PUBLIC_ENDPOINT=${AZURE_BLOB_PUBLIC_ENDPOINT:-http://localhost:10000/devstoreaccount1}
+      - SMTP_HOST=${SMTP_HOST:-mailpit}
+      - SMTP_PORT=${SMTP_PORT:-1025}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-b152@localhost}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_USE_TLS=${SMTP_USE_TLS:-false}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME}
+      - TELEGRAM_WEBHOOK_SECRET=${TELEGRAM_WEBHOOK_SECRET}
+      - FRONTEND_RESET_URL=${FRONTEND_RESET_URL:-http://localhost:5173/reset-password}
+      - FRONTEND_CONFIRM_EMAIL_URL=${FRONTEND_CONFIRM_EMAIL_URL:-http://localhost:5173/confirmar-correo}
+      - FRONTEND_CONFIRM_REGISTRO_URL=${FRONTEND_CONFIRM_REGISTRO_URL:-http://localhost:5173/confirmar-registro}
+      - FRONTEND_CONFIRM_CUSTODIO_URL=${FRONTEND_CONFIRM_CUSTODIO_URL:-http://localhost:5173/confirmar-custodio}
+      - PAYPAL_MODE=${PAYPAL_MODE:-sandbox}
+      - PAYPAL_CLIENT_ID=${PAYPAL_CLIENT_ID:-}
+      - PAYPAL_CLIENT_SECRET=${PAYPAL_CLIENT_SECRET:-}
+      - PAYPAL_CURRENCY=${PAYPAL_CURRENCY:-USD}
+      - ACCOUNT_DELETION_GRACE_DAYS=${ACCOUNT_DELETION_GRACE_DAYS:-30}
+      - ACCOUNT_DELETION_REMINDER_DAYS=${ACCOUNT_DELETION_REMINDER_DAYS:-3}
+      - FRONTEND_BASE_URL=${FRONTEND_BASE_URL:-http://localhost:5173}
+      - DMS_ALERTA_PORCENTAJE=${DMS_ALERTA_PORCENTAJE:-0.75}
+      - DMS_REDUCCION_DIAS=${DMS_REDUCCION_DIAS:-30}
+      - DMS_MAX_RECONFIRMACIONES=${DMS_MAX_RECONFIRMACIONES:-2}
+      - DMS_COOLDOWN_RECONFIRMACION_HORAS=${DMS_COOLDOWN_RECONFIRMACION_HORAS:-24}
+      - DMS_VOTO_TTL_DIAS=${DMS_VOTO_TTL_DIAS:-14}
+      - DMS_RECOVERY_WINDOW_DIAS=${DMS_RECOVERY_WINDOW_DIAS:-30}
+      - FRONTEND_DMS_VOTO_URL=${FRONTEND_DMS_VOTO_URL:-http://localhost:5173/atestacion}
+    ports:
+      - "8000:8000"
+    volumes:
+      - "./backend:/app"
+    depends_on:
+      db:
+        condition: service_healthy
+      azurite:
+        condition: service_started
+      mailpit:
+        condition: service_started
+    networks:
+      - tt-network
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      # Vacío por defecto a propósito: el frontend entonces calcula la URL
+      # del backend en tiempo de ejecución a partir de con qué host se cargó
+      # la página (ver src/services/api.ts) — así funciona igual desde
+      # localhost que desde la IP de LAN al probar desde el celular. Solo
+      # define VITE_API_URL si el backend vive en un host/puerto distinto.
+      - VITE_API_URL=${VITE_API_URL:-}
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - tt-network
+    command: npm run dev -- --host 0.0.0.0
+
+
+# -----------------------------
+# Definición de volúmenes
+# -----------------------------
+
+volumes:
+  db_data:
+  azurite_data:
+
+# -----------------------------
+# Definición de network
+# -----------------------------
+
+networks:
+  tt-network:
+    driver: bridge

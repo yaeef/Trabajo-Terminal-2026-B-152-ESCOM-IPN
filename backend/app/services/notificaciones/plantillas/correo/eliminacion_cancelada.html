@@ -1,0 +1,5 @@
+{% import "correo/_marco.html" as m %}
+{% call m.aviso("Eliminación cancelada", pie=m.PIE_SEGURIDAD) %}
+  {% call m.parrafo_aviso() %}Hola {{ nombre }}: cancelaste la eliminación de tu cuenta. Todo tu
+    patrimonio digital sigue intacto y el protocolo de vida vuelve a estar activo.{% endcall %}
+{% endcall %}

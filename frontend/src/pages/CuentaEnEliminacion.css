@@ -1,0 +1,44 @@
+.cuenta-elim-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: var(--soft-gray, #f4f7f6);
+}
+
+.cuenta-elim-card {
+    width: 100%;
+    max-width: 520px;
+    background: #fff;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 45px -15px rgba(15, 23, 42, 0.25);
+}
+
+.cuenta-elim-bar {
+    height: 6px;
+    background: var(--danger-red, #ef4444);
+}
+
+.cuenta-elim-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+}
+
+[data-theme='dark'] .cuenta-elim-page {
+    background: var(--soft-gray, #0f141b);
+}
+[data-theme='dark'] .cuenta-elim-card,
+[data-theme='dark'] .cuenta-elim-page .modal-content {
+    background: var(--surface, #171b21);
+    color: var(--text-dark);
+}
+[data-theme='dark'] .cuenta-elim-page .form-control {
+    background: var(--surface-2, #1e242c);
+    border-color: var(--border, #2b323b);
+    color: var(--text-dark);
+}

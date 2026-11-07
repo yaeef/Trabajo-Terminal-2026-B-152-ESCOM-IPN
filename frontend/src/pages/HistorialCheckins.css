@@ -1,0 +1,25 @@
+.vault-card {
+    background: white;
+    border-radius: 20px;
+    border: none;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.02);
+    overflow: hidden;
+}
+
+.ip-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--escom-blue);
+    background: #eff6ff;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+.source-tag {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    padding: 5px 12px;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}

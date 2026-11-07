@@ -1,0 +1,1 @@
+Hace tiempo que no hay señales de vida de {{ propietario }}. Si su Interruptor de Hombre Muerto entra en periodo de gracia, te pediremos que confirmes su situación. Por ahora no necesitas hacer nada.

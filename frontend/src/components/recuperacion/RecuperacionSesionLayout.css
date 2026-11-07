@@ -1,0 +1,18 @@
+.recuperacion-sesion-timer {
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 16px;
+    padding: 0.9rem 1rem;
+    text-align: center;
+}
+.recuperacion-sesion-timer-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: #c2410c;
+    font-size: 0.95rem;
+}
+
+[data-theme='dark'] .recuperacion-sesion-timer {
+    background: rgba(194, 65, 12, 0.14);
+    border-color: rgba(194, 65, 12, 0.35);
+}

@@ -1,0 +1,1 @@
+¿{{ propietario }} sigue con vida? Como custodio, responde aquí (necesitarás el fragmento que te fue entregado): {{ enlace }}

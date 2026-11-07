@@ -1,0 +1,79 @@
+/* Custodios.css — directorio de custodios (adaptado de mock/custodios.html).
+   Variables de marca vienen de DashboardLayout.css. */
+
+:root {
+    --danger-red: #ef4444;
+}
+
+.cust-card {
+    background: #fff;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.02);
+}
+
+.channel-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: #f8fafc;
+    padding: 6px 12px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    border: 1px solid #f1f5f9;
+    max-width: 340px;
+}
+.channel-row:last-child {
+    margin-bottom: 0;
+}
+
+.verif-tag {
+    font-size: 0.6rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+.verif-tag.v-ok {
+    background: #dcfce7;
+    color: #15803d;
+}
+.verif-tag.v-no {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.parentesco-chip {
+    display: inline-block;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    background: #eef2ff;
+    color: var(--escom-blue);
+    padding: 1px 7px;
+    border-radius: 5px;
+}
+
+.form-label-b {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+    margin-bottom: 6px;
+}
+
+.modal-header-gradient {
+    height: 6px;
+    background: linear-gradient(90deg, #621132, #003366);
+}
+.modal-content {
+    border-radius: 24px;
+    border: none;
+    overflow: hidden;
+}

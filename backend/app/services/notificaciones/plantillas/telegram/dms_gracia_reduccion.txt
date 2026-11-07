@@ -1,0 +1,1 @@
+Tus custodios confirmaron tu vida. Debes iniciar sesión antes del {{ fecha }} para no pasar a recuperación.

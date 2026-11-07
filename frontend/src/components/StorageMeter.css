@@ -1,0 +1,61 @@
+.smeter {
+    width: 100%;
+}
+.smeter-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+}
+.smeter-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #94a3b8;
+}
+.smeter-value {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--escom-blue);
+    white-space: nowrap;
+}
+.smeter-quota {
+    color: #94a3b8;
+    font-weight: 600;
+}
+.smeter-track {
+    height: 8px;
+    background: #f1f5f9;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 8px 0 4px;
+}
+.smeter-fill {
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.4s ease;
+}
+.smeter-fill.lvl-ok {
+    background: linear-gradient(90deg, var(--escom-blue), var(--ipn-maroon));
+}
+.smeter-fill.lvl-warn {
+    background: #f59e0b;
+}
+.smeter-fill.lvl-crit {
+    background: var(--danger-red, #dc2626);
+}
+.smeter-note {
+    margin: 0;
+    font-size: 0.7rem;
+    color: #94a3b8;
+}
+
+[data-theme='dark'] .smeter-track {
+    background: var(--surface-2, #1e242c);
+}
+[data-theme='dark'] .smeter-label,
+[data-theme='dark'] .smeter-quota,
+[data-theme='dark'] .smeter-note {
+    color: #7c8896;
+}

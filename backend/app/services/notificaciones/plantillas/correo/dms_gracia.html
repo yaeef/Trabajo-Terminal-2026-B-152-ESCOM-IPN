@@ -1,0 +1,9 @@
+{% import "correo/_marco.html" as m %}
+{% call m.aviso("Tu Interruptor de Hombre Muerto entró en periodo de gracia", cta_texto="Sigo con vida",
+                cta_enlace=url_login()) %}
+  {% call m.parrafo_aviso() %}Hola {{ nombre }}: seguimos sin recibir señales de vida tuyas. Tu
+    interruptor entró en <b>periodo de gracia</b> y tus custodios ya fueron notificados para que
+    confirmen tu situación.{% endcall %}
+  {% call m.parrafo_aviso() %}Si no respondes personalmente antes del <b>{{ fecha }}</b>, tu
+    patrimonio se pondrá en recuperación.{% endcall %}
+{% endcall %}

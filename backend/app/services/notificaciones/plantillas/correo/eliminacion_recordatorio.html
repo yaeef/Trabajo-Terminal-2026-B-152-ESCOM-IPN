@@ -1,0 +1,7 @@
+{% import "correo/_marco.html" as m %}
+{% call m.aviso("Últimos días para cancelar la eliminación", cta_texto="Iniciar sesión y cancelar",
+                cta_enlace=url_login(), pie=m.PIE_SEGURIDAD) %}
+  {% call m.parrafo_aviso() %}Hola {{ nombre }}: tu cuenta y su patrimonio digital se eliminarán de
+    forma permanente el <b>{{ fecha }}</b>. Si quieres conservarla, inicia sesión y cancela el
+    proceso.{% endcall %}
+{% endcall %}

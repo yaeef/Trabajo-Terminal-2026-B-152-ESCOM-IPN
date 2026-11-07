@@ -1,0 +1,8 @@
+{% import "correo/_marco.html" as m %}
+{% call m.aviso("Tu cuenta está programada para eliminarse", cta_texto="Iniciar sesión y cancelar",
+                cta_enlace=url_login(), pie=m.PIE_SEGURIDAD) %}
+  {% call m.parrafo_aviso() %}Hola {{ nombre }}: recibimos tu solicitud para eliminar tu cuenta y todo
+    su patrimonio digital. Se ejecutará de forma permanente el <b>{{ fecha }}</b>. Mientras tanto
+    tu cuenta queda bloqueada y el protocolo de vida en pausa. Puedes cancelar en cualquier
+    momento antes de esa fecha.{% endcall %}
+{% endcall %}

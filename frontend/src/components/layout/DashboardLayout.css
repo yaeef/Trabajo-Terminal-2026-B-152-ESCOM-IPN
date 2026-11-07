@@ -1,0 +1,213 @@
+/* DashboardLayout.css — sidebar + topbar compartidos entre Dashboard,
+   Perfil, Configuración e Historial de Check-ins. Variables de marca
+   iguales a AuthTheme.css / Home.css. */
+
+:root {
+    --ipn-maroon: #621132;
+    --escom-blue: #003366;
+    --soft-gray: #f8fafc;
+    --text-dark: #1e293b;
+    --success-green: #2ecc71;
+}
+
+.dashboard-shell {
+    font-family: 'Outfit', sans-serif;
+    background-color: var(--soft-gray);
+    color: var(--text-dark);
+    min-height: 100vh;
+}
+
+/* --- SIDEBAR ESTÁTICO (Sticky) --- */
+.sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    background: white;
+    border-right: 1px solid #e2e8f0;
+    padding: 2rem 1.5rem;
+    overflow-y: auto;
+    flex-shrink: 0;
+    z-index: 1000;
+}
+
+.nav-link {
+    color: #64748b;
+    font-weight: 500;
+    padding: 0.8rem 1rem;
+    border-radius: 12px;
+    transition: 0.3s;
+    margin-bottom: 0.5rem;
+    display: block;
+    text-decoration: none;
+}
+
+.nav-link:hover {
+    background: #f1f5f9;
+    color: var(--escom-blue);
+}
+
+.nav-link.active {
+    background: var(--ipn-maroon);
+    color: white !important;
+    box-shadow: 0 10px 15px -3px rgba(98, 17, 50, 0.2);
+}
+
+/* Módulos aún sin backend/frontend propio: visibles pero no interactivos */
+.nav-link.is-disabled {
+    color: #cbd5e1;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.nav-link.is-disabled .soon-badge {
+    background: #f1f5f9;
+    color: #94a3b8;
+    font-size: 0.6rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    margin-left: 6px;
+}
+
+/* --- Main Content --- */
+.main-content { padding: 2rem 3rem; flex-grow: 1; }
+
+.btn-ipn {
+    background: var(--ipn-maroon);
+    color: white !important;
+    border-radius: 50px;
+    padding: 0.6rem 1.5rem;
+    font-weight: 600;
+    border: none;
+    transition: 0.3s;
+}
+
+.btn-ipn:hover { background: #4a0d26; color: white; transform: translateY(-2px); }
+
+/* El padding fijo de .btn-ipn le gana a .btn-sm (se carga después de Bootstrap),
+   por eso un btn-ipn.btn-sm salía más alto/ancho que otros botones .btn-sm
+   (p. ej. btn-blue-manage) que sí respetan el tamaño de Bootstrap. */
+.btn-ipn.btn-sm { padding: 0.25rem 0.75rem; }
+
+/* --- Tarjetas de estadística (usadas en Dashboard, Historial de Check-ins) --- */
+.stat-card {
+    border: none;
+    border-radius: 20px;
+    background: white;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border-top: 4px solid var(--escom-blue);
+    transition: 0.3s;
+}
+
+.stat-card:hover { transform: translateY(-5px); }
+
+.stat-card.is-placeholder h3 {
+    color: #cbd5e1 !important;
+}
+
+/* --- Topbar --- */
+.top-bar {
+    background: white;
+    padding: 1rem 3rem;
+    border-bottom: 1px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.user-profile {
+    transition: all 0.2s ease;
+    padding: 5px 10px;
+    border-radius: 12px;
+}
+
+.user-profile.is-clickable { cursor: pointer; }
+.user-profile.is-clickable:hover { background-color: #f1f5f9; }
+
+/* --- Menú móvil (burbuja + panel deslizable) --- */
+/* El sidebar normal se oculta en pantallas <lg (Bootstrap d-none d-lg-block);
+   estos elementos lo sustituyen solo en móvil/tablet. */
+
+.mobile-menu-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    border: none;
+    background: var(--ipn-maroon);
+    color: white;
+    font-size: 1.25rem;
+    box-shadow: 0 8px 20px rgba(98, 17, 50, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1040;
+    transition: 0.2s;
+}
+
+.mobile-menu-fab:hover { transform: scale(1.05); }
+.mobile-menu-fab:active { transform: scale(0.95); }
+
+.mobile-menu-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1041;
+}
+
+.mobile-menu-drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: min(280px, 80vw);
+    background: white;
+    padding: 2rem 1.5rem;
+    overflow-y: auto;
+    z-index: 1042;
+    box-shadow: 8px 0 30px rgba(0, 0, 0, 0.15);
+    animation: slideInLeft 0.25s ease-out;
+}
+
+@keyframes slideInLeft {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(0); }
+}
+
+/* --- Modal de cierre de sesión seguro --- */
+.logout-modal .modal-content {
+    border-radius: 30px;
+    border: none;
+    overflow: hidden;
+    background: white;
+}
+.logout-modal .modal-header-gradient {
+    height: 6px;
+    background: linear-gradient(90deg, #621132, #003366);
+}
+.logout-anim {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 4rem;
+    height: 4rem;
+}
+.logout-broom {
+    position: absolute;
+    color: var(--ipn-maroon);
+}
+.logout-proto {
+    font-size: 0.7rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0;
+}
+
+[data-theme='dark'] .logout-modal .modal-content { background: var(--surface); color: var(--text-dark); }
+[data-theme='dark'] .mobile-menu-drawer { background: var(--surface); }

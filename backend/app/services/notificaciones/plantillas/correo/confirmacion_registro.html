@@ -1,0 +1,9 @@
+{% import "correo/_marco.html" as m %}
+{% call m.cta(icono="✉️", titulo="Confirma tu correo", enlace=enlace,
+              boton="Activar mi cuenta", expira="24 horas") %}
+  {% call m.parrafo() %}Se creó una cuenta en el Sistema de Herencia Digital con esta dirección
+    de correo. Para activarla, confirma que el correo es tuyo con el botón de abajo; hasta
+    entonces no se podrá iniciar sesión.{% endcall %}
+  {% call m.parrafo(ultimo=true) %}Si no reconoces este registro, ignora este correo &mdash; la
+    cuenta seguirá sin activarse.{% endcall %}
+{% endcall %}

@@ -1,0 +1,6 @@
+🔐 Recuperación de cuenta
+
+Recibimos una solicitud para restablecer tu contraseña. Abre este enlace para elegir una nueva:
+{{ enlace }}
+
+Expira en 30 minutos. Si tú no solicitaste este cambio, ignora este mensaje.

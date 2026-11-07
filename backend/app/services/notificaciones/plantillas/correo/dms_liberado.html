@@ -1,0 +1,8 @@
+{% import "correo/_marco.html" as m %}
+{% call m.aviso("Tu Interruptor de Hombre Muerto se activó", cta_texto="Iniciar sesión", cta_enlace=url_login()) %}
+  {% call m.parrafo_aviso() %}Hola {{ nombre }}: al no recibir señales de vida, tu interruptor se
+    activó y tus bóvedas pasaron a estado de recuperación. Tus custodios pueden ahora participar
+    en la reconstrucción del acceso.{% endcall %}
+  {% call m.parrafo_aviso() %}Si esto es un error y sigues con vida, inicia sesión de inmediato y
+    contacta a tus custodios.{% endcall %}
+{% endcall %}

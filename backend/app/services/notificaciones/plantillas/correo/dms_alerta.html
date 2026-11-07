@@ -1,0 +1,9 @@
+{% import "correo/_marco.html" as m %}
+{% call m.aviso("Hace tiempo que no sabemos de ti", cta_texto="Confirmar que sigo activo", cta_enlace=url_login()) %}
+  {% call m.parrafo_aviso() %}Hola {{ nombre }}: no registramos ninguna señal de vida tuya en los
+    últimos días.{% endcall %}
+  {% call m.parrafo_aviso() %}Si no confirmas tu actividad en aproximadamente <b>{{ dias }} día(s)</b>,
+    tu Interruptor de Hombre Muerto entrará en periodo de gracia y se notificará a tus
+    custodios.{% endcall %}
+  {% call m.parrafo_aviso() %}Inicia sesión o responde a este proceso para reiniciar el contador.{% endcall %}
+{% endcall %}

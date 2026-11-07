@@ -1,0 +1,1 @@
+Hace días que no sabemos de ti. En ~{{ dias }} día(s) tu Interruptor de Hombre Muerto entrará en periodo de gracia. Inicia sesión para reiniciar el contador.

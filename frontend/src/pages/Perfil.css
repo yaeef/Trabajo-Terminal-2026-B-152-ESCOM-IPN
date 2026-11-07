@@ -1,0 +1,66 @@
+/* Perfil.css — estilos exclusivos de la página Editar Perfil.
+   Sidebar/topbar compartido vive en components/layout/DashboardLayout.css. */
+
+.edit-card {
+    background: white;
+    border-radius: 24px;
+    padding: 2.5rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.02);
+    border: 1px solid #e2e8f0;
+    max-width: 900px;
+}
+
+.edit-card .form-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.edit-card .form-control {
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    background: #fcfdfe;
+    font-size: 0.95rem;
+}
+
+.edit-card .form-control:focus {
+    border-color: var(--escom-blue);
+    box-shadow: 0 0 0 4px rgba(0, 51, 102, 0.05);
+}
+
+.profile-avatar-display img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 30px;
+    border: 4px solid white;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Modal de éxito --- */
+.modal-content { border-radius: 30px; border: none; overflow: hidden; }
+.modal-header-gradient { height: 6px; background: linear-gradient(90deg, #621132, #003366); }
+
+.success-icon-circle {
+    width: 100px;
+    height: 100px;
+    background: #eff6ff;
+    color: var(--escom-blue);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    border: 3px solid #bfdbfe;
+}
+
+.progress-timer {
+    height: 5px;
+    background: var(--escom-blue);
+    width: 100%;
+    transition: width 3s linear;
+}

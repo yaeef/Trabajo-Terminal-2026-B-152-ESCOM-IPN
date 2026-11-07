@@ -1,0 +1,1 @@
+⚠️ Tu Interruptor de Hombre Muerto entró en periodo de gracia. Confirma que sigues con vida antes del {{ fecha }}.

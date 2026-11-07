@@ -1,0 +1,4 @@
+🔓 Se habilitó la recuperación de {{ propietario }}. Puedes ayudar a recuperar:
+{% for b in bovedas %}
+- {{ b.nombre }} (PID {{ b.pid }}): {{ b.enlace }}
+{% endfor %}

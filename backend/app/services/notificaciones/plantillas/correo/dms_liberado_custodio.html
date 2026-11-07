@@ -1,0 +1,56 @@
+{#-
+  Un correo por custodio con CADA bóveda de este propietario que puede ayudar
+  a recuperar: su PID, su enlace directo y un QR (mismo enlace) para seguir
+  el trámite desde el celular — cualquier cámara lo reconoce y abre el enlace.
+-#}
+{% import "correo/_marco.html" as m %}
+{% set plural = "s" if bovedas|length != 1 else "" %}
+<!DOCTYPE html>
+<html lang="es"><body style="margin:0;background:{{ color.gris_suave }};font-family:Arial,Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 12px;">
+    <table role="presentation" width="520" cellpadding="0" cellspacing="0"
+           style="max-width:520px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;">
+      <tr><td style="height:6px;background:{{ color.guinda }};"></td></tr>
+      <tr><td style="padding:32px 40px 8px;">
+        <h1 style="margin:0 0 14px;font-size:20px;color:{{ color.texto }};">
+          Se habilitó la recuperación de {{ propietario }}
+        </h1>
+        <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:{{ color.gris_tenue }};">
+          Hola {{ custodio }}: el Interruptor de Hombre Muerto de <b>{{ propietario }}</b> se
+          activó. Como custodio, ya puedes participar en la recuperación de la{{ plural }}
+          siguiente{{ plural }} bóveda{{ plural }} aportando el fragmento que te fue entregado. Cada una
+          tiene su propio identificador (PID) — úsalo si el enlace no funciona.
+        </p>
+      </td></tr>
+      <tr><td style="padding:0 40px 8px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+        {%- for b in bovedas %}
+          <tr><td style="padding:14px 18px;background:{{ color.gris_suave }};border-radius:12px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+              <td width="96" valign="top" style="padding-right:14px;">
+                <img src="{{ b.enlace|qr }}" width="90" height="90" alt="Código QR de acceso"
+                     style="display:block;width:90px;height:90px;border-radius:8px;border:1px solid #e2e8f0;background:#ffffff;">
+              </td>
+              <td valign="top">
+                <p style="margin:0 0 2px;font-size:11px;color:{{ color.gris_tenue }};text-transform:uppercase;
+                   font-weight:700;letter-spacing:.4px;">{{ b.nombre }}</p>
+                <p style="margin:0 0 10px;font-size:12px;color:{{ color.gris_tenue }};
+                   font-family:'JetBrains Mono',monospace;word-break:break-all;">PID: {{ b.pid }}</p>
+                <a href="{{ b.enlace }}" style="display:inline-block;padding:10px 22px;background:{{ color.guinda }};
+                   color:#ffffff;text-decoration:none;border-radius:999px;font-weight:700;font-size:13px;
+                   font-family:'Segoe UI',Arial,sans-serif;">Ir a esta bóveda &rarr;</a>
+                <p style="margin:8px 0 0;font-size:11px;color:#94a3b8;">
+                  O escanea el código con la cámara de tu celular.</p>
+              </td>
+            </tr></table>
+          </td></tr>
+          <tr><td style="height:10px;line-height:10px;font-size:0;">&nbsp;</td></tr>
+        {%- endfor %}
+        </table>
+      </td></tr>
+      <tr><td style="padding:8px 40px 32px;">
+        <p style="margin:0;font-size:12px;color:#94a3b8;">{{ m.PIE_AUTOMATICO }}</p>
+      </td></tr>
+    </table>
+  </td></tr></table>
+</body></html>

@@ -1,0 +1,231 @@
+/* Adaptado de mock/suscripcion.html */
+
+.price-sub {
+    margin: -0.5rem 0 0;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--success-green, #2ecc71);
+}
+
+.plan-actual-chip {
+    background: rgba(46, 204, 113, 0.12);
+    color: #1e874b;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.vigencia-nota {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    font-size: 0.85rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.65rem 0.9rem;
+}
+.vigencia-nota.is-cancelada {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.45);
+}
+
+.uso-mini {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.65rem 0.9rem;
+}
+.uso-mini-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #94a3b8;
+}
+.uso-mini-val {
+    font-weight: 800;
+    color: var(--escom-blue);
+}
+.uso-mini-val small {
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+/* --- Pricing cards --- */
+.pricing-card {
+    background: #fff;
+    border-radius: 24px;
+    padding: 2.25rem;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+    height: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+.pricing-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08);
+    border-color: var(--escom-blue);
+}
+.pricing-card.featured {
+    border: 2px solid var(--ipn-maroon);
+}
+.pricing-card.is-current {
+    border-color: #2ecc71;
+}
+
+.plan-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ipn-maroon);
+    color: #fff;
+    padding: 4px 16px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.price-tag {
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: var(--text-dark, #1e293b);
+    margin: 1rem 0;
+}
+.price-tag small {
+    font-size: 1rem;
+    color: #64748b;
+    font-weight: 400;
+}
+
+.feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0;
+    flex-grow: 1;
+}
+.feature-list li {
+    margin-bottom: 0.9rem;
+    font-size: 0.88rem;
+    color: #475569;
+    display: flex;
+    align-items: center;
+}
+.feature-list li i {
+    color: var(--success-green, #2ecc71);
+    margin-right: 12px;
+    font-size: 1rem;
+}
+
+/* --- Botones --- */
+.btn-plan {
+    border-radius: 50px;
+    padding: 0.8rem;
+    font-weight: 700;
+    width: 100%;
+    transition: 0.3s;
+    border: none;
+}
+.btn-plan:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+.btn-outline-ipn {
+    border: 2px solid var(--ipn-maroon);
+    color: var(--ipn-maroon);
+    background: transparent;
+}
+.btn-outline-ipn:not(:disabled):hover {
+    background: var(--ipn-maroon);
+    color: #fff;
+}
+.btn-ipn-solid {
+    background: var(--ipn-maroon);
+    color: #fff;
+}
+.btn-ipn-solid:not(:disabled):hover {
+    background: #4a0d26;
+    transform: translateY(-2px);
+}
+.current-plan-indicator {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.pago-nota {
+    background: #fff;
+    border-color: #e2e8f0 !important;
+}
+
+/* --- Modales --- */
+.suscripcion-modal {
+    border-radius: 24px;
+    border: none;
+    overflow: hidden;
+}
+.suscripcion-modal .modal-header-gradient {
+    height: 6px;
+    background: linear-gradient(90deg, var(--ipn-maroon), var(--escom-blue));
+}
+.susc-progress {
+    height: 6px;
+    background: #f1f5f9;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.susc-progress-bar {
+    height: 100%;
+    background: var(--ipn-maroon);
+    border-radius: 10px;
+    transition: width 0.25s ease;
+}
+
+.pp-buttons {
+    min-height: 46px;
+    max-width: 320px;
+    margin: 0 auto;
+}
+
+/* --- Dark mode --- */
+[data-theme='dark'] .pricing-card,
+[data-theme='dark'] .pago-nota {
+    background: var(--surface);
+    border-color: var(--border);
+}
+[data-theme='dark'] .pricing-card:hover {
+    border-color: var(--escom-blue);
+}
+[data-theme='dark'] .price-tag {
+    color: var(--text-dark);
+}
+[data-theme='dark'] .feature-list li {
+    color: #b8c2ce;
+}
+[data-theme='dark'] .uso-mini,
+[data-theme='dark'] .vigencia-nota:not(.is-cancelada) {
+    background: var(--surface-2);
+    border-color: var(--border);
+}
+[data-theme='dark'] .current-plan-indicator {
+    background: var(--surface-2);
+    color: #7c8896;
+}
+[data-theme='dark'] .susc-progress {
+    background: var(--surface-2);
+}
+[data-theme='dark'] .btn-outline-ipn {
+    border-color: var(--ipn-maroon);
+    color: #e78bb4;
+}

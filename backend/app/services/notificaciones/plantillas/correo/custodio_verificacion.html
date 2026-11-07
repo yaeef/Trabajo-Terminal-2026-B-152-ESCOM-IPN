@@ -1,0 +1,9 @@
+{% import "correo/_marco.html" as m %}
+{% call m.cta(icono="🛡️", titulo="Fuiste designado como custodio", titulo_pagina="Confirma que eres custodio",
+              enlace=enlace, boton="Confirmar", expira="72 horas") %}
+  {% call m.parrafo() %}Hola <strong>{{ custodio }}</strong>, <strong>{{ propietario }}</strong> te
+    registró como custodio de confianza en su plan de sucesión digital.{% endcall %}
+  {% call m.parrafo(ultimo=true) %}Como custodio, en el futuro podrías ayudar a recuperar el acceso a su
+    información. Confirma este correo para quedar registrado. Si no reconoces esta solicitud,
+    ignora este mensaje &mdash; no se hará ningún cambio.{% endcall %}
+{% endcall %}

@@ -1,0 +1,11 @@
+{% import "correo/_marco.html" as m %}
+{% call m.aviso("¿" ~ propietario ~ " sigue con vida?", cta_texto="Responder", cta_enlace=enlace) %}
+  {% call m.parrafo_aviso() %}Hola {{ custodio }}: <b>{{ propietario }}</b> te designó como custodio
+    de su plan de herencia digital. Hace tiempo que no da señales de vida y su Interruptor de
+    Hombre Muerto está en periodo de gracia.{% endcall %}
+  {% call m.parrafo_aviso() %}Como custodio, tu testimonio ayuda a decidir si el proceso de
+    recuperación debe avanzar o detenerse. Abre el enlace, aporta el fragmento que te fue
+    entregado y responde según lo que sepas.{% endcall %}
+  {% call m.parrafo_aviso() %}Si no tienes información, no hagas nada: el proceso continuará por
+    tiempo.{% endcall %}
+{% endcall %}

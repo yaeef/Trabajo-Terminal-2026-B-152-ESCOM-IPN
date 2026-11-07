@@ -1,0 +1,91 @@
+.patrimonio-lib-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 24px;
+    background: var(--soft-gray, #f4f7f6);
+}
+
+.patrimonio-lib-card {
+    width: 100%;
+    max-width: 720px;
+    background: #fff;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 20px 45px -15px rgba(15, 23, 42, 0.25);
+}
+
+.patrimonio-lib-bar {
+    height: 6px;
+    background: var(--danger-red, #ef4444);
+}
+
+.patrimonio-lib-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+}
+
+.patrimonio-lib-timeline {
+    border-left: 2px solid #e2e8f0;
+    padding-left: 16px;
+    margin-left: 6px;
+}
+
+.patrimonio-lib-timeline-item {
+    position: relative;
+    padding-bottom: 14px;
+}
+
+.patrimonio-lib-timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.patrimonio-lib-timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -21px;
+    top: 4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--ipn-maroon, #621132);
+}
+
+.patrimonio-lib-ronda {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 14px 16px;
+}
+
+.patrimonio-lib-voto-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 0.85rem;
+}
+
+.patrimonio-lib-voto-row + .patrimonio-lib-voto-row {
+    border-top: 1px solid #f1f5f9;
+}
+
+[data-theme='dark'] .patrimonio-lib-page {
+    background: var(--soft-gray, #0f141b);
+}
+[data-theme='dark'] .patrimonio-lib-card {
+    background: var(--surface, #171b21);
+    color: var(--text-dark);
+}
+[data-theme='dark'] .patrimonio-lib-ronda {
+    border-color: var(--border, #2b323b);
+}
+[data-theme='dark'] .patrimonio-lib-voto-row + .patrimonio-lib-voto-row {
+    border-top-color: var(--border, #2b323b);
+}
+[data-theme='dark'] .patrimonio-lib-timeline {
+    border-left-color: var(--border, #2b323b);
+}

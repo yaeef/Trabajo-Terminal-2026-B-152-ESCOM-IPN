@@ -1,0 +1,184 @@
+.recuperacion-page {
+    font-family: 'Outfit', sans-serif;
+    background:
+        linear-gradient(135deg, rgba(0, 51, 102, 0.9) 0%, rgba(98, 17, 50, 0.9) 100%),
+        url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80&w=1920');
+    background-attachment: fixed;
+    background-size: cover;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.recuperacion-page .card-recuperacion {
+    width: 100%;
+    max-width: 550px;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(10px);
+    border: none;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Borde superior degradado IPN/ESCOM — mismo tratamiento que .login-page .top-gradient */
+.recuperacion-page .top-gradient {
+    height: 6px;
+    background: linear-gradient(90deg, var(--ipn-maroon), var(--escom-blue));
+}
+
+.recuperacion-page .btn-ipn {
+    background-color: var(--ipn-maroon);
+    color: white !important;
+    border-radius: 50px;
+    font-weight: 600;
+    border: none;
+    transition: all 0.3s ease;
+}
+.recuperacion-page .btn-ipn:hover:not(:disabled) {
+    background-color: #4a0d26;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(98, 17, 50, 0.2);
+}
+/* Bootstrap define ".btn:disabled" con más especificidad que un ".btn-ipn"
+   normal (que solo pinta el fondo en estado habilitado), así que sin esto
+   el botón deshabilitado cae al "background-color: transparent" de
+   Bootstrap y se ve blanco — solo se nota la forma por el shadow. */
+.recuperacion-page .btn-ipn:disabled {
+    background-color: var(--ipn-maroon);
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.recuperacion-page .form-control,
+.recuperacion-page .form-select {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 12px 16px;
+    transition: all 0.2s;
+    font-family: 'JetBrains Mono', monospace;
+}
+.recuperacion-page .form-control:focus,
+.recuperacion-page .form-select:focus {
+    background-color: #fff;
+    border-color: var(--escom-blue);
+    box-shadow: 0 0 0 4px rgba(0, 51, 102, 0.1);
+}
+
+.recuperacion-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #64748b;
+}
+
+.recuperacion-dropzone {
+    display: block;
+    border: 2px dashed #cbd5e1;
+    border-radius: 16px;
+    padding: 1.75rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: 0.2s;
+    background: #f8fafc;
+    color: var(--ipn-maroon, #621132);
+}
+.recuperacion-dropzone:hover {
+    border-color: var(--ipn-maroon);
+    background: #fff1f2;
+}
+.recuperacion-dropzone.is-busy {
+    cursor: wait;
+    border-color: var(--escom-blue);
+}
+.recuperacion-dropzone i {
+    font-size: 1.75rem;
+    display: block;
+}
+
+.recuperacion-page .input-group-text {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px 0 0 12px;
+    color: #94a3b8;
+}
+
+.recuperacion-strength-meter {
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 10px;
+    margin: 10px 0 6px;
+    overflow: hidden;
+}
+.recuperacion-strength-fill {
+    height: 100%;
+    width: 0;
+    transition: 0.3s;
+}
+
+.recuperacion-status {
+    background: #f0fdf4;
+    border-radius: 12px;
+    padding: 0.6rem 1rem;
+    text-align: center;
+}
+
+.recuperacion-info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    font-size: 0.85rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+.recuperacion-info-row:last-child {
+    border-bottom: none;
+}
+
+/* Vista previa de una sesión ya fundada (antes de decidir si unirse). */
+.sesion-preview {
+    background: var(--surface-2, #f8fafc);
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 16px;
+    padding: 1rem;
+    text-align: left;
+}
+.sesion-preview-fila {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border, #e2e8f0);
+}
+.sesion-preview-fila:last-child {
+    border-bottom: none;
+}
+.sesion-preview-detalle {
+    font-size: 0.72rem;
+    color: #64748b;
+}
+.sesion-preview-hora {
+    font-size: 0.68rem;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+.sesion-reloj {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: rgba(0, 51, 102, 0.08);
+    color: var(--escom-blue, #003366);
+}
+.sesion-reloj.is-urgente {
+    background: #fff7ed;
+    color: #c2410c;
+}
+.sesion-reloj.is-expirada {
+    background: #fee2e2;
+    color: #b91c1c;
+}

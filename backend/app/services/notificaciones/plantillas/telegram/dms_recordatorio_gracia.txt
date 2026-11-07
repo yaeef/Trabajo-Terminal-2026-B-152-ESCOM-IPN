@@ -1,0 +1,1 @@
+Recordatorio: confirma tu vida antes del {{ fecha }}.

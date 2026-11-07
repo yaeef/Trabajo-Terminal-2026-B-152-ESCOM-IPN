@@ -1,0 +1,8 @@
+{% import "correo/_marco.html" as m %}
+{% call m.aviso("Tus custodios confirmaron tu vida", cta_texto="Confirmar personalmente", cta_enlace=url_login()) %}
+  {% call m.parrafo_aviso() %}Hola {{ nombre }}: un número suficiente de tus custodios confirmó que
+    sigues con vida, así que el proceso no avanzó a la recuperación.{% endcall %}
+  {% call m.parrafo_aviso() %}Aun así necesitamos tu confirmación personal. Tienes hasta el
+    <b>{{ fecha }}</b> para iniciar sesión; de lo contrario el patrimonio pasará a
+    recuperación.{% endcall %}
+{% endcall %}

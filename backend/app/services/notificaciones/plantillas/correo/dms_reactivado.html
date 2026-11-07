@@ -1,0 +1,5 @@
+{% import "correo/_marco.html" as m %}
+{% call m.aviso("Registramos tu señal de vida", acento=color.azul) %}
+  {% call m.parrafo_aviso() %}Hola {{ nombre }}: recibimos tu señal de vida y tu Interruptor de Hombre
+    Muerto volvió a estado <b>activo</b>. El contador de inactividad se reinició.{% endcall %}
+{% endcall %}

@@ -1,0 +1,65 @@
+/* Dashboard.css — estilos EXCLUSIVOS de la página Dashboard.
+   Sidebar/topbar/stat-card compartidos viven en
+   components/layout/DashboardLayout.css. El widget de verificación vive
+   en components/VerificationStatusWidget.css. */
+
+.vault-card {
+    background: white;
+    border-radius: 20px;
+    border: none;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.02);
+    overflow: hidden;
+}
+
+.badge-status {
+    font-size: 0.75rem;
+    padding: 0.5em 1em;
+    border-radius: 50px;
+}
+
+/* --- Modal: Check-in Realizado (tras login) --- */
+.modal-content { border-radius: 30px; border: none; overflow: hidden; position: relative; }
+.modal-header-gradient { height: 6px; background: linear-gradient(90deg, #621132, #003366); }
+
+.success-icon-circle {
+    width: 100px;
+    height: 100px;
+    background: #eff6ff;
+    color: var(--escom-blue);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    border: 3px solid #bfdbfe;
+}
+
+.btn-close-checkin {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: #f1f5f9;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    transition: 0.2s;
+    z-index: 2;
+}
+
+.btn-close-checkin:hover {
+    background: #e2e8f0;
+    color: var(--text-dark);
+}
+
+.progress-timer {
+    height: 5px;
+    background: var(--escom-blue);
+    width: 100%;
+    transition: width 10s linear;
+}
