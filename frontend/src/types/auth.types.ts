@@ -2,6 +2,12 @@ export interface SuscripcionActiva {
     nombre: string;
     fecha_inicio: string;
     fecha_fin: string | null;
+    /** contratado | gracia (venció, con año de reserva) | reserva (la reserva cubre) */
+    origen?: 'contratado' | 'gracia' | 'reserva';
+    /** Plan vencido con contenido que excede el Gratuito: día del recorte. */
+    impago_recorte_en?: string | null;
+    /** Hay recorte pendiente pero en pausa (el DMS no está activo). */
+    impago_pausado?: boolean;
 }
 
 export interface User {

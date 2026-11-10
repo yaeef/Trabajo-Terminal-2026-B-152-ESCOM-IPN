@@ -211,3 +211,38 @@
 
 [data-theme='dark'] .logout-modal .modal-content { background: var(--surface); color: var(--text-dark); }
 [data-theme='dark'] .mobile-menu-drawer { background: var(--surface); }
+
+/* Aviso fijo de plan vencido (components/layout/AvisoPlan.tsx) */
+.aviso-plan {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+    margin-bottom: 1.25rem;
+    padding: 0.75rem 1rem;
+    border-radius: 14px;
+    font-size: 0.875rem;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.45);
+}
+.aviso-plan > i {
+    color: #b45309;
+}
+.aviso-plan > span {
+    flex: 1 1 260px;
+}
+.aviso-plan > a {
+    font-weight: 700;
+    color: var(--ipn-maroon);
+    white-space: nowrap;
+}
+.aviso-plan.is-peligro {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.45);
+}
+.aviso-plan.is-peligro > i {
+    color: #dc2626;
+}
+[data-theme='dark'] .aviso-plan > a {
+    color: #e78bb4;
+}

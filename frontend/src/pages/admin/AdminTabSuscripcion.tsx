@@ -17,6 +17,13 @@ interface Props {
 
 const money = (n: number) => (n === 0 ? '$0' : `$${Math.round(n).toLocaleString('es-MX')}`);
 
+const COBERTURA: Record<PlanActual['cobertura'], string> = {
+    gratuito: 'Sin costo',
+    pago: 'Año pagado',
+    gracia: 'En gracia tras vencer',
+    reserva: 'Cubierto por el año de reserva',
+};
+
 export default function AdminTabSuscripcion({ idPropietario, onCambio }: Props) {
     const [actual, setActual] = useState<PlanActual | null>(null);
     const [planes, setPlanes] = useState<Plan[]>([]);
@@ -88,15 +95,22 @@ export default function AdminTabSuscripcion({ idPropietario, onCambio }: Props) 
                     <div>
                         <h5 className="fw-bold mb-1">Plan {actual.plan.nombre}</h5>
                         <p className="text-muted small mb-0">
-                            {actual.plan.costo_anual > 0 ? 'Ciclo anual' : 'Sin costo'} · desde {fechaCorta(actual.fecha_inicio)}
-                            {actual.fecha_fin && <> · vence {fechaCorta(actual.fecha_fin)}</>}
-                            {actual.cancelada_en && (
-                                <>
-                                    {' '}
-                                    · <span className="text-warning fw-bold">cancelada (pasa a Gratuito al vencer)</span>
-                                </>
+                            {COBERTURA[actual.cobertura]} · desde {fechaCorta(actual.fecha_inicio)}
+                            {actual.fecha_fin && <> · hasta {fechaCorta(actual.fecha_fin)}</>}
+                            {actual.pagado_hasta && actual.pagado_hasta !== actual.fecha_fin && (
+                                <> · renovado hasta {fechaCorta(actual.pagado_hasta)}</>
                             )}
+                            {actual.cancelada_en && <> · sin avisos de renovación</>}
+                            {actual.reserva && <> · año de reserva {actual.reserva.estado === 'activa' ? 'en uso' : 'guardado'}</>}
                         </p>
+                        {actual.impago && (
+                            <p className="small mb-0 mt-1 text-danger fw-bold">
+                                {actual.impago.estado === 'pausado'
+                                    ? 'Recorte por impago en pausa (DMS no activo)'
+                                    : `Recorte por impago el ${fechaCorta(actual.impago.recorte_en)}`}
+                                {actual.impago.excesos.length > 0 && `: ${actual.impago.excesos.join('; ')}`}
+                            </p>
+                        )}
                     </div>
                     <button className="btn btn-ipn btn-sm" onClick={abrirCambio}>
                         <i className="fas fa-arrows-rotate me-2" /> Cambiar plan

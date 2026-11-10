@@ -227,7 +227,7 @@ export default function CredentialEditorModal({
 
                                 <div className="alert alert-warning py-2 small mt-3 mb-0">
                                     <i className="fas fa-shield-halved me-1" />
-                                    Se cifra con AES-256-GCM en el navegador. B152 nunca ve estos datos.
+                                    Se cifra con AES-256-GCM en el navegador. Kleimos nunca ve estos datos.
                                 </div>
                             </>
                         )}

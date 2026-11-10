@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { custodiosService } from '../services/custodios.service';
 import { getApiErrorMessage } from '../utils/errors';
 import './auth/AuthTheme.css';
+import KleimosLogo from '../components/brand/KleimosLogo';
 
 /**
  * CU-011 (paso 2): el custodio llega desde el link del correo
@@ -35,6 +36,9 @@ export default function ConfirmarCustodio() {
             <div className="card-auth animate__animated animate__fadeInUp">
                 <div className="top-gradient" />
                 <div className="card-body p-4 p-md-5 text-center">
+                    <div className="auth-logo">
+                        <KleimosLogo tamano="md" />
+                    </div>
                     {estado === 'cargando' && (
                         <>
                             <div className="d-inline-block p-3 rounded-circle bg-light shadow-sm">

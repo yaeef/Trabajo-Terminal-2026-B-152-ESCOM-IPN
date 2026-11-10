@@ -1,0 +1,21 @@
+{% import "correo/_marco.html" as m %}
+{% if motivo == "inicio" %}
+  {% set titulo = "Tu plan terminó: tu cuenta está en solo lectura" %}
+{% elif motivo == "reprogramado" %}
+  {% set titulo = "Nueva fecha para eliminar lo que excede tu plan" %}
+{% else %}
+  {% set titulo = "Quedan " ~ dias ~ (" día" if dias == 1 else " días") ~ " para eliminar lo que excede tu plan" %}
+{% endif %}
+{% call m.aviso(titulo, cta_texto="Renovar o elegir qué conservar", cta_enlace=url_login()) %}
+  {% call m.parrafo_aviso() %}Hola {{ nombre }}: tu cuenta está en el plan Gratuito y tu contenido
+    excede sus límites:{% endcall %}
+  <ul style="margin:0 0 14px;padding-left:20px;font-size:14px;line-height:1.6;color:{{ color.gris_tenue }};">
+    {% for exceso in excesos %}<li>{{ exceso }}</li>{% endfor %}
+  </ul>
+  {% call m.parrafo_aviso() %}Puedes ver y descargar todo, pero no subir ni crear más. El
+    <b>{{ recorte_en }}</b> se eliminará lo que no quepa: se conserva la bóveda que elijas (o, si no
+    eliges, la de más custodios) y, dentro de ella, se borran primero los archivos más recientes
+    hasta quedar en el límite.{% endcall %}
+  {% call m.parrafo_aviso() %}Lo eliminado no se puede recuperar, ni siquiera por la plataforma.
+    Para evitarlo, renueva tu plan o descarga lo que quieras conservar antes de esa fecha.{% endcall %}
+{% endcall %}

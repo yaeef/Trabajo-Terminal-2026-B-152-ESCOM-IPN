@@ -169,6 +169,89 @@
     border-color: #e2e8f0 !important;
 }
 
+/* --- Plan vencido (impago) --- */
+.impago-panel {
+    background: rgba(239, 68, 68, 0.07);
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    border-left: 6px solid #ef4444;
+    border-radius: 16px;
+    padding: 1.1rem 1.3rem;
+}
+.impago-panel h5 {
+    color: #b91c1c;
+    font-size: 1rem;
+}
+.impago-panel ul {
+    padding-left: 1.2rem;
+}
+.impago-panel.is-pausado {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+    border-left-color: var(--escom-blue);
+}
+.impago-panel.is-pausado h5 {
+    color: var(--escom-blue);
+}
+
+/* --- Año de reserva --- */
+.reserva-card h5 {
+    font-size: 1rem;
+}
+.reserva-card h5 > i {
+    color: var(--escom-blue);
+}
+.reserva-texto {
+    flex: 1 1 320px;
+}
+.reserva-chip {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(0, 51, 102, 0.1);
+    color: var(--escom-blue);
+    vertical-align: middle;
+}
+.reserva-chip.is-activa {
+    background: rgba(245, 158, 11, 0.15);
+    color: #b45309;
+}
+
+/* --- Resumen de compra --- */
+.compra-resumen {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+}
+.compra-linea {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.65rem 1rem;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #e2e8f0;
+    margin: 0;
+}
+.compra-opcion {
+    cursor: pointer;
+}
+.compra-total {
+    font-weight: 700;
+    border-bottom: none;
+    background: #f8fafc;
+}
+.compra-notas {
+    padding-left: 1.1rem;
+    margin-bottom: 1.25rem;
+}
+.compra-notas li + li {
+    margin-top: 0.35rem;
+}
+
 /* --- Modales --- */
 .suscripcion-modal {
     border-radius: 24px;
@@ -228,4 +311,24 @@
 [data-theme='dark'] .btn-outline-ipn {
     border-color: var(--ipn-maroon);
     color: #e78bb4;
+}
+[data-theme='dark'] .impago-panel.is-pausado,
+[data-theme='dark'] .compra-total {
+    background: var(--surface-2);
+    border-color: var(--border);
+}
+[data-theme='dark'] .impago-panel h5 {
+    color: #fca5a5;
+}
+[data-theme='dark'] .impago-panel.is-pausado h5,
+[data-theme='dark'] .reserva-card h5 > i,
+[data-theme='dark'] .reserva-chip {
+    color: #93c5fd;
+}
+[data-theme='dark'] .reserva-chip.is-activa {
+    color: #fbbf24;
+}
+[data-theme='dark'] .compra-resumen,
+[data-theme='dark'] .compra-linea {
+    border-color: var(--border);
 }

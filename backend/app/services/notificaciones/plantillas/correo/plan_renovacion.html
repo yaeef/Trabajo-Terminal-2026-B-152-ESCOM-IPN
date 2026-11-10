@@ -1,0 +1,17 @@
+{% import "correo/_marco.html" as m %}
+{% call m.aviso("Tu plan vence " ~ ("mañana" if dias == 1 else "en " ~ dias ~ " días"),
+                cta_texto="Renovar mi plan", cta_enlace=url_login(), acento=color.azul) %}
+  {% call m.parrafo_aviso() %}Hola {{ nombre }}: tu plan vence el <b>{{ vence }}</b>. La renovación
+    no es automática: para seguir con todo tu espacio, renueva desde <b>Suscripción</b> por
+    {{ importe }} MXN. El año nuevo empieza el día en que vence el actual, así que no pierdes días
+    por renovar antes.{% endcall %}
+  {% if con_reserva %}
+  {% call m.parrafo_aviso() %}Tienes un <b>año de reserva</b>: si no renuevas, tendrás 30 días de
+    gracia con tu plan normal y después la reserva te cubrirá hasta completar 12 meses.{% endcall %}
+  {% else %}
+  {% call m.parrafo_aviso() %}Si no renuevas, tu cuenta pasará al plan Gratuito y lo que exceda sus
+    límites se eliminará al terminar el plazo que te avisaremos.{% endcall %}
+  {% endif %}
+  {% call m.parrafo_aviso() %}Si no quieres renovar, puedes dejar de recibir estos avisos desde la
+    misma pantalla.{% endcall %}
+{% endcall %}

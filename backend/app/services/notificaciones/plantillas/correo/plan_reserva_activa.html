@@ -1,0 +1,8 @@
+{% import "correo/_marco.html" as m %}
+{% call m.aviso("Tu año de reserva está en uso", cta_texto="Ver mi suscripción",
+                cta_enlace=url_login(), acento=color.azul) %}
+  {% call m.parrafo_aviso() %}Hola {{ nombre }}: como no renovaste tu plan, tu <b>año de reserva</b>
+    empezó a cubrirte. Mantienes tu plan completo hasta el <b>{{ hasta }}</b>.{% endcall %}
+  {% call m.parrafo_aviso() %}Puedes renovar cuando quieras; al hacerlo, el año nuevo empieza ese
+    día y lo que quedaba de la reserva se pierde.{% endcall %}
+{% endcall %}

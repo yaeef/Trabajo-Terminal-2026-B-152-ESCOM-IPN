@@ -1,1 +1,1 @@
-Tu cuenta quedó vinculada correctamente a este chat.
+Tu cuenta de {{ marca }} quedó vinculada correctamente a este chat.

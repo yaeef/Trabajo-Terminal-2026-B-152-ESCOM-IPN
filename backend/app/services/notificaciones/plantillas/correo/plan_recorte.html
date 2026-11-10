@@ -1,0 +1,12 @@
+{% import "correo/_marco.html" as m %}
+{% call m.aviso("Eliminamos lo que excedía tu plan", cta_texto="Ver mi cuenta", cta_enlace=url_login()) %}
+  {% call m.parrafo_aviso() %}Hola {{ nombre }}: terminó el plazo sin renovación, así que tu cuenta
+    quedó dentro de los límites del plan Gratuito. Se eliminó de forma definitiva:{% endcall %}
+  <ul style="margin:0 0 14px;padding-left:20px;font-size:14px;line-height:1.6;color:{{ color.gris_tenue }};">
+    {% for boveda in bovedas %}<li>Bóveda «{{ boveda }}» con todos sus archivos</li>{% endfor %}
+    {% for archivo in archivos %}<li>{{ archivo }}</li>{% endfor %}
+    {% if not bovedas and not archivos %}<li>Nada: tu contenido ya cabía en el plan.</li>{% endif %}
+  </ul>
+  {% call m.parrafo_aviso() %}Tus custodios y tu Interruptor de Hombre Muerto siguen funcionando para
+    lo que conservaste. Puedes volver a contratar un plan cuando quieras.{% endcall %}
+{% endcall %}

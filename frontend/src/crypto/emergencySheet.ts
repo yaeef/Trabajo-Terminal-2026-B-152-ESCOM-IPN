@@ -55,7 +55,7 @@ interface Contenido {
 function contenido(o: SheetOpts): Contenido {
     if (o.tipo === 'boveda') {
         return {
-            titulo: 'Hoja de emergencia · B152',
+            titulo: 'Hoja de emergencia · Kleimos Legacy',
             subtitulo: `Bóveda “<strong>${esc(o.nombreBoveda)}</strong>”`,
             etiquetaFrase: 'Pass-phrase de la bóveda',
             advertencia:
@@ -67,7 +67,7 @@ function contenido(o: SheetOpts): Contenido {
                 'De esta frase se deriva la llave AES-256 que cifra los activos de la bóveda.',
                 'Si la olvidas, <b>solo</b> podrás recuperar los activos mediante el proceso de ' +
                     'recuperación con custodios (reconstrucción del secreto por Shamir).',
-                'El servidor de B152 nunca conoce esta frase ni la llave: por eso este respaldo es ' +
+                'El servidor de Kleimos nunca conoce esta frase ni la llave: por eso este respaldo es ' +
                     'tu única copia si decides no memorizarla.',
             ],
             archivo: `hoja-emergencia-${o.pid}.html`,
@@ -92,7 +92,7 @@ function contenido(o: SheetOpts): Contenido {
                 'la bóveda por su PID, sube tu fragmento (.sss) e ingresa esta pass-phrase.',
             'No es la pass-phrase de la bóveda: solo protege tu llave de sesión, con la que se ' +
                 'descifran los fragmentos que aportan los demás custodios.',
-            'El servidor de B152 no la conoce (solo guarda tu llave pública): si la pierdes, no podrás ' +
+            'El servidor de Kleimos no la conoce (solo guarda tu llave pública): si la pierdes, no podrás ' +
                 'reingresar, y cuando la sesión expire otro custodio tendrá que fundar una nueva.',
         ],
         archivo: `hoja-sesion-recuperacion-${o.pid}.html`,
@@ -172,7 +172,7 @@ ${campos}
       Imprimir
     </button>
   </div>
-  <div class="foot">Trabajo Terminal B-152 · ESCOM-IPN · Este archivo no se sincroniza con ningún servidor.</div>
+  <div class="foot">Kleimos Legacy · ESCOM-IPN · Este archivo no se sincroniza con ningún servidor.</div>
 </div>
 </body></html>`;
 }

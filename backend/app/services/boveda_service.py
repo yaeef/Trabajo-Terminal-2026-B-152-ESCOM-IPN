@@ -27,12 +27,13 @@ from app.models.custodio import Custodio
 from app.models.recuperacion import FragmentoDepositado, SesionRecuperacion
 from app.models.usuario import Usuario
 from app.schemas.boveda import (
+    MIN_N,
     AsignacionRequest,
     BovedaCrearRequest,
     BovedaEditarRequest,
     CompromisosVssRequest,
 )
-from app.services import almacenamiento_service, cuota, suscripcion_service
+from app.services import almacenamiento_service, cuota
 from app.services.dms.estados import EN_CURSO
 from app.services.errores import Conflicto, DatoInvalido, NoEncontrado, Prohibido
 
@@ -43,6 +44,10 @@ class BovedaNoEncontrada(NoEncontrado):
 
 class BovedaConflicto(Conflicto):
     """La operación choca con el estado actual de la bóveda -> 409."""
+
+
+class CustodiosInsuficientes(Conflicto):
+    """Aún no tiene suficientes custodios con un canal confirmado."""
 
 
 class PassphraseIncorrecta(Prohibido):
@@ -152,13 +157,36 @@ def obtener_boveda_propia(db: Session, usuario: Usuario, id_boveda: int) -> Bove
     return boveda
 
 
+def _exigir_custodios_listos(db: Session, usuario: Usuario) -> None:
+    """Primer paso antes de crear una bóveda: tener al menos MIN_N custodios
+    con correo o Telegram confirmado (a quienes repartir los fragmentos; con
+    menos no hay umbral de mayoría válido, RN-006). Así no quedan bóvedas en
+    borrador que no se pueden terminar."""
+    registrados = db.scalar(
+        select(func.count(Custodio.id)).where(Custodio.id_propietario == usuario.id)
+    )
+    listos = db.scalar(
+        select(func.count(Custodio.id)).where(
+            Custodio.id_propietario == usuario.id,
+            (Custodio.correo_verificado.is_(True)) | (Custodio.telegram_verificado.is_(True)),
+        )
+    )
+    if (listos or 0) < MIN_N:
+        raise CustodiosInsuficientes(
+            f"Antes de crear una bóveda necesitas al menos {MIN_N} custodios que hayan "
+            f"confirmado su correo o su Telegram (tienes {listos or 0} confirmados de "
+            f"{registrados or 0} registrados). Regístralos en Custodios."
+        )
+
+
 def crear_boveda(db: Session, usuario: Usuario, datos: BovedaCrearRequest) -> Boveda:
     """
     CU-020: crea la bóveda en estado 'borrador' (aún sin compromisos).
     Guarda la envoltura KDF (no secreta) y el verificador de la pass-phrase
     (hasheado). La pass-phrase y la DEK nunca llegan al servidor.
     """
-    suscripcion_service.exigir_cupo_boveda(db, usuario)
+    cuota.exigir_cupo_boveda(db, usuario)
+    _exigir_custodios_listos(db, usuario)
 
     boveda = Boveda(
         pid=_generar_pid(db),

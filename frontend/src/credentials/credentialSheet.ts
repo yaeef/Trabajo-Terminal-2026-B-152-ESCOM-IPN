@@ -97,7 +97,7 @@ function buildHtml(o: SheetOpts): string {
 <div class="sheet">
   <div class="bar"></div>
   <div class="pad">
-    <h1>${esc(titulo)} · B152</h1>
+    <h1>${esc(titulo)} · Kleimos Legacy</h1>
     <p class="muted">Activo “<strong>${esc(o.nombreActivo)}</strong>” — bóveda “${esc(o.bovedaNombre)}”</p>
     <p class="muted">Última edición: ${esc(actualizado)} · hoja generada el ${esc(generada)}</p>
 
@@ -111,7 +111,7 @@ function buildHtml(o: SheetOpts): string {
 
     <button class="btn noprint" onclick="window.print()">Imprimir / Guardar como PDF</button>
   </div>
-  <div class="foot">Trabajo Terminal B-152 · ESCOM-IPN · Este archivo no se sincroniza con ningún servidor.</div>
+  <div class="foot">Kleimos Legacy · ESCOM-IPN · Este archivo no se sincroniza con ningún servidor.</div>
 </div>
 </body></html>`;
 }

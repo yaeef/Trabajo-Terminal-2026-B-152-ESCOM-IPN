@@ -3,7 +3,9 @@ import { useRef, useState, type ReactNode } from 'react';
 import { useAuth } from '../../store/AuthContext';
 import { getTheme, toggleTheme } from '../../theme';
 import { purgeAll } from '../../crypto/sensitiveMemory';
+import AvisoPlan from './AvisoPlan';
 import './DashboardLayout.css';
+import KleimosLogo from '../brand/KleimosLogo';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -163,11 +165,7 @@ export default function DashboardLayout({ activeItem, topBarLabel, backTo, varia
 
     const brandHeader = (
         <div className="mb-5 px-2">
-            <h4 className="fw-bold m-0" style={{ color: 'var(--escom-blue)' }}>
-                <i className="fas fa-shield-halved me-2"></i>B152
-                <span style={{ color: 'var(--ipn-maroon)' }}>.</span>
-            </h4>
-            <small className="text-muted fw-bold">TRABAJO TERMINAL</small>
+            <KleimosLogo tamano="sm" />
         </div>
     );
 
@@ -227,7 +225,10 @@ export default function DashboardLayout({ activeItem, topBarLabel, backTo, varia
                         </div>
                     </header>
 
-                    <main className="main-content animate__animated animate__fadeIn">{children}</main>
+                    <main className="main-content animate__animated animate__fadeIn">
+                        <AvisoPlan suscripcion={user?.suscripcion_activa} />
+                        {children}
+                    </main>
                 </div>
             </div>
 
@@ -272,7 +273,7 @@ export default function DashboardLayout({ activeItem, topBarLabel, backTo, varia
                                         style={{ width: `${cleanup.pct}%`, background: 'var(--ipn-maroon)' }}
                                     ></div>
                                 </div>
-                                <p className="mt-3 logout-proto">Protocolo B152.v2</p>
+                                <p className="mt-3 logout-proto">Kleimos Legacy</p>
                             </div>
                         </div>
                     </div>

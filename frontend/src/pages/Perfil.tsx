@@ -6,6 +6,8 @@ import { useNotice } from '../store/NoticeContext';
 import { userService } from '../services/user.service';
 import { getApiErrorMessage } from '../utils/errors';
 import './Perfil.css';
+import RequisitosContrasena from '../components/common/RequisitosContrasena';
+import { requisitoFaltante } from '../utils/password';
 
 // Tiempo antes de redirigir a /configuracion tras un guardado exitoso,
 // igual que el boceto aprobado (3s).
@@ -48,6 +50,11 @@ export default function Perfil() {
         if (quierecambiarPassword) {
             if (!passwordActual || !nuevaPassword || !confirmarPassword) {
                 notifyError('Completa los 3 campos de contraseña, o déjalos todos en blanco si no deseas cambiarla.');
+                return;
+            }
+            const falta = requisitoFaltante(nuevaPassword);
+            if (falta) {
+                notifyError(falta);
                 return;
             }
             if (nuevaPassword !== confirmarPassword) {
@@ -181,7 +188,7 @@ export default function Perfil() {
                                 <input
                                     type={showNuevaPassword ? 'text' : 'password'}
                                     className="form-control shadow-none"
-                                    placeholder="Min 12, Mayús, minús, número, símbolo"
+                                    placeholder="Mínimo 12 caracteres"
                                     value={nuevaPassword}
                                     onChange={(e) => setNuevaPassword(e.target.value)}
                                     autoComplete="new-password"
@@ -221,6 +228,11 @@ export default function Perfil() {
                                 </button>
                             </div>
                         </div>
+                        {nuevaPassword !== '' && (
+                            <div className="col-12">
+                                <RequisitosContrasena password={nuevaPassword} confirmacion={confirmarPassword} />
+                            </div>
+                        )}
                         <div className="col-12">
                             <div className="p-3 rounded-4 bg-light small text-muted">
                                 <i className="fas fa-info-circle me-1 text-primary"></i>

@@ -15,6 +15,7 @@ import { PARENTESCO_OPCIONES } from '../types/custodios.types';
 import VistaPreviaSesion, { restanteDeSesion, useReloj } from './recuperacion/VistaPreviaSesion';
 import type { BovedaRecuperacionResponse, SesionEstadoResponse } from '../types/recuperacion.types';
 import './Recuperacion.css';
+import KleimosLogo from '../components/brand/KleimosLogo';
 
 /**
  * CU-029 a CU-032 — Portal público de recuperación:
@@ -311,6 +312,9 @@ export default function Recuperacion() {
                 <div className="top-gradient"></div>
 
                 <div className="card-body p-4 p-md-5">
+                    <div className="auth-logo">
+                        <KleimosLogo tamano="md" />
+                    </div>
                     <div className="text-center mb-4">
                         <div className="d-inline-block p-3 rounded-circle bg-light shadow-sm">
                             <i

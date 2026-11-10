@@ -34,23 +34,32 @@ COLORES = {
     "gris_tenue": "#64748b",
 }
 
+# Asunto sin la marca: `_asunto` le agrega " — <MARCA>" a todos.
 ASUNTOS: dict[str, str] = {
-    "recuperacion": "Recuperación de contraseña — TT B152",
-    "correo_secundario": "Confirma tu correo alternativo — TT B152",
-    "confirmacion_registro": "Confirma tu correo para activar tu cuenta — TT B152",
-    "custodio_verificacion": "Confirma que eres custodio — TT B152",
-    "custodio_telegram": "Vincula tu Telegram como custodio — TT B152",
-    "eliminacion_programada": "Tu cuenta se eliminará pronto — TT B152",
-    "eliminacion_recordatorio": "Recordatorio: tu cuenta se eliminará pronto — TT B152",
-    "eliminacion_cancelada": "Cancelaste la eliminación de tu cuenta — TT B152",
+    "recuperacion": "Recuperación de contraseña",
+    "correo_secundario": "Confirma tu correo alternativo",
+    "confirmacion_registro": "Confirma tu correo para activar tu cuenta",
+    "custodio_verificacion": "Confirma que eres custodio",
+    "custodio_telegram": "Vincula tu Telegram como custodio",
+    "eliminacion_programada": "Tu cuenta se eliminará pronto",
+    "eliminacion_recordatorio": "Recordatorio: tu cuenta se eliminará pronto",
+    "eliminacion_cancelada": "Cancelaste la eliminación de tu cuenta",
     "dms_alerta": "Confirma tu actividad — Interruptor de Hombre Muerto",
     "dms_gracia": "Periodo de gracia iniciado — Interruptor de Hombre Muerto",
     "dms_gracia_reduccion": "Confirma tu vida antes del plazo — Interruptor de Hombre Muerto",
-    "dms_liberado": "Tu Interruptor de Hombre Muerto se activó — TT B152",
-    "dms_reactivado": "Interruptor de Hombre Muerto reactivado — TT B152",
-    "dms_alerta_custodio": "Sin señales de {{ propietario }} — TT B152",
-    "dms_voto_custodio": "Confirma la situación de {{ propietario }} — TT B152",
-    "dms_liberado_custodio": "Recuperación habilitada — {{ propietario }} — TT B152",
+    "dms_liberado": "Tu Interruptor de Hombre Muerto se activó",
+    "dms_reactivado": "Interruptor de Hombre Muerto reactivado",
+    "dms_alerta_custodio": "Sin señales de {{ propietario }}",
+    "dms_voto_custodio": "Confirma la situación de {{ propietario }}",
+    "dms_liberado_custodio": "Recuperación habilitada — {{ propietario }}",
+    "plan_renovacion": ("Tu plan vence {{ 'mañana' if dias == 1 else 'en ' ~ dias ~ ' días' }}"),
+    "plan_gracia": "Tu plan venció: periodo de gracia hasta el {{ hasta }}",
+    "plan_reserva_activa": "Tu año de reserva está en uso",
+    "plan_impago": (
+        "{% if motivo == 'recordatorio' %}Quedan {{ dias }} día(s): lo{% else %}Lo{% endif %}"
+        " que excede tu plan se eliminará el {{ recorte_en }}"
+    ),
+    "plan_recorte": "Eliminamos lo que excedía tu plan",
 }
 
 PLANTILLAS_TELEGRAM = frozenset(p.stem for p in (_DIR / "telegram").glob("*.txt"))
@@ -78,7 +87,7 @@ def _entorno(*, html: bool) -> Environment:
         lstrip_blocks=True,
         auto_reload=False,
     )
-    entorno.globals.update(color=COLORES, url_login=_url_login)
+    entorno.globals.update(color=COLORES, url_login=_url_login, marca=settings.MARCA)
     entorno.filters["qr"] = _qr_data_uri
     return entorno
 
@@ -89,7 +98,7 @@ _TEXTO = _entorno(html=False)
 
 @cache
 def _asunto(plantilla: str) -> Template:
-    return _TEXTO.from_string(ASUNTOS[plantilla])
+    return _TEXTO.from_string(f"{ASUNTOS[plantilla]} — {settings.MARCA}")
 
 
 def existe_correo(plantilla: str) -> bool:

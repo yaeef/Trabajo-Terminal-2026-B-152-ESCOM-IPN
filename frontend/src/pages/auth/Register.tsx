@@ -4,7 +4,11 @@ import { authService } from '../../services/auth.service';
 import { useNotice } from '../../store/NoticeContext';
 import { getApiErrorMessage } from '../../utils/errors';
 import type { RegisterPayload } from '../../types/auth.types';
+import RequisitosContrasena from '../../components/common/RequisitosContrasena';
+import ReenviarConfirmacion from '../../components/common/ReenviarConfirmacion';
+import { requisitoFaltante } from '../../utils/password';
 import './Register.css';
+import KleimosLogo from '../../components/brand/KleimosLogo';
 
 const EMPTY_FORM: RegisterPayload = {
     username: '',
@@ -32,6 +36,11 @@ export default function Register() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        const falta = requisitoFaltante(formData.password);
+        if (falta) {
+            notifyError(falta);
+            return;
+        }
         if (formData.password !== confirmPassword) {
             notifyError('Las contraseñas no coinciden.');
             return;
@@ -61,6 +70,9 @@ export default function Register() {
                 <div className="top-gradient"></div>
 
                 <div className="card-body p-4 p-md-5">
+                    <div className="auth-logo">
+                        <KleimosLogo tamano="md" />
+                    </div>
                     <div className="text-center mb-5">
                         <h2 className="fw-bold mb-1" style={{ color: 'var(--escom-blue)' }}>Registro</h2>
                         <p className="text-muted">Crea una cuenta para gestionar tus bóvedas digitales</p>
@@ -141,7 +153,7 @@ export default function Register() {
                                     <input
                                         type={showPassword ? 'text' : 'password'}
                                         className="form-control"
-                                        placeholder="Min 12, Mayús, minús, número, símbolo"
+                                        placeholder="Mínimo 12 caracteres"
                                         value={formData.password}
                                         onChange={handleChange('password')}
                                         required
@@ -184,9 +196,10 @@ export default function Register() {
                             </div>
                         </div>
 
-                        <p className="small text-muted mb-4">
-                          
-                        </p>
+                        <div className="mb-4">
+                            <p className="small fw-bold text-muted mb-0">Tu contraseña debe tener:</p>
+                            <RequisitosContrasena password={formData.password} confirmacion={confirmPassword} />
+                        </div>
 
                         <div className="text-center">
                             <button type="submit" className="btn btn-ipn shadow-lg mb-3" disabled={isSubmitting}>
@@ -232,10 +245,16 @@ export default function Register() {
                                     Tu cuenta fue creada. Te enviamos un enlace de confirmación a{' '}
                                     <strong>{formData.correo}</strong>; ábrelo para activarla y después inicia sesión.
                                 </p>
-                                <p className="small text-muted mb-0">
-                                    El enlace vence en 24 horas. Si no lo encuentras, revisa la carpeta de spam o
-                                    intenta iniciar sesión para recibir uno nuevo.
+                                <p className="small text-muted mb-3">
+                                    El enlace vence en 24 horas. Si no lo encuentras, revisa la carpeta de spam. Si no
+                                    te llegó, pide otro (cada uno nuevo invalida el anterior).
                                 </p>
+                                <ReenviarConfirmacion
+                                    usuario={formData.correo}
+                                    password={formData.password}
+                                    esperaInicial={120}
+                                    className="w-100"
+                                />
                                 <button
                                     type="button"
                                     className="btn btn-ipn w-100 mt-4 py-3 shadow-sm"

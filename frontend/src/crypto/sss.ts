@@ -106,12 +106,6 @@ export async function decodeShareFile(text: string): Promise<Share> {
     return files.decodeShare(text) as Share;
 }
 
-/** Texto de commitments.fss. */
-export async function encodeCommitmentsFile(commitmentsHex: string, k: number): Promise<string> {
-    const { files } = await loadBridge();
-    return files.encodeCommitments(hexToBytes(commitmentsHex), k);
-}
-
 /** Nombre de custodio -> fragmento del nombre de archivo (sin acentos ni caracteres inválidos). */
 export function slugNombreArchivo(nombre: string): string {
     return (

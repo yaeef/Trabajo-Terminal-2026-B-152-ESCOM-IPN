@@ -5,6 +5,7 @@ import { useRecuperacionSession } from '../../store/RecuperacionSessionContext';
 import type { SesionEstadoResponse } from '../../types/recuperacion.types';
 import '../layout/DashboardLayout.css';
 import './RecuperacionSesionLayout.css';
+import KleimosLogo from '../brand/KleimosLogo';
 
 function fmtFecha(iso: string | null | undefined): string {
     if (!iso) return '—';
@@ -59,11 +60,8 @@ export default function RecuperacionSesionLayout({
             <div className="d-flex align-items-start">
                 <nav className="sidebar d-none d-lg-block" style={{ width: 280 }}>
                     <div className="mb-4 px-2">
-                        <h4 className="fw-bold m-0" style={{ color: 'var(--escom-blue)' }}>
-                            <i className="fas fa-shield-halved me-2"></i>B152
-                            <span style={{ color: 'var(--ipn-maroon)' }}>.</span>
-                        </h4>
-                        <small className="text-muted fw-bold">RECUPERACIÓN</small>
+                        <KleimosLogo tamano="sm" />
+                        <small className="text-muted fw-bold d-block mt-2">RECUPERACIÓN</small>
                     </div>
 
                     {sesion?.expira_en && (

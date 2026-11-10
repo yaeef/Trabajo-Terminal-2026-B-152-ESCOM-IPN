@@ -40,6 +40,10 @@ export interface EnlaceTelegramEnviadoResponse {
 
 /** Un custodio solo puede vincularse a una bóveda si tiene al menos un
  *  canal de comunicación verificado (para poder notificarlo en la recuperación). */
+/** Custodios con canal confirmado que se necesitan para crear una bóveda
+ *  (RN-006: con menos no hay umbral de mayoría válido). Igual que MIN_N del backend. */
+export const MIN_CUSTODIOS_BOVEDA = 3;
+
 export const custodioNotificable = (c: {
     correo_verificado: boolean;
     telegram_verificado: boolean;

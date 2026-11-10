@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getTheme, toggleTheme } from '../theme';
 import './Home.css';
+import KleimosLogo from '../components/brand/KleimosLogo';
 
 // ---------------------------------------------------------------------------
 // Datos estáticos de las secciones
@@ -292,9 +293,8 @@ export default function Home() {
             {/* Navbar */}
             <nav className="navbar navbar-expand-lg navbar-clean sticky-top">
                 <div className="container">
-                    <a className="navbar-brand fw-bold" href="#top" style={{ color: 'var(--escom-blue)' }}>
-                        <i className="fas fa-shield-alt me-2"></i>TT B
-                        <span style={{ color: 'var(--ipn-maroon)' }}>-</span>152
+                    <a className="navbar-brand" href="#top" aria-label="Kleimos Legacy, inicio">
+                        <KleimosLogo tamano="sm" />
                     </a>
 
                     {/* Hamburguesa — solo móvil/tablet */}
@@ -345,44 +345,34 @@ export default function Home() {
             {/* Hero */}
             <div className="parallax-section shadow-lg mb-5" id="top">
                 <div className="parallax-overlay">
-                    <div className="container text-center">
-                        <div
-                            className="text-white px-5 py-5 rounded-4 animate__animated animate__fadeInDown"
-                            style={{
-                                background: 'rgba(255, 255, 255, 0.05)',
-                                backdropFilter: 'blur(12px)',
-                                border: '1px solid rgba(255,255,255,0.1)',
-                                boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
-                            }}
-                        >
-                            <h1 className="display-1 fw-bold mb-0" style={{ letterSpacing: '-2px' }}>
-                                ESCOM
-                            </h1>
-                            <div
-                                className="mx-auto my-3"
-                                style={{ width: '100px', height: '4px', background: '#ffffff', borderRadius: '2px' }}
-                            ></div>
-
-                            <p className="h3 fw-light text-uppercase" style={{ letterSpacing: '4px' }}>
-                                Trabajo Terminal B152
-                            </p>
-                            <p className="lead opacity-75">Protección Del Patrimonio Digital</p>
-
-                            <div className="mt-4">
-                                <a href="#conceptos" className="btn btn-lg rounded-pill fw-bold px-5 shadow-lg home-hero-btn">
-                                    <i className="fas fa-microchip me-2"></i>Empezar
-                                </a>
+                    <div className="container">
+                        <div className="home-hero-card text-white text-center animate__animated animate__fadeInDown">
+                            <div className="d-none d-md-flex justify-content-center">
+                                <KleimosLogo tamano="lg" tono="oscuro" />
                             </div>
+                            <div className="d-flex d-md-none justify-content-center">
+                                <KleimosLogo tamano="md" tono="oscuro" />
+                            </div>
+
+                            <h1 className="home-hero-titulo">Protege tu patrimonio digital</h1>
+                            <p className="home-hero-sub">
+                                Tus archivos, cifrados y repartidos entre personas de confianza, llegan a quien tú elijas
+                                si algo te pasa.
+                            </p>
+
+                            <a href="#conceptos" className="btn btn-lg rounded-pill fw-bold px-5 shadow-lg home-hero-btn">
+                                <i className="fas fa-microchip me-2"></i>Empezar
+                            </a>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Antes / Después: riesgo sin B152 vs. protegido con B152 */}
+            {/* Antes / Después: riesgo sin Kleimos vs. protegido con Kleimos */}
             <section className="section-band section-band--white">
             <div className="container">
                 <div className="text-center mb-5">
-                    <h2 className="fw-bold">Tu patrimonio digital, hoy vs. con B152</h2>
+                    <h2 className="fw-bold">Tu patrimonio digital, hoy vs. con Kleimos</h2>
                     <div
                         className="mx-auto my-3"
                         style={{ width: '80px', height: '4px', background: 'var(--ipn-maroon)' }}
@@ -408,7 +398,7 @@ export default function Home() {
                     <div className="col-md-6">
                         <div className="card risk-card risk-card--after p-4 h-100">
                             <span className="risk-badge risk-badge--after">
-                                <i className="fas fa-shield-heart me-2"></i>Con B152
+                                <i className="fas fa-shield-heart me-2"></i>Con Kleimos
                             </span>
                             <ul className="list-unstyled mt-4 mb-0">
                                 {AFTER_ITEMS.map((text) => (
@@ -455,7 +445,7 @@ export default function Home() {
             <section className="section-band section-band--white" id="conceptos">
             <div className="container">
                 <div className="text-center mb-5">
-                    <h2 className="fw-bold">¿Cómo funciona el Trabajo Terminal B152?</h2>
+                    <h2 className="fw-bold">¿Cómo funciona Kleimos Legacy?</h2>
                     <div
                         className="mx-auto my-3"
                         style={{ width: '80px', height: '4px', background: 'var(--ipn-maroon)' }}
@@ -491,7 +481,7 @@ export default function Home() {
                             Un Secreto que <span style={{ color: 'var(--sim-light-purple)' }}>nadie</span> posee solo
                         </h2>
                         <p className="text-muted lead">
-                            B152 convierte tu acceso en un rompecabezas digital. Lo repartimos entre personas de
+                            Kleimos convierte tu acceso en un rompecabezas digital. Lo repartimos entre personas de
                             confianza, y solo cuando se reúnen las piezas necesarias, puedes recuperar tu patrimonio.
                         </p>
 
@@ -530,7 +520,7 @@ export default function Home() {
                             Un protocolo de emergencia real
                         </h3>
                         <p className="my-4 text-muted">
-                            B152 no es una base de datos. Es un sistema efímero. Solo existimos cuando necesitas
+                            Kleimos no es una base de datos. Es un sistema efímero. Solo existimos cuando necesitas
                             recuperar tus activos. Nunca conocemos tus llaves y tampoco tus activos.
                         </p>
                         <ul className="list-unstyled">
@@ -554,7 +544,7 @@ export default function Home() {
                     <div>
                         <h5 className="fw-bold mb-1">Aviso importante</h5>
                         <p className="mb-0">
-                            B152 <strong>no es un testamento digital</strong> ni sustituye a un testamento físico
+                            Kleimos <strong>no es un testamento digital</strong> ni sustituye a un testamento físico
                             ante notario. Es una herramienta técnica para transferir el acceso a tus activos
                             digitales a las personas que elijas. Para la sucesión legal de tu patrimonio (bienes,
                             propiedades y disposiciones legales), siempre debes acudir con un notario público.
@@ -594,7 +584,7 @@ export default function Home() {
                         />
                     </div>
                     <p className="small text-white-50">
-                        © 2026 Trabajo Terminal B152 | Ingeniería en Sistemas Computacionales - ESCOM IPN
+                        © 2026 Kleimos Legacy · Ingeniería en Sistemas Computacionales · ESCOM-IPN
                     </p>
                 </div>
             </footer>

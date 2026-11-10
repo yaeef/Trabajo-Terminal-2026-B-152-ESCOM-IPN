@@ -1,0 +1,1 @@
+⏳ Tu plan venció el {{ vencio }}. Conservas tu plan normal hasta el {{ hasta }}; si renuevas antes, tu año de reserva sigue guardado. Si no, ese día empezará a usarse.

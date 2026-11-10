@@ -7,6 +7,15 @@
   Todo {{ dato }} se escapa (autoescape): un nombre con HTML llega como texto.
 -#}
 
+{#- Logotipo en texto (sin imagen): Gmail bloquea las imágenes en Spam y
+    Outlook las remotas por omisión; el texto se ve siempre igual. -#}
+{% macro logo() -%}
+<table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:0 auto;">
+  <tr><td align="center" style="font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:30px;font-weight:bold;letter-spacing:4px;color:#14213d;">KLEIMOS</td></tr>
+  <tr><td align="center" style="padding-top:4px;font-family:Arial,Helvetica,sans-serif;font-size:10px;line-height:12px;font-weight:bold;letter-spacing:5px;color:#8a6420;">LEGACY</td></tr>
+</table>
+{%- endmacro %}
+
 {% macro parrafo(ultimo=false) -%}
 <p style="margin:0 0 {{ 24 if ultimo else 16 }}px 0;">{{ caller() }}</p>
 {%- endmacro %}
@@ -35,16 +44,18 @@
                         <td style="height:6px; background:linear-gradient(90deg, {{ color.guinda }}, {{ color.azul }}); background-color:{{ color.azul }}; font-size:0; line-height:0;">&nbsp;</td>
                     </tr>
                     <tr>
-                        <td style="padding:40px 40px 20px 40px; text-align:center;">
+                        <td style="padding:32px 40px 0 40px; text-align:center;">
+                            {{ logo() }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding:24px 40px 20px 40px; text-align:center;">
                             <div style="display:inline-block; width:64px; height:64px; line-height:64px; border-radius:50%; background-color:#eef2ff; color:{{ color.azul }}; font-size:28px; font-weight:bold;">
                                 {{ icono }}
                             </div>
                             <h1 style="margin:20px 0 8px 0; font-size:22px; color:{{ color.azul }}; font-weight:700;">
                                 {{ titulo }}
                             </h1>
-                            <p style="margin:0; color:{{ color.gris_tenue }}; font-size:14px;">
-                                Sistema DMS &mdash; TT B152, ESCOM-IPN
-                            </p>
                         </td>
                     </tr>
                     <tr>
@@ -88,7 +99,7 @@
                     <tr>
                         <td style="padding:20px 40px; background-color:{{ color.gris_suave }}; text-align:center; border-top:1px solid #e2e8f0;">
                             <p style="margin:0; font-size:12px; color:{{ color.gris_tenue }};">
-                                Trabajo Terminal B-152 &middot; Escuela Superior de Cómputo (ESCOM) &middot; IPN
+                                {{ marca }} &middot; Herencia digital segura
                             </p>
                             <p style="margin:8px 0 0 0; font-size:11px; color:#94a3b8;">
                                 Este es un correo automático, por favor no respondas a esta dirección.
@@ -103,8 +114,8 @@
 </html>
 {%- endmacro %}
 
-{% set PIE_AUTOMATICO = "TT-B152 · Sistema de Herencia Digital · ESCOM-IPN. Correo automático, por favor no respondas a esta dirección." %}
-{% set PIE_SEGURIDAD = "TT-B152 · Sistema de Herencia Digital. Si no reconoces esta actividad, inicia sesión y revisa la seguridad de tu cuenta de inmediato." %}
+{% set PIE_AUTOMATICO = marca ~ " · Herencia digital segura. Correo automático, por favor no respondas a esta dirección." %}
+{% set PIE_SEGURIDAD = marca ~ " · Herencia digital segura. Si no reconoces esta actividad, inicia sesión y revisa la seguridad de tu cuenta de inmediato." %}
 
 {#- Aviso informativo (DMS, eliminación de cuenta). -#}
 {% macro aviso(titulo, cta_texto=none, cta_enlace=none, acento=none, pie=PIE_AUTOMATICO) -%}
@@ -115,7 +126,8 @@
     <table role="presentation" width="520" cellpadding="0" cellspacing="0"
            style="max-width:520px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;">
       <tr><td style="height:6px;background:{{ acento }};"></td></tr>
-      <tr><td style="padding:32px 40px 8px;">
+      <tr><td style="padding:28px 40px 0;">{{ logo() }}</td></tr>
+      <tr><td style="padding:20px 40px 8px;">
         <h1 style="margin:0 0 14px;font-size:20px;color:{{ color.texto }};">{{ titulo }}</h1>
         {{ caller() }}
       </td></tr>

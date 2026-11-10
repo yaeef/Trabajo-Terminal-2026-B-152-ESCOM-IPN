@@ -1,0 +1,9 @@
+{% import "correo/_marco.html" as m %}
+{% call m.aviso("Tu plan venció: estás en periodo de gracia", cta_texto="Renovar mi plan",
+                cta_enlace=url_login(), acento=color.azul) %}
+  {% call m.parrafo_aviso() %}Hola {{ nombre }}: tu plan venció el <b>{{ vencio }}</b> y no
+    recibimos tu renovación. Conservas tu plan normal hasta el <b>{{ hasta }}</b>.{% endcall %}
+  {% call m.parrafo_aviso() %}Si renuevas antes de esa fecha, el año nuevo cuenta desde el
+    vencimiento y tu <b>año de reserva</b> sigue guardado. Si no, ese día empezará a usarse la
+    reserva.{% endcall %}
+{% endcall %}

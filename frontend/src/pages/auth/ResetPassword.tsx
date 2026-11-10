@@ -4,6 +4,9 @@ import { authService } from '../../services/auth.service';
 import { useNotice } from '../../store/NoticeContext';
 import { getApiErrorMessage } from '../../utils/errors';
 import './AuthTheme.css';
+import RequisitosContrasena from '../../components/common/RequisitosContrasena';
+import { requisitoFaltante } from '../../utils/password';
+import KleimosLogo from '../../components/brand/KleimosLogo';
 
 /**
  * CU-005 (paso 2): ingresar la nueva contraseña usando el token recibido
@@ -27,6 +30,11 @@ export default function ResetPassword() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        const falta = requisitoFaltante(nuevaPassword);
+        if (falta) {
+            notifyError(falta);
+            return;
+        }
         if (nuevaPassword !== confirmar) {
             notifyError('Las contraseñas no coinciden.');
             return;
@@ -50,6 +58,9 @@ export default function ResetPassword() {
                 <div className="card-auth animate__animated animate__fadeInUp">
                     <div className="top-gradient"></div>
                     <div className="card-body p-4 p-md-5 text-center">
+                        <div className="auth-logo">
+                            <KleimosLogo tamano="md" />
+                        </div>
                         <div className="error-icon-circle animate__animated animate__bounceIn">
                             <i className="fas fa-link-slash fa-3x"></i>
                         </div>
@@ -70,6 +81,9 @@ export default function ResetPassword() {
                 <div className="card-auth animate__animated animate__fadeInUp">
                     <div className="top-gradient"></div>
                     <div className="card-body p-4 p-md-5 text-center">
+                        <div className="auth-logo">
+                            <KleimosLogo tamano="md" />
+                        </div>
                         <div className="success-icon-circle animate__animated animate__bounceIn">
                             <i className="fas fa-check fa-3x"></i>
                         </div>
@@ -87,6 +101,9 @@ export default function ResetPassword() {
             <div className="card-auth animate__animated animate__fadeInUp">
                 <div className="top-gradient"></div>
                 <div className="card-body p-4 p-md-5">
+                    <div className="auth-logo">
+                        <KleimosLogo tamano="md" />
+                    </div>
                     <div className="text-center mb-4">
                         <div className="d-inline-block p-3 rounded-circle bg-light shadow-sm">
                             <i className="fas fa-lock fa-3x" style={{ color: 'var(--escom-blue)' }}></i>
@@ -105,7 +122,7 @@ export default function ResetPassword() {
                                 <input
                                     type={showPassword ? 'text' : 'password'}
                                     className="form-control shadow-none"
-                                    placeholder="Min 12, Mayús, minús, número, símbolo"
+                                    placeholder="Mínimo 12 caracteres"
                                     value={nuevaPassword}
                                     onChange={(e) => setNuevaPassword(e.target.value)}
                                     required
@@ -146,6 +163,9 @@ export default function ResetPassword() {
                                     <i className={showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
                                 </button>
                             </div>
+                        </div>
+                        <div className="mb-4">
+                            <RequisitosContrasena password={nuevaPassword} confirmacion={confirmar} />
                         </div>
 
                         <button type="submit" className="btn btn-ipn w-100 py-3 mb-3 shadow-sm" disabled={isSubmitting}>

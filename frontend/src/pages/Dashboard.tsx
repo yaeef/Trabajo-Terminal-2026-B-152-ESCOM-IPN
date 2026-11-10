@@ -7,6 +7,9 @@ import StorageMeter from '../components/StorageMeter';
 import type { DashboardResponse } from '../types/dashboard.types';
 import type { ProtocoloVidaResponse } from '../types/dms.types';
 import { useAuth } from '../store/AuthContext';
+import { custodiosService } from '../services/custodios.service';
+import PrimerPasoCustodios from '../components/PrimerPasoCustodios';
+import { custodioNotificable, MIN_CUSTODIOS_BOVEDA, type CustodioResponse } from '../types/custodios.types';
 import './Dashboard.css';
 
 const DEFAULT_PERIODICIDAD_DIAS = 60;
@@ -25,6 +28,12 @@ export default function Dashboard() {
 
     const [data, setData] = useState<DashboardResponse | null>(null);
     const [loading, setLoading] = useState(true);
+    const [custodios, setCustodios] = useState<CustodioResponse[] | null>(null);
+    useEffect(() => {
+        custodiosService.list().then(setCustodios).catch(() => setCustodios(null));
+    }, []);
+    const faltanCustodios =
+        custodios !== null && custodios.filter(custodioNotificable).length < MIN_CUSTODIOS_BOVEDA;
 
     const [showCheckinModal, setShowCheckinModal] = useState(false);
     const [checkinBarCollapsed, setCheckinBarCollapsed] = useState(false);
@@ -144,6 +153,8 @@ export default function Dashboard() {
 
                 {loading ? (
                     <p className="text-muted px-2">Cargando…</p>
+                ) : (!data || data.bovedas.length === 0) && faltanCustodios && custodios ? (
+                    <PrimerPasoCustodios custodios={custodios} />
                 ) : !data || data.bovedas.length === 0 ? (
                     <div className="text-center text-muted py-5">
                         <i className="fas fa-vault fa-2x mb-3 d-block" style={{ color: '#cbd5e1' }}></i>

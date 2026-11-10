@@ -29,6 +29,16 @@ export const authService = {
         return data;
     },
 
+    // Pide otro enlace de confirmación del registro (con las mismas
+    // credenciales del login). 429 + Retry-After si se pidió hace poco.
+    async resendConfirmation(usuario: string, password: string): Promise<{ detail: string; espera_segundos: number }> {
+        const { data } = await api.post<{ detail: string; espera_segundos: number }>(
+            '/api/v1/auth/reenviar-confirmacion',
+            { usuario, password },
+        );
+        return data;
+    },
+
     async confirmRegistration(token: string): Promise<{ detail: string }> {
         const { data } = await api.post<{ detail: string }>('/api/v1/auth/confirmar-registro', { token });
         return data;

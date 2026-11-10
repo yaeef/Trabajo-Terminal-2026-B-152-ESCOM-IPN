@@ -79,6 +79,11 @@ class SuscripcionActivaResponse(BaseModel):
     nombre: str
     fecha_inicio: date
     fecha_fin: date | None = None
+    # 'contratado', 'gracia' o 'reserva' (ver models/suscripcion.OrigenCobertura).
+    origen: str = "contratado"
+    # Plan vencido con contenido que excede el Gratuito (ver services/impago.py).
+    impago_recorte_en: date | None = None
+    impago_pausado: bool = False
 
 
 class UsuarioResponse(BaseModel):
@@ -115,6 +120,14 @@ class OlvideContrasenaRequest(BaseModel):
 
 class ConfirmarRegistroRequest(BaseModel):
     token: str
+
+
+class ReenviarConfirmacionRequest(BaseModel):
+    """Mismas credenciales que el login: así no se puede pedir un enlace
+    para una cuenta ajena ni averiguar si un correo está registrado."""
+
+    usuario: str  # username o correo
+    password: str
 
 
 class RestablecerContrasenaRequest(BaseModel):

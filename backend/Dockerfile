@@ -2,8 +2,6 @@
 #
 # runtime: imagen de ejecución (solo dependencias de producción, usuario sin
 #          privilegios, sin recarga automática).
-# dev:     runtime + herramientas (pytest, ruff, mypy) y --reload; es la que
-#          usa docker-compose en desarrollo.
 
 FROM python:3.11-slim AS base
 ENV PYTHONDONTWRITEBYTECODE=1 \

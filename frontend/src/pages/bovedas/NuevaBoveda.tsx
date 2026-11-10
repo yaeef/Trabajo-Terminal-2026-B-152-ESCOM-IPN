@@ -23,12 +23,12 @@ import { downloadEmergencySheet } from '../../crypto/emergencySheet';
 import {
     splitKey,
     encodeShareFile,
-    encodeCommitmentsFile,
     downloadText,
     slugNombreArchivo,
     type SplitResult,
 } from '../../crypto/sss';
 import './bovedas.css';
+import PrimerPasoCustodios from '../../components/PrimerPasoCustodios';
 
 const MIN_N = 3; // RN-006: con mayoría simple, n=2 no admite ningún k válido
 /** RN-006: k debe representar mayoría simple de los n custodios (floor(n/2)+1 <= k < n). */
@@ -54,7 +54,7 @@ function Stepper({ step }: { step: number }) {
     );
 }
 
-/** Cascarón de modal estilo B152 (backdrop + tira de gradiente). */
+/** Cascarón de modal estilo Kleimos (backdrop + tira de gradiente). */
 function WizardModal({ children, danger }: { children: ReactNode; danger?: boolean }) {
     return (
         <div className="modal fade show d-block wizard-modal" tabIndex={-1} style={{ background: 'rgba(15,23,42,0.55)' }}>
@@ -317,10 +317,12 @@ export default function NuevaBoveda() {
 
     const notificables = directorio.filter(custodioNotificable);
 
-    // Descarga cada .sss ya nombrado con el custodio que lo recibirá, más
-    // commitments.fss. Solo se puede llamar con `split` vivo (recién fragmentado
-    // en esta sesión); si se reanuda una bóveda ya fragmentada/distribuida, este
-    // paso se omite por completo (ver botón "Vincular y Continuar").
+    // Descarga cada .sss ya nombrado con el custodio que lo recibirá. Los
+    // compromisos VSS no se descargan: ya están en el servidor y contra ellos
+    // se verifican los fragmentos (recuperación, atestación, reasignación).
+    // Solo se puede llamar con `split` vivo (recién fragmentado en esta
+    // sesión); si se reanuda una bóveda ya fragmentada/distribuida, este paso
+    // se omite por completo (ver botón "Vincular y Continuar").
     const downloadAllParaCustodios = async () => {
         if (!split) return;
         for (const { c, x } of selectedCustodios) {
@@ -332,10 +334,19 @@ export default function NuevaBoveda() {
             );
             await sleep(120);
         }
-        downloadText('commitments.fss', await encodeCommitmentsFile(split.commitmentsHex, k));
     };
 
     // -------------------------------------------------------------------
+    // Primer paso: sin custodios confirmados no se empieza una bóveda nueva
+    // (el backend también lo exige). Reanudar un borrador no pasa por aquí.
+    if (!resumeId && step === 1 && !loadingDirectorio && notificables.length < MIN_N) {
+        return (
+            <DashboardLayout activeItem="bovedas" topBarLabel="Configurar Bóveda" backTo="/bovedas">
+                <PrimerPasoCustodios custodios={directorio} variante="pagina" />
+            </DashboardLayout>
+        );
+    }
+
     if (!resumeReady) {
         return (
             <DashboardLayout activeItem="bovedas" topBarLabel="Configurar Bóveda" backTo="/bovedas">
@@ -441,7 +452,7 @@ export default function NuevaBoveda() {
                                         </div>
                                     )}
                                     <p className="m-0 mt-2 text-muted small">
-                                        <i className="fas fa-info-circle me-1" /> B152 nunca la guarda. De ella se deriva la
+                                        <i className="fas fa-info-circle me-1" /> Kleimos nunca la guarda. De ella se deriva la
                                         llave AES-256 que además se fragmenta con Shamir.
                                     </p>
 

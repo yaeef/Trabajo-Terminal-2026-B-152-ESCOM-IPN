@@ -244,7 +244,7 @@ export default function AgregarActivos() {
                 <div className="mb-4 text-center">
                     <h3 className="fw-bold mb-1">Agregar nuevos activos</h3>
                     <p className="text-muted">
-                        Se cifran localmente con AES-256-GCM y se suben directo al almacenamiento. B152 nunca ve el
+                        Se cifran localmente con AES-256-GCM y se suben directo al almacenamiento. Kleimos nunca ve el
                         contenido.
                     </p>
                 </div>

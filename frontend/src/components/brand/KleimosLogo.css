@@ -1,0 +1,57 @@
+/* Colores de la marca Kleimos Legacy (azul tinta y dorado). */
+:root {
+    --kleimos-tinta: #14213d;
+    --kleimos-oro: #b8893b;
+    --kleimos-legacy: #8a6420; /* dorado oscuro: texto pequeño legible sobre blanco */
+}
+:root[data-theme='dark'],
+.kleimos-tono-oscuro {
+    --kleimos-tinta: #f3f4f6;
+    --kleimos-oro: #c9a14f;
+    --kleimos-legacy: #d4af5a;
+}
+
+.kleimos-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    line-height: 1;
+    text-decoration: none;
+}
+.kleimos-texto {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.35em;
+}
+.kleimos-nombre {
+    font-family: 'Cinzel', Georgia, 'Times New Roman', serif;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--kleimos-tinta);
+}
+.kleimos-legacy {
+    font-family: 'Outfit', system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.42em;
+    padding-left: 0.15em;
+    color: var(--kleimos-legacy);
+}
+.kleimos-marca {
+    flex: 0 0 auto;
+}
+.kleimos-trazo {
+    stroke: var(--kleimos-tinta);
+}
+.kleimos-oro {
+    fill: var(--kleimos-oro);
+}
+.kleimos-oro-trazo {
+    stroke: var(--kleimos-oro);
+}
+
+/* Logo arriba de las tarjetas de acceso, registro, recuperación, etc. */
+.auth-logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.75rem;
+}

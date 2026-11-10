@@ -1,0 +1,57 @@
+.primer-paso {
+    border: 1px solid rgba(0, 51, 102, 0.18);
+    border-left: 6px solid var(--escom-blue);
+    border-radius: 16px;
+    padding: 1.1rem 1.3rem;
+    background: rgba(0, 51, 102, 0.04);
+    text-align: left;
+}
+.primer-paso.is-pagina {
+    max-width: 680px;
+    margin: 0 auto;
+}
+.primer-paso h5 {
+    color: var(--escom-blue);
+    font-size: 1.05rem;
+}
+.primer-paso-lista {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.1rem;
+    display: grid;
+    gap: 0.7rem;
+}
+.primer-paso-lista li {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    font-size: 0.9rem;
+}
+.primer-paso-num {
+    flex: 0 0 1.7rem;
+    height: 1.7rem;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    background: #e2e8f0;
+    color: #475569;
+}
+.primer-paso-lista li.is-hecho .primer-paso-num {
+    background: #16a34a;
+    color: #fff;
+}
+[data-theme='dark'] .primer-paso {
+    background: var(--surface-2);
+    border-color: var(--border);
+    border-left-color: #93c5fd;
+}
+[data-theme='dark'] .primer-paso h5 {
+    color: #93c5fd;
+}
+[data-theme='dark'] .primer-paso-num {
+    background: var(--border);
+    color: inherit;
+}

@@ -1,5 +1,7 @@
 # backend/app/api/routes/suscripciones.py
-"""Plan del propietario: catálogo, plan vigente, cambio, cancelación y pago con PayPal."""
+"""Plan del propietario: catálogo, cobertura, compras (plan anual y año de
+reserva) con PayPal o simuladas, avisos de renovación y elección de la
+bóveda que se conserva si su plan venció."""
 
 from typing import Any
 
@@ -7,13 +9,14 @@ from fastapi import APIRouter
 
 from app.api.dependencias import PropietarioActual, SesionBD
 from app.schemas.suscripcion import (
-    CambiarPlanRequest,
+    CompraRequest,
     ConfigPayPalResponse,
+    ConservarBovedaRequest,
     PagoIniciadoResponse,
     PlanActualResponse,
     PlanResponse,
 )
-from app.services import paypal_service, suscripcion_service
+from app.services import impago, paypal_service, suscripcion_service
 
 router = APIRouter()
 
@@ -32,42 +35,52 @@ def plan_actual(
     usuario: PropietarioActual,
     db: SesionBD,
 ) -> dict[str, Any]:
-    """Plan activo del propietario + consumo real (bóvedas, custodios, almacenamiento)."""
+    """Plan y cobertura de hoy, consumo, renovación, año de reserva e impago."""
     return suscripcion_service.obtener_estado(db, usuario)
 
 
 @router.get("/paypal/config", response_model=ConfigPayPalResponse)
 def config_paypal(usuario: PropietarioActual) -> dict[str, Any]:
     """Datos públicos para que el navegador cargue el SDK de PayPal. Si
-    `configured` es false, el frontend ofrece 'simular pago'."""
+    `configured` es false, el frontend ofrece 'simular pago' (/comprar)."""
     return paypal_service.config_publica()
 
 
-@router.post("/cambiar", response_model=PlanActualResponse)
-def cambiar_plan(
-    datos: CambiarPlanRequest,
+@router.post("/comprar", response_model=PlanActualResponse)
+def comprar_simulado(
+    datos: CompraRequest,
     usuario: PropietarioActual,
     db: SesionBD,
 ) -> dict[str, Any]:
-    """Cambio directo, SIN pasarela. Válido para planes sin costo o el modo
-    'simular pago' cuando PayPal no está configurado; con PayPal configurado,
-    un cambio que requiere pago se rechaza (409). Bajar desde un plan de pago
-    también (409): se hace con /cancelar. También 409 si el uso actual excede
-    los límites del plan destino."""
-    return suscripcion_service.cambiar_plan(db, usuario, datos.plan_id)
+    """Compra SIN pasarela, solo si PayPal no está configurado (pruebas). Con
+    PayPal configurado responde 409: se paga por /checkout."""
+    return suscripcion_service.comprar_simulado(
+        db, usuario, datos.plan_id, datos.incluye_plan, datos.incluye_reserva
+    )
 
 
 @router.post("/cancelar", response_model=PlanActualResponse)
 def cancelar(usuario: PropietarioActual, db: SesionBD) -> dict[str, Any]:
-    """El plan de pago NO se quita en el acto: sigue vigente hasta `fecha_fin`
-    y después pasa a Gratuito. 409 si el plan vigente no es de pago."""
+    """Deja de recibir los avisos de renovación (la renovación es manual: no
+    hay cobro que detener). 409 si no tiene un año pagado vigente."""
     return suscripcion_service.cancelar(db, usuario)
 
 
 @router.post("/reactivar", response_model=PlanActualResponse)
 def reactivar(usuario: PropietarioActual, db: SesionBD) -> dict[str, Any]:
-    """Deshace la cancelación mientras el plan de pago siga vigente."""
+    """Vuelve a recibir los avisos de renovación."""
     return suscripcion_service.reactivar(db, usuario)
+
+
+@router.put("/impago/boveda-conservar", response_model=PlanActualResponse)
+def elegir_boveda_conservar(
+    datos: ConservarBovedaRequest,
+    usuario: PropietarioActual,
+    db: SesionBD,
+) -> dict[str, Any]:
+    """Con el plan vencido, qué bóveda se conserva si llega el recorte."""
+    impago.elegir_boveda_conservar(db, usuario, datos.id_boveda)
+    return suscripcion_service.obtener_estado(db, usuario)
 
 
 # --------------------------------------------------------------------------
@@ -75,12 +88,14 @@ def reactivar(usuario: PropietarioActual, db: SesionBD) -> dict[str, Any]:
 # --------------------------------------------------------------------------
 @router.post("/checkout", response_model=PagoIniciadoResponse)
 def iniciar_pago_paypal(
-    datos: CambiarPlanRequest,
+    datos: CompraRequest,
     usuario: PropietarioActual,
     db: SesionBD,
 ) -> dict[str, Any]:
-    """Paso 1: valida el cambio y crea la orden de PayPal por el importe anual del plan."""
-    return suscripcion_service.iniciar_pago(db, usuario, datos.plan_id)
+    """Paso 1: valida la compra y crea la orden de PayPal por su importe."""
+    return suscripcion_service.iniciar_pago(
+        db, usuario, datos.plan_id, datos.incluye_plan, datos.incluye_reserva
+    )
 
 
 @router.post("/checkout/{order_id}/capturar", response_model=PlanActualResponse)
@@ -89,6 +104,6 @@ def capturar(
     usuario: PropietarioActual,
     db: SesionBD,
 ) -> dict[str, Any]:
-    """Paso 2: tras la aprobación del comprador, captura el pago y aplica el
-    cambio de plan (ver `suscripcion_service.capturar_pago`)."""
+    """Paso 2: tras la aprobación del comprador, captura el pago y aplica la
+    compra (ver `suscripcion_service.capturar_pago`)."""
     return suscripcion_service.capturar_pago(db, usuario, order_id)

@@ -12,6 +12,7 @@ import re
 import smtplib
 import ssl
 from email.message import EmailMessage
+from email.utils import formataddr
 
 import httpx2
 
@@ -40,7 +41,7 @@ def _asunto_seguro(asunto: str) -> str:
 def enviar_correo(destino: str, asunto: str, html: str) -> None:
     mensaje = EmailMessage()
     mensaje["Subject"] = _asunto_seguro(asunto)
-    mensaje["From"] = settings.SMTP_FROM_EMAIL
+    mensaje["From"] = formataddr((settings.MARCA, settings.SMTP_FROM_EMAIL))
     mensaje["To"] = destino
     mensaje.set_content(html, subtype="html", charset="utf-8")
 

@@ -12,6 +12,7 @@ from app.core.tiempo import hoy
 from app.db.sesion import Base
 
 if TYPE_CHECKING:
+    from app.models.impago import CicloImpago
     from app.models.prueba_vida_log import PruebaVidaLog
     from app.models.suscripcion import PropietarioSuscripcion
     from app.models.token_recuperacion import TokenRecuperacion
@@ -73,11 +74,17 @@ class Usuario(Base):
             return None
         dia = hoy()
         activas = [s for s in self.propietario.suscripciones if s.vigente_en(dia)]
-        vigente = max(activas, key=lambda s: s.fecha_inicio)
+        vigente = max(activas, key=lambda s: (s.fecha_inicio, s.id))
+        ciclo = self.propietario.ciclo_impago_vigente
         return SimpleNamespace(
             nombre=vigente.suscripcion.nombre,
             fecha_inicio=vigente.fecha_inicio,
             fecha_fin=vigente.fecha_fin,
+            origen=vigente.origen,
+            # Plan vencido con contenido que excede el Gratuito: fecha del
+            # recorte (None si está en pausa porque el DMS no está activo).
+            impago_recorte_en=ciclo.recorte_en if ciclo and ciclo.estado == "abierto" else None,
+            impago_pausado=bool(ciclo and ciclo.estado == "pausado"),
         )
 
     @property
@@ -144,3 +151,9 @@ class Propietario(Base):
     pruebas_vida: Mapped[list["PruebaVidaLog"]] = relationship(
         cascade="all, delete-orphan", order_by="desc(PruebaVidaLog.fecha_prueba)"
     )
+    ciclos_impago: Mapped[list["CicloImpago"]] = relationship(order_by="desc(CicloImpago.id)")
+
+    @property
+    def ciclo_impago_vigente(self) -> "CicloImpago | None":
+        """Ciclo de impago abierto o en pausa (como mucho hay uno)."""
+        return next((c for c in self.ciclos_impago if c.estado != "cerrado"), None)

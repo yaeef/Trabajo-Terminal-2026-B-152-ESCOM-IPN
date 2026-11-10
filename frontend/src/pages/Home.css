@@ -102,7 +102,9 @@
     background-position: center;
     background-repeat: no-repeat;
     background-size: cover;
-    height: 600px;
+    /* Banner más compacto: ya no lleva el «ESCOM» gigante, solo la marca. */
+    min-height: clamp(420px, 60vh, 520px);
+    padding: 48px 0;
     position: relative;
     display: flex;
     align-items: center;
@@ -118,19 +120,53 @@
     justify-content: center;
 }
 
+/* Tarjeta de vidrio del hero: angosta y centrada, con la marca al frente. */
+.home-hero-card {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 44px 48px 40px;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+.home-hero-titulo {
+    margin: 28px 0 10px;
+    font-size: clamp(1.6rem, 3.4vw, 2.3rem);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+.home-hero-sub {
+    margin: 0 auto 28px;
+    max-width: 520px;
+    font-size: 1.05rem;
+    line-height: 1.55;
+    opacity: 0.85;
+}
+@media (max-width: 575.98px) {
+    .home-hero-card {
+        padding: 32px 20px 28px;
+        border-radius: 18px;
+    }
+}
+
 /* Botón "Empezar" del hero: siempre sobre imagen oscura. Idéntico en
    ambos temas — blanco con texto vino; al hover se rellena de vino. */
-.home-hero-btn,
-.home-hero-btn:visited {
-    background-color: #ffffff;
-    color: #621132;
-    border: none;
+.btn.home-hero-btn {
+    --bs-btn-bg: #ffffff;
+    --bs-btn-color: #621132;
+    --bs-btn-border-color: transparent;
+    --bs-btn-hover-bg: #c14a7a;
+    --bs-btn-hover-color: #ffffff;
+    --bs-btn-hover-border-color: transparent;
+    --bs-btn-active-bg: #a83365;
+    --bs-btn-active-color: #ffffff;
+    --bs-btn-active-border-color: transparent;
     transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
-.home-hero-btn:hover,
-.home-hero-btn:focus {
-    background-color: #c14a7a;
-    color: #ffffff;
+.btn.home-hero-btn:hover,
+.btn.home-hero-btn:focus-visible {
     transform: translateY(-2px);
 }
 

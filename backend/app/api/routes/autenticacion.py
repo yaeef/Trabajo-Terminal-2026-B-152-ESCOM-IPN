@@ -15,6 +15,7 @@ from app.models.usuario import Usuario
 from app.schemas.usuario import (
     ConfirmarRegistroRequest,
     OlvideContrasenaRequest,
+    ReenviarConfirmacionRequest,
     RegistroRequest,
     RestablecerContrasenaRequest,
     TokenAccesoResponse,
@@ -30,10 +31,11 @@ router = APIRouter()
 _login_fallidos = LimitadorIntentos(max_intentos=10, ventana_seg=15 * 60)
 # Envíos de recuperación por correo destino (evita bombardear un buzón).
 _recuperaciones = LimitadorIntentos(max_intentos=3, ventana_seg=15 * 60)
-# Enlaces de confirmación del registro, por cuenta: a lo sumo uno cada 5 min.
-# Además de no bombardear el buzón, evita que un login justo después del alta
-# mande otro enlace e invalide el del registro (solo sirve el último).
-_confirmaciones_registro = LimitadorIntentos(max_intentos=1, ventana_seg=5 * 60)
+# Enlaces de confirmación del registro, por cuenta: a lo sumo uno cada 2 min
+# (el del alta cuenta). Solo se reenvían a petición (/reenviar-confirmacion):
+# cada enlace nuevo invalida el anterior, así que no se mandan por sorpresa.
+ESPERA_REENVIO_SEG = 2 * 60
+_confirmaciones_registro = LimitadorIntentos(max_intentos=1, ventana_seg=ESPERA_REENVIO_SEG)
 
 
 def _demasiados_intentos(segundos: int) -> HTTPException:
@@ -44,25 +46,51 @@ def _demasiados_intentos(segundos: int) -> HTTPException:
     )
 
 
-def _cuenta_sin_confirmar(db: Session, usuario: Usuario) -> JSONResponse:
-    """403 para quien da la contraseña correcta de una cuenta sin confirmar,
-    reenviándole el enlace si ya pasó la espera. Se DEVUELVE la respuesta en
-    vez de lanzar HTTPException: una excepción revertiría la transacción y,
-    con ella, el token y el correo recién encolados."""
-    clave = str(usuario.id)
-    if _confirmaciones_registro.segundos_restantes(clave):
-        detalle = (
-            "Tu cuenta aún no está activada. Te enviamos un enlace de confirmación hace "
-            "unos minutos: revisa tu correo, incluida la carpeta de spam."
-        )
+def _autenticar(request: Request, db: Session, identificador: str, password: str) -> Usuario:
+    """Usuario (por correo o username) con esa contraseña, o 401/429. Lleva
+    la cuenta de intentos fallidos por (IP, cuenta) contra fuerza bruta."""
+    ip = request.client.host if request.client else None
+    clave = f"{ip}|{identificador.strip().lower()}"
+    espera = _login_fallidos.segundos_restantes(clave)
+    if espera:
+        raise _demasiados_intentos(espera)
+
+    usuario = autenticacion_service.buscar_por_correo(db, correo=identificador)
+    if not usuario:
+        # El username sí distingue mayúsculas/minúsculas (exacto=True).
+        usuario = autenticacion_service.buscar_por_username(db, username=identificador, exacto=True)
+
+    if usuario is None:
+        valida = seguridad.verificar_contrasena_senuelo(password)
     else:
-        _confirmaciones_registro.registrar(clave)
-        autenticacion_service.enviar_confirmacion_registro(db, usuario)
-        detalle = (
-            "Tu cuenta aún no está activada. Te enviamos un nuevo enlace de confirmación "
-            "(los anteriores dejan de servir): ábrelo y vuelve a iniciar sesión."
+        valida = seguridad.verificar_contrasena(password, usuario.hash_pass)
+
+    if usuario is None or not valida:
+        _login_fallidos.registrar(clave)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Credenciales incorrectas.",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    return JSONResponse(status_code=status.HTTP_403_FORBIDDEN, content={"detail": detalle})
+    _login_fallidos.reiniciar(clave)
+    return usuario
+
+
+def _cuenta_sin_confirmar(usuario: Usuario) -> JSONResponse:
+    """403 para quien da la contraseña correcta de una cuenta sin confirmar.
+    `codigo` le dice al frontend que ofrezca reenviar el enlace."""
+    correo = autenticacion_service.correo_enmascarado(usuario.correo)
+    return JSONResponse(
+        status_code=status.HTTP_403_FORBIDDEN,
+        content={
+            "detail": (
+                f"Tu cuenta aún no está activada. Ábrela con el enlace que enviamos a {correo}. "
+                "Si no te llegó, revisa la carpeta de spam o pide otro."
+            ),
+            "codigo": "cuenta_sin_confirmar",
+            "correo": correo,
+        },
+    )
 
 
 @router.post("/register", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED)
@@ -98,44 +126,52 @@ def confirmar_registro(datos: ConfirmarRegistroRequest, db: SesionBD) -> dict[st
     return {"detail": "Correo confirmado. Ya puedes iniciar sesión."}
 
 
+@router.post("/reenviar-confirmacion", status_code=status.HTTP_200_OK, response_model=None)
+def reenviar_confirmacion(
+    datos: ReenviarConfirmacionRequest, request: Request, db: SesionBD
+) -> dict[str, Any] | JSONResponse:
+    """Manda un enlace nuevo de confirmación del registro (el anterior deja
+    de servir). Pide las credenciales de la cuenta, como el login; a lo sumo
+    uno cada ESPERA_REENVIO_SEG por cuenta (429 con Retry-After)."""
+    usuario = _autenticar(request, db, datos.usuario, datos.password)
+    if usuario.correo_verificado:
+        return {"detail": "Tu cuenta ya está activada: inicia sesión.", "espera_segundos": 0}
+    clave = str(usuario.id)
+    espera = _confirmaciones_registro.segundos_restantes(clave)
+    if espera:
+        # `espera_segundos` también en el cuerpo: entre orígenes distintos el
+        # navegador no deja leer Retry-After sin exponerlo por CORS.
+        return JSONResponse(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            content={
+                "detail": f"Ya te enviamos un enlace hace poco. Podrás pedir otro en {espera} segundos.",
+                "espera_segundos": espera,
+            },
+            headers={"Retry-After": str(espera)},
+        )
+    _confirmaciones_registro.registrar(clave)
+    autenticacion_service.enviar_confirmacion_registro(db, usuario)
+    correo = autenticacion_service.correo_enmascarado(usuario.correo)
+    return {
+        "detail": f"Te enviamos un nuevo enlace a {correo}. Los anteriores dejan de servir.",
+        "espera_segundos": ESPERA_REENVIO_SEG,
+    }
+
+
 @router.post("/login", response_model=TokenAccesoResponse)
 def iniciar_sesion(
     request: Request,
     db: SesionBD,
     formulario: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> dict[str, Any] | JSONResponse:
-    ip = request.client.host if request.client else None
-    clave = f"{ip}|{formulario.username.strip().lower()}"
-    espera = _login_fallidos.segundos_restantes(clave)
-    if espera:
-        raise _demasiados_intentos(espera)
-
-    usuario = autenticacion_service.buscar_por_correo(db, correo=formulario.username)
-    if not usuario:
-        # El username sí distingue mayúsculas/minúsculas (exacto=True).
-        usuario = autenticacion_service.buscar_por_username(
-            db, username=formulario.username, exacto=True
-        )
-
-    if usuario is None:
-        valida = seguridad.verificar_contrasena_senuelo(formulario.password)
-    else:
-        valida = seguridad.verificar_contrasena(formulario.password, usuario.hash_pass)
-
-    if usuario is None or not valida:
-        _login_fallidos.registrar(clave)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales incorrectas.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    _login_fallidos.reiniciar(clave)
+    usuario = _autenticar(request, db, formulario.username, formulario.password)
 
     # Después de validar la contraseña: a quien no la tiene no se le revela
     # si la cuenta existe ni si está confirmada.
     if not usuario.correo_verificado:
-        return _cuenta_sin_confirmar(db, usuario)
+        return _cuenta_sin_confirmar(usuario)
 
+    ip = request.client.host if request.client else None
     dms.registrar_prueba_de_vida(
         db,
         usuario,

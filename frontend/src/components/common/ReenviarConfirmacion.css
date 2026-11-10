@@ -1,0 +1,18 @@
+.btn-reenviar {
+    border: 2px solid var(--ipn-maroon);
+    color: var(--ipn-maroon);
+    background: transparent;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+.btn-reenviar:not(:disabled):hover {
+    background: var(--ipn-maroon);
+    color: #fff;
+}
+.btn-reenviar:disabled {
+    opacity: 0.6;
+}
+[data-theme='dark'] .btn-reenviar {
+    border-color: #e78bb4;
+    color: #e78bb4;
+}

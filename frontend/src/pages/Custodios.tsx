@@ -77,7 +77,7 @@ export default function Custodios() {
                 notifySuccess('Custodio actualizado. Si cambiaste el correo, se reenvió la verificación.');
             } else {
                 await custodiosService.create(base);
-                notifySuccess(`Se envió un enlace de verificación a ${form.correo}.`);
+                notifySuccess(`Le enviamos a ${form.correo} el enlace para confirmar su correo y otro para vincular su Telegram.`);
             }
             setForm(null);
             load();
@@ -104,7 +104,7 @@ export default function Custodios() {
         setLinkingTelegramId(c.id);
         try {
             await custodiosService.requestTelegramLink(c.id);
-            notifySuccess(`Se envió un enlace de vinculación de Telegram al correo de ${c.nombre_completo || c.nombre}.`);
+            notifySuccess(`Se reenvió el enlace de vinculación de Telegram al correo de ${c.nombre_completo || c.nombre}.`);
         } catch (e) {
             notifyError(getApiErrorMessage(e, 'No se pudo enviar el enlace de vinculación de Telegram.'));
         } finally {
@@ -206,7 +206,7 @@ export default function Custodios() {
                                                             onClick={() => linkTelegram(c)}
                                                             disabled={linkingTelegramId === c.id}
                                                         >
-                                                            {linkingTelegramId === c.id ? 'Enviando…' : 'Vincular Telegram'}
+                                                            {linkingTelegramId === c.id ? 'Enviando…' : 'Reenviar enlace'}
                                                         </button>
                                                     )}
                                                     <VerifTag ok={c.telegram_verificado} />
@@ -310,8 +310,9 @@ export default function Custodios() {
                                 {!isEdit && (
                                     <p className="text-muted small mb-4">
                                         <i className="fab fa-telegram text-info me-1" />
-                                        Podrás vincular su Telegram desde el directorio una vez registrado:
-                                        le enviaremos un enlace por correo para que lo complete él mismo.
+                                        Al registrarlo le enviaremos por correo dos enlaces: uno para confirmar su
+                                        correo y otro para vincular su Telegram (vence en 3 días). Si se le pasa,
+                                        puedes reenviarlo desde el directorio.
                                     </p>
                                 )}
                                 <div className="d-flex gap-3">

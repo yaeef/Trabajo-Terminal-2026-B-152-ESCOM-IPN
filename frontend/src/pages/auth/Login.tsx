@@ -5,7 +5,9 @@ import { useAuth } from '../../store/AuthContext';
 import { useNotice } from '../../store/NoticeContext';
 import { getApiErrorMessage } from '../../utils/errors';
 import { getTheme, toggleTheme } from '../../theme';
+import ReenviarConfirmacion from '../../components/common/ReenviarConfirmacion';
 import './Login.css';
+import KleimosLogo from '../../components/brand/KleimosLogo';
 
 export default function Login() {
     const [username, setUsername] = useState('');
@@ -13,13 +15,16 @@ export default function Login() {
     const [showPassword, setShowPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [theme, setTheme] = useState(getTheme());
+    // Contraseña correcta pero correo sin confirmar: mensaje + botón de reenvío.
+    const [sinConfirmar, setSinConfirmar] = useState<string | null>(null);
     const { login } = useAuth();
-    const { notifyError, notifyWarning } = useNotice();
+    const { notifyError } = useNotice();
     const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsSubmitting(true);
+        setSinConfirmar(null);
         try {
             const me = await login(username, password);
             if (me?.rol === 'admin') {
@@ -41,9 +46,9 @@ export default function Login() {
             navigate('/dashboard', { state: { justLoggedIn: true } });
         } catch (err) {
             if (isAxiosError(err) && err.response?.status === 403) {
-                // Contraseña correcta pero correo sin confirmar: el backend ya
-                // reenvió el enlace (o avisa que se mandó hace poco).
-                notifyWarning(getApiErrorMessage(err, 'Tu cuenta aún no está activada.'), 'Confirma tu correo');
+                // Contraseña correcta pero correo sin confirmar: se ofrece
+                // reenviar el enlace (no se reenvía solo: invalida el anterior).
+                setSinConfirmar(getApiErrorMessage(err, 'Tu cuenta aún no está activada.'));
             } else {
                 notifyError(getApiErrorMessage(err, 'Credenciales inválidas'));
             }
@@ -68,13 +73,13 @@ export default function Login() {
                 <div className="top-gradient"></div>
 
                 <div className="card-body p-4 p-md-5">
+                    <div className="auth-logo">
+                        <KleimosLogo tamano="md" />
+                    </div>
                     {/* Header */}
                     <div className="text-center mb-4">
-                        <div className="d-inline-block p-3 rounded-circle bg-light shadow-sm">
-                            <i className="fas fa-user-shield fa-3x" style={{ color: 'var(--escom-blue)' }}></i>
-                        </div>
                         <h3 className="fw-bold mb-1" style={{ color: 'var(--escom-blue)' }}>
-                            TT B152 Login
+                            Iniciar sesión
                         </h3>
                         <p className="text-muted small">Ingresa tus credenciales</p>
                     </div>
@@ -144,6 +149,16 @@ export default function Login() {
                                 </>
                             )}
                         </button>
+                        {sinConfirmar && (
+                            <div className="alert alert-warning small mt-2 mb-3" role="alert">
+                                <p className="fw-bold mb-1">
+                                    <i className="fas fa-envelope-open-text me-2" />
+                                    Confirma tu correo
+                                </p>
+                                <p className="mb-3">{sinConfirmar}</p>
+                                <ReenviarConfirmacion usuario={username} password={password} className="w-100" />
+                            </div>
+                        )}
                     </form>
 
                     <div className="text-center mt-4">

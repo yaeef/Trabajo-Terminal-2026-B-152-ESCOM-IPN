@@ -1,6 +1,6 @@
 {% import "correo/_marco.html" as m %}
 {% call m.cta(icono="🤖", titulo="Vincula tu Telegram como custodio", enlace=enlace,
-              boton="Vincular con Telegram", expira="10 minutos",
+              boton="Vincular con Telegram", expira=expira,
               alterno="Si el botón no funciona, copia y pega este enlace en tu navegador o en la app de Telegram:") %}
   {% call m.parrafo() %}Hola <strong>{{ custodio }}</strong>, <strong>{{ propietario }}</strong> te
     pide vincular tu cuenta de Telegram para poder avisarte por ahí si en algún momento deja de

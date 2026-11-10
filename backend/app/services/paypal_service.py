@@ -132,7 +132,7 @@ def crear_orden(
         "application_context": {
             "shipping_preference": "NO_SHIPPING",
             "user_action": "PAY_NOW",
-            "brand_name": "B152",
+            "brand_name": settings.MARCA[:127],
         },
     }
     respuesta = httpx2.post(

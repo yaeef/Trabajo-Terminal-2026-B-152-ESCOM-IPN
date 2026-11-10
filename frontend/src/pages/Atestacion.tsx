@@ -8,6 +8,7 @@ import { useNotice } from '../store/NoticeContext';
 import { getApiErrorMessage } from '../utils/errors';
 import './auth/AuthTheme.css';
 import './Recuperacion.css';
+import KleimosLogo from '../components/brand/KleimosLogo';
 
 /**
  * Página PÚBLICA (sin sesión). El custodio llega desde el enlace del correo del
@@ -115,6 +116,9 @@ export default function Atestacion() {
             <div className="card-auth animate__animated animate__fadeInUp">
                 <div className="top-gradient" />
                 <div className="card-body p-4 p-md-5">
+                    <div className="auth-logo">
+                        <KleimosLogo tamano="md" />
+                    </div>
                     {fase === 'cargando' && (
                         <div className="text-center">
                             <i className="fas fa-spinner fa-spin fa-2x text-muted" />

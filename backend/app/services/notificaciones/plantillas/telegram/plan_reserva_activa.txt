@@ -1,0 +1,1 @@
+🛡️ Tu año de reserva empezó a cubrirte: mantienes tu plan completo hasta el {{ hasta }}. Si renuevas antes, lo que quede de la reserva se pierde.

@@ -526,3 +526,35 @@
     border-radius: 5px;
     flex-shrink: 0;
 }
+
+/* Plan vencido: qué bóveda se conserva si llega el recorte */
+.conservar-nota {
+    font-size: 0.875rem;
+    padding: 0.8rem 1rem;
+    border-radius: 14px;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.45);
+}
+.conservar-nota > i {
+    color: #dc2626;
+}
+.conservar-chip {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(239, 68, 68, 0.12);
+    color: #b91c1c;
+}
+.conservar-chip.is-conservada {
+    background: rgba(0, 51, 102, 0.1);
+    color: var(--escom-blue);
+}
+[data-theme='dark'] .conservar-chip {
+    color: #fca5a5;
+}
+[data-theme='dark'] .conservar-chip.is-conservada {
+    color: #93c5fd;
+}

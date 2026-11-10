@@ -10,8 +10,14 @@ Los custodios no tienen cuenta. Sus canales se verifican por separado: el
 correo con un token de un solo uso (mismo mecanismo que el correo
 secundario del propietario, ver services/tokens.py) y Telegram con un
 código que el propio custodio manda al bot (services/telegram_service.py).
+Al darlo de alta se le mandan los dos enlaces por correo.
+
+Identidad (RN-006): un custodio no puede tener el correo ni el nombre
+completo del propietario, ni repetir el correo o el nombre completo de otro
+custodio del mismo propietario.
 """
 
+import unicodedata
 from datetime import timedelta
 
 from sqlalchemy.orm import Session
@@ -24,7 +30,7 @@ from app.models.dms_atestacion import DmsAtestacion
 from app.models.recuperacion import FragmentoDepositado
 from app.models.usuario import Usuario
 from app.schemas.custodio import CustodioCrearRequest, CustodioEditarRequest
-from app.services import notificaciones, suscripcion_service, telegram_service, tokens
+from app.services import cuota, notificaciones, telegram_service, tokens
 from app.services.errores import Conflicto, DatoInvalido, NoEncontrado
 from app.services.tokens import EstadoToken
 
@@ -85,6 +91,39 @@ def _exigir_rn006(usuario: Usuario, correo: str) -> None:
         )
 
 
+def _clave_nombre(nombre: str | None, paterno: str | None, materno: str | None) -> str:
+    """Nombre completo comparable: sin acentos, sin mayúsculas y con los
+    espacios normalizados ('José  Pérez' == 'jose perez')."""
+    texto = " ".join(p for p in (nombre, paterno, materno) if p)
+    sin_acentos = "".join(
+        c for c in unicodedata.normalize("NFKD", texto) if not unicodedata.combining(c)
+    )
+    return " ".join(sin_acentos.casefold().split())
+
+
+def _exigir_nombre_distinto(
+    db: Session,
+    usuario: Usuario,
+    nombre: str,
+    paterno: str | None,
+    materno: str | None,
+    excluir_id: int | None = None,
+) -> None:
+    """RN-006: el nombre completo no puede ser el del propietario ni el de
+    otro de sus custodios."""
+    clave = _clave_nombre(nombre, paterno, materno)
+    if clave == _clave_nombre(usuario.nombre, usuario.paterno, usuario.materno):
+        raise DatoInvalido(
+            "Un custodio no puede tener tu mismo nombre y apellidos (RN-006): "
+            "no puedes ser tu propio custodio."
+        )
+    otros = db.query(Custodio).filter(Custodio.id_propietario == usuario.id)
+    if excluir_id is not None:
+        otros = otros.filter(Custodio.id != excluir_id)
+    if any(_clave_nombre(c.nombre, c.paterno, c.materno) == clave for c in otros):
+        raise DatoInvalido("Ya tienes un custodio registrado con ese nombre y apellidos.")
+
+
 def _exigir_correo_unico(
     db: Session, usuario: Usuario, correo: str, excluir_id: int | None = None
 ) -> None:
@@ -126,11 +165,13 @@ def _verificar_correo(db: Session, usuario: Usuario, custodio: Custodio) -> None
 
 def crear_custodio(db: Session, usuario: Usuario, datos: CustodioCrearRequest) -> Custodio:
     """
-    CU-011. Crea el custodio y le manda el enlace de verificación de correo.
-    Telegram se vincula después (solicitar_vinculo_telegram), no en el alta.
+    CU-011. Crea el custodio y le manda por correo los dos enlaces: el de
+    verificación del correo y el de vinculación de su Telegram (este último
+    solo si hay bot configurado; el propietario lo puede reenviar después).
     """
-    suscripcion_service.exigir_cupo_custodio(db, usuario)
+    cuota.exigir_cupo_custodio(db, usuario)
     _exigir_rn006(usuario, datos.correo)
+    _exigir_nombre_distinto(db, usuario, datos.nombre, datos.paterno, datos.materno)
     _exigir_correo_unico(db, usuario, datos.correo)
 
     custodio = Custodio(
@@ -146,6 +187,8 @@ def crear_custodio(db: Session, usuario: Usuario, datos: CustodioCrearRequest) -
     db.add(custodio)
     db.flush()  # asigna custodio.id
     _verificar_correo(db, usuario, custodio)
+    if settings.TELEGRAM_BOT_USERNAME:
+        enviar_vinculo_telegram(db, usuario, custodio)
     db.refresh(custodio)
     return custodio
 
@@ -161,12 +204,14 @@ def editar_custodio(
     campos = datos.model_dump(exclude_unset=True)
 
     # nombre/parentesco son NOT NULL: un `null` explícito no los vacía.
-    if campos.get("nombre") is not None:
-        custodio.nombre = campos["nombre"]
-    if "paterno" in campos:
-        custodio.paterno = campos["paterno"]
-    if "materno" in campos:
-        custodio.materno = campos["materno"]
+    nombre = campos["nombre"] if campos.get("nombre") is not None else custodio.nombre
+    paterno = campos.get("paterno", custodio.paterno)
+    materno = campos.get("materno", custodio.materno)
+    if _clave_nombre(nombre, paterno, materno) != _clave_nombre(
+        custodio.nombre, custodio.paterno, custodio.materno
+    ):
+        _exigir_nombre_distinto(db, usuario, nombre, paterno, materno, excluir_id=custodio.id)
+    custodio.nombre, custodio.paterno, custodio.materno = nombre, paterno, materno
     if campos.get("parentesco") is not None:
         custodio.parentesco = campos["parentesco"]
 
@@ -196,17 +241,12 @@ def reenviar_verificacion_correo(db: Session, usuario: Usuario, id_custodio: int
     return custodio
 
 
-def solicitar_vinculo_telegram(
-    db: Session, usuario: Usuario, id_custodio: int
-) -> tuple[Custodio, int]:
+def enviar_vinculo_telegram(db: Session, usuario: Usuario, custodio: Custodio) -> int:
     """
-    Dispara la vinculación de Telegram para un custodio del directorio:
-    genera el código de un solo uso y le manda el deep link POR CORREO, para
-    que sea el propio custodio quien le escriba al bot. El propietario nunca
-    ve ni introduce un @usuario — solo dispara el envío. Devuelve
-    (custodio, segundos de vigencia del enlace).
+    Genera el código de un solo uso y le manda el deep link al custodio POR
+    CORREO, para que sea él quien le escriba al bot. El propietario nunca ve
+    ni introduce un @usuario. Devuelve los segundos de vigencia del enlace.
     """
-    custodio = obtener_custodio_propio(db, usuario, id_custodio)
     enlace = telegram_service.generar_codigo_custodio(db, custodio)
     notificaciones.encolar_correo(
         db,
@@ -215,8 +255,28 @@ def solicitar_vinculo_telegram(
         custodio=custodio.nombre,
         propietario=usuario.nombre,
         enlace=enlace.deep_link,
+        expira=_plazo_legible(enlace.expira_en_segundos),
     )
-    return custodio, enlace.expira_en_segundos
+    return enlace.expira_en_segundos
+
+
+def _plazo_legible(segundos: int) -> str:
+    horas = segundos // 3600
+    if horas >= 24 and horas % 24 == 0:
+        dias = horas // 24
+        return f"{dias} día" if dias == 1 else f"{dias} días"
+    if horas >= 1:
+        return f"{horas} hora" if horas == 1 else f"{horas} horas"
+    return f"{segundos // 60} minutos"
+
+
+def solicitar_vinculo_telegram(
+    db: Session, usuario: Usuario, id_custodio: int
+) -> tuple[Custodio, int]:
+    """Reenvía al custodio el enlace de vinculación de Telegram (el del alta
+    venció o se perdió). Devuelve (custodio, segundos de vigencia)."""
+    custodio = obtener_custodio_propio(db, usuario, id_custodio)
+    return custodio, enviar_vinculo_telegram(db, usuario, custodio)
 
 
 def desvincular_telegram(db: Session, usuario: Usuario, id_custodio: int) -> None:

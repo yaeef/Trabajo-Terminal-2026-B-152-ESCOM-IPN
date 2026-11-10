@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     # (ver services/tareas_periodicas.py). Las pruebas los apagan.
     SCHEDULER_ENABLED: bool = True
 
+    # Nombre del producto en correos, Telegram y PayPal.
+    MARCA: str = "Kleimos Legacy"
+
     # --- Correo saliente (SMTP; Mailpit en desarrollo, ver docker-compose.yml) ---
     SMTP_HOST: str = "mailpit"
     SMTP_PORT: int = 1025
@@ -76,7 +79,7 @@ class Settings(BaseSettings):
     PAYPAL_MODE: str = "sandbox"  # sandbox | live
     PAYPAL_CLIENT_ID: str = ""
     PAYPAL_CLIENT_SECRET: str = ""
-    PAYPAL_CURRENCY: str = "USD"
+    PAYPAL_CURRENCY: str = "MXN"
 
     # --- Eliminación de cuenta con periodo de gracia ---
     ACCOUNT_DELETION_GRACE_DAYS: int = 30
@@ -96,8 +99,24 @@ class Settings(BaseSettings):
     DMS_COOLDOWN_RECONFIRMACION_HORAS: int = 0
     # Vigencia (días) de un voto de custodio dentro de su ronda.
     DMS_VOTO_TTL_DIAS: int = 14
-    # Ventana (días) de recuperación por bóveda tras el disparo (RN-002).
-    DMS_RECOVERY_WINDOW_DIAS: int = 30
+    # Ventana (días) de recuperación por bóveda tras el disparo (RN-002). Al
+    # vencer, la bóveda se elimina con todos sus archivos.
+    DMS_RECOVERY_WINDOW_DIAS: int = 365
+
+    # --- Renovación, año de reserva e impago (services/suscripcion_service.py
+    #     y services/impago.py) ---
+    # Días antes del vencimiento desde los que se puede renovar (y se avisa).
+    RENOVACION_VENTANA_DIAS: int = 30
+    # Tras el vencimiento, días en que con año de reserva aún se puede
+    # renovar sin gastarla.
+    RESERVA_GRACIA_DIAS: int = 30
+    # Al terminar la cobertura de pago, días que se conserva lo que excede el
+    # plan Gratuito antes del recorte (debe superar el 75 % del umbral máximo
+    # del DMS, 60 días, para que un fallecido ya esté en alerta al llegar).
+    IMPAGO_PLAZO_DIAS: int = 60
+    # Si el recorte estaba en pausa (DMS no activo) y el propietario confirma
+    # que vive, días que se le dan antes de recortar.
+    IMPAGO_REPROGRAMACION_DIAS: int = 15
 
     # --- Sesión efímera de recuperación (CU-030 a CU-035) ---
     # Vigencia de una sesión desde que se funda hasta que expira sola, si nadie

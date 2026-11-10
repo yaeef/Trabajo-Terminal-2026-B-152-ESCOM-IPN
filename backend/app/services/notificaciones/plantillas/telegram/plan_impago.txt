@@ -1,0 +1,1 @@
+⚠️ {% if motivo == "inicio" %}Tu plan terminó y tu cuenta está en solo lectura.{% elif motivo == "reprogramado" %}Hay nueva fecha para el recorte.{% else %}Quedan {{ dias }} día(s).{% endif %} El {{ recorte_en }} se eliminará lo que excede el plan Gratuito ({{ excesos | join("; ") }}). Renueva o descarga lo que quieras conservar antes de esa fecha.

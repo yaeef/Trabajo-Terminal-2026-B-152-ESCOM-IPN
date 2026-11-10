@@ -1,0 +1,1 @@
+🔔 Tu plan vence {{ "mañana" if dias == 1 else "en " ~ dias ~ " días" }} ({{ vence }}). La renovación no es automática: renuévalo desde Suscripción por {{ importe }} MXN.{% if con_reserva %} Si no renuevas, tienes 30 días de gracia y después tu año de reserva.{% endif %}

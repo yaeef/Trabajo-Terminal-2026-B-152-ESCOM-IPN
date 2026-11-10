@@ -120,6 +120,15 @@ def enviar_confirmacion_registro(db: Session, usuario: Usuario) -> None:
     notificaciones.encolar_correo(db, usuario.correo, "confirmacion_registro", enlace=enlace)
 
 
+def correo_enmascarado(correo: str) -> str:
+    """'johnncer@gmail.com' -> 'j******r@gmail.com': deja ver a dónde se
+    mandó el enlace (y notar un error de dedo) sin mostrar la dirección."""
+    local, _, dominio = correo.partition("@")
+    if len(local) <= 2:
+        return f"{local[:1]}{'*' * max(len(local) - 1, 1)}@{dominio}"
+    return f"{local[0]}{'*' * (len(local) - 2)}{local[-1]}@{dominio}"
+
+
 def confirmar_registro(db: Session, token: str) -> None:
     """Se llama desde el enlace del correo, sin sesión. Volver a abrir un
     enlace ya usado de una cuenta confirmada no es un error (doble clic,

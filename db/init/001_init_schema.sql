@@ -82,7 +82,11 @@ CREATE TABLE suscripcion (
     max_almacenamiento INT NOT NULL,          -- GB
     max_bovedas INT NOT NULL,
     max_custodios INT NOT NULL,
-    costo_anual DECIMAL(10,2) NOT NULL DEFAULT 0.00
+    costo_anual DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    -- Año de reserva (seguro de continuidad): importe único que deja guardado
+    -- un año extra del plan para cuando el propietario no renueve.
+    -- 0 = el plan no lo ofrece.
+    costo_reserva DECIMAL(10,2) NOT NULL DEFAULT 0.00
 );
 
 -- Historial de contrataciones del propietario (puente N:M). Cada fila es un
@@ -96,7 +100,11 @@ CREATE TABLE propietario_suscripcion (
     fecha_inicio DATE NOT NULL,
     fecha_fin DATE,                           -- exclusiva, NULL = sin caducidad (Gratuito)
     paypal_order_id VARCHAR(64),              -- orden de PayPal que la pagó (NULL sin pasarela)
-    cancelada_en DATETIME NULL,               -- canceló: no renovará, pero sigue vigente hasta fecha_fin
+    cancelada_en DATETIME NULL,               -- canceló: no quiere renovar (solo apaga los avisos de renovación)
+    -- 'contratado': periodo pagado o asignado. 'gracia' y 'reserva': periodos
+    -- del mismo plan que cubre el año de reserva cuando no hubo renovación
+    -- (ver backend/app/services/suscripcion_service.py).
+    origen ENUM('contratado', 'gracia', 'reserva') NOT NULL DEFAULT 'contratado',
     UNIQUE KEY uq_prop_susc_paypal_order (paypal_order_id),   -- una orden, un solo uso
     FOREIGN KEY (id_propietario) REFERENCES propietario(id),
     FOREIGN KEY (id_suscripcion) REFERENCES suscripcion(id)
@@ -453,12 +461,65 @@ CREATE TABLE admin_auditoria (
 
 
 -- ==========================================================================
+-- Año de reserva e impago (ver backend/app/services/suscripcion_service.py
+-- y backend/app/services/impago.py)
+-- ==========================================================================
+
+-- Año de reserva comprado por el propietario. Como mucho uno sin consumir
+-- por propietario: 'disponible' (guardado), 'activa' (cubriendo tras no
+-- renovar) o 'consumida' (terminó su cobertura o se pagó durante ella).
+CREATE TABLE reserva_continuidad (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_propietario INT NOT NULL,
+    estado ENUM('disponible', 'activa', 'consumida') NOT NULL DEFAULT 'disponible',
+    comprada_en DATETIME NOT NULL,
+    paypal_order_id VARCHAR(64) NULL,         -- orden que la pagó (NULL: pago simulado o asignación)
+    activada_en DATE NULL,                    -- día en que empezó a cubrir (fin de la gracia)
+    consumida_en DATE NULL,
+    UNIQUE KEY uq_reserva_paypal_order (paypal_order_id),
+    INDEX idx_reserva_prop_estado (id_propietario, estado),
+    FOREIGN KEY (id_propietario) REFERENCES propietario(id)
+);
+
+-- Un ciclo por cada vez que termina la cobertura de pago de un propietario
+-- (con o sin reserva). Mientras está 'abierto', lo que excede el plan
+-- Gratuito se conserva hasta `recorte_en`; 'pausado' = el DMS no está activo
+-- (el propietario pudo haber fallecido) y no se borra nada.
+CREATE TABLE ciclo_impago (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_propietario INT NOT NULL,
+    inicio DATE NOT NULL,                     -- día en que terminó la cobertura de pago
+    recorte_en DATE NOT NULL,                 -- fecha programada del recorte
+    estado ENUM('abierto', 'pausado', 'cerrado') NOT NULL DEFAULT 'abierto',
+    id_boveda_conservar INT NULL,             -- bóveda que eligió conservar (NULL = regla automática)
+    cerrado_en DATETIME NULL,
+    motivo_cierre ENUM('pago', 'recorte', 'sin_exceso', 'liberado', 'cuenta') NULL,
+    UNIQUE KEY uq_ciclo_prop_inicio (id_propietario, inicio),
+    INDEX idx_ciclo_estado (estado),
+    FOREIGN KEY (id_propietario) REFERENCES propietario(id),
+    FOREIGN KEY (id_boveda_conservar) REFERENCES bovedas(id) ON DELETE SET NULL
+);
+
+-- Avisos de suscripción ya enviados (renovación, recorte...), para no
+-- repetirlos en cada barrido. `clave` identifica el aviso, p. ej.
+-- 'renovacion:<id contratación>:7'.
+CREATE TABLE aviso_enviado (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    id_propietario INT NOT NULL,
+    clave VARCHAR(100) NOT NULL,
+    enviado_en DATETIME NOT NULL,
+    UNIQUE KEY uq_aviso_prop_clave (id_propietario, clave),
+    FOREIGN KEY (id_propietario) REFERENCES propietario(id)
+);
+
+
+-- ==========================================================================
 -- Datos iniciales
 -- ==========================================================================
 
--- Catálogo de planes (costo_anual en la moneda de PAYPAL_CURRENCY). El
+-- Catálogo de planes (importes en la moneda de PAYPAL_CURRENCY, MXN). El
 -- Gratuito debe ser el id 1 (cuota.ID_PLAN_GRATUITO en el backend).
-INSERT INTO suscripcion (id, nombre, max_almacenamiento, max_bovedas, max_custodios, costo_anual)
+INSERT INTO suscripcion (id, nombre, max_almacenamiento, max_bovedas, max_custodios, costo_anual, costo_reserva)
 VALUES
-    (1, 'Gratuito', 1, 1, 5, 0.00),
-    (2, 'Premium', 50, 10, 20, 9990.00);
+    (1, 'Gratuito', 1, 1, 5, 0.00, 0.00),
+    (2, 'Premium', 50, 10, 20, 1499.00, 500.00);

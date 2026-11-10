@@ -12,6 +12,7 @@ from app.models.boveda import Boveda, CompromisoVss, CustodioBoveda, EstadoBoved
 from app.models.codigo_telegram import CodigoVinculacionTelegram
 from app.models.custodio import CanalVerificacion, Custodio, VerificacionCustodio
 from app.models.dms_atestacion import DmsAtestacion, SentidoAtestacion
+from app.models.impago import AvisoEnviado, CicloImpago, EstadoCicloImpago, MotivoCierreImpago
 from app.models.notificacion import CanalNotificacion, EstadoNotificacion, Notificacion
 from app.models.prueba_vida_log import MetodoPruebaVida, PruebaVidaLog
 from app.models.recuperacion import (
@@ -19,7 +20,13 @@ from app.models.recuperacion import (
     FragmentoDepositado,
     SesionRecuperacion,
 )
-from app.models.suscripcion import PropietarioSuscripcion, Suscripcion
+from app.models.suscripcion import (
+    EstadoReserva,
+    OrigenCobertura,
+    PropietarioSuscripcion,
+    ReservaContinuidad,
+    Suscripcion,
+)
 from app.models.token_recuperacion import TokenRecuperacion
 from app.models.usuario import EstadoDMS, Propietario, RolUsuario, Usuario
 from app.models.verificacion_correo import VerificacionCorreoRegistro, VerificacionCorreoSec
@@ -28,9 +35,11 @@ __all__ = [
     "AccionAdmin",
     "ActivoDigital",
     "AdminAuditoria",
+    "AvisoEnviado",
     "Boveda",
     "CanalNotificacion",
     "CanalVerificacion",
+    "CicloImpago",
     "CodigoVinculacionTelegram",
     "CompromisoVss",
     "Custodio",
@@ -38,15 +47,20 @@ __all__ = [
     "DmsAtestacion",
     "EstadoActivo",
     "EstadoBoveda",
+    "EstadoCicloImpago",
     "EstadoDMS",
     "EstadoNotificacion",
+    "EstadoReserva",
     "EstadoSesionRecuperacion",
     "FragmentoDepositado",
     "MetodoPruebaVida",
+    "MotivoCierreImpago",
     "Notificacion",
+    "OrigenCobertura",
     "Propietario",
     "PropietarioSuscripcion",
     "PruebaVidaLog",
+    "ReservaContinuidad",
     "RolUsuario",
     "SentidoAtestacion",
     "SesionRecuperacion",

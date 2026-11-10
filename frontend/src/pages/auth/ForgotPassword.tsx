@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { authService } from '../../services/auth.service';
 import './AuthTheme.css';
+import KleimosLogo from '../../components/brand/KleimosLogo';
 
 /**
  * CU-005 (paso 1): solicitar el enlace de recuperación de contraseña.
@@ -37,6 +38,9 @@ export default function ForgotPassword() {
                 <div className="card-auth animate__animated animate__fadeInUp">
                     <div className="top-gradient"></div>
                     <div className="card-body p-4 p-md-5 text-center">
+                        <div className="auth-logo">
+                            <KleimosLogo tamano="md" />
+                        </div>
                         <div className="success-icon-circle animate__animated animate__bounceIn">
                             <i className="fas fa-envelope-open-text fa-3x"></i>
                         </div>
@@ -60,6 +64,9 @@ export default function ForgotPassword() {
             <div className="card-auth animate__animated animate__fadeInUp">
                 <div className="top-gradient"></div>
                 <div className="card-body p-4 p-md-5">
+                    <div className="auth-logo">
+                        <KleimosLogo tamano="md" />
+                    </div>
                     <div className="text-center mb-4">
                         <div className="d-inline-block p-3 rounded-circle bg-light shadow-sm">
                             <i className="fas fa-key fa-3x" style={{ color: 'var(--escom-blue)' }}></i>

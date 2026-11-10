@@ -6,11 +6,15 @@ Trabajo en segundo plano, en dos hilos daemon (sin dependencias extra):
 - Barrido periódico (cada hora):
     1. cola de eliminación de cuentas (periodo de gracia),
     2. Interruptor de Hombre Muerto de cada propietario (Máquina 1),
-    3. ventana W de las bóvedas en recuperación (Máquina 2),
-    4. limpieza de notificaciones ya resueltas.
+    3. ventana W de las bóvedas en recuperación (Máquina 2): al vencer se eliminan,
+    4. suscripciones: año de reserva (activar/consumir) y avisos de renovación,
+    5. impago: plazo, pausa según el DMS, avisos y recorte,
+    6. limpieza de notificaciones ya resueltas.
 
 Despliegue de un solo proceso: las marcas de fase en `propietario`
-(dms_*_en, dms_ultimo_aviso) dan idempotencia si un barrido se repite.
+(dms_*_en, dms_ultimo_aviso), los estados de `reserva_continuidad` y
+`ciclo_impago` y el registro `aviso_enviado` dan idempotencia si un barrido
+se repite.
 """
 
 import logging
@@ -22,7 +26,7 @@ from typing import TypeVar
 from sqlalchemy.orm import Session
 
 from app.db.sesion import SessionLocal
-from app.services import cuenta_service, dms, notificaciones
+from app.services import cuenta_service, dms, impago, notificaciones, suscripcion_service
 
 logger = logging.getLogger("b152.tareas")
 
@@ -55,8 +59,13 @@ def _barrido() -> None:
             logger.info("Cola de eliminación: %d cuenta(s) purgada(s).", purgadas)
         if (cambios := _paso(db, "DMS", dms.procesar_dms)) and any(cambios.values()):
             logger.info("Interruptor de Hombre Muerto: %s", cambios)
-        if expiradas := _paso(db, "ventana de recuperación", dms.procesar_ventana_recuperacion):
-            logger.info("Recuperación: %d bóveda(s) expiradas por ventana W.", expiradas)
+        if eliminadas := _paso(db, "ventana de recuperación", dms.procesar_ventana_recuperacion):
+            logger.info("Recuperación: %d bóveda(s) eliminadas al vencer la ventana W.", eliminadas)
+        suscripciones = _paso(db, "suscripciones", suscripcion_service.procesar_suscripciones)
+        if suscripciones and any(suscripciones.values()):
+            logger.info("Suscripciones: %s", suscripciones)
+        if impagos := _paso(db, "impago", impago.procesar_impago):
+            logger.info("Impago: %s", impagos)
         _paso(db, "limpieza de notificaciones", notificaciones.purgar_resueltas)
     finally:
         db.close()

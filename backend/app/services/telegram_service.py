@@ -23,12 +23,20 @@ from app.models.usuario import Usuario
 from app.schemas.usuario import CodigoTelegramResponse
 from app.services import notificaciones, tokens
 
-VIGENCIA_CODIGO_MIN = 10
+# El propietario ve el enlace en la app y lo usa en el momento; el custodio
+# lo recibe por correo y puede abrirlo horas después (mismo plazo que la
+# verificación de su correo).
+VIGENCIA_CODIGO_PROPIETARIO = timedelta(minutes=10)
+VIGENCIA_CODIGO_CUSTODIO = timedelta(hours=72)
 LONGITUD_CODIGO = 8
 
 
 def _emitir_codigo(
-    db: Session, *, id_usuario: int | None = None, id_custodio: int | None = None
+    db: Session,
+    *,
+    vigencia: timedelta,
+    id_usuario: int | None = None,
+    id_custodio: int | None = None,
 ) -> CodigoTelegramResponse:
     """
     Código de un solo uso para el propietario (`id_usuario`) o para un
@@ -44,31 +52,31 @@ def _emitir_codigo(
         db,
         CodigoVinculacionTelegram,
         del_dueno,
-        vigencia=timedelta(minutes=VIGENCIA_CODIGO_MIN),
+        vigencia=vigencia,
         valor=tokens.codigo_aleatorio(LONGITUD_CODIGO),
         id_usuario=id_usuario,
         id_custodio=id_custodio,
     )
     return CodigoTelegramResponse(
         deep_link=f"https://t.me/{settings.TELEGRAM_BOT_USERNAME}?start={codigo}",
-        expira_en_segundos=VIGENCIA_CODIGO_MIN * 60,
+        expira_en_segundos=int(vigencia.total_seconds()),
     )
 
 
 def generar_codigo_propietario(db: Session, usuario: Usuario) -> CodigoTelegramResponse:
     """Paso 1 (propietario): el deep link se muestra en la app."""
-    return _emitir_codigo(db, id_usuario=usuario.id)
+    return _emitir_codigo(db, vigencia=VIGENCIA_CODIGO_PROPIETARIO, id_usuario=usuario.id)
 
 
 def generar_codigo_custodio(db: Session, custodio: Custodio) -> CodigoTelegramResponse:
     """
-    Paso 1 (custodio): el propietario lo dispara desde el directorio de
-    custodios y el deep link se manda por correo al custodio
-    (custodio_service.solicitar_vinculo_telegram), nunca se le muestra al
-    propietario: así es el propio custodio quien escribe al bot y queda
+    Paso 1 (custodio): se manda solo al darlo de alta, y el propietario lo
+    puede reenviar desde el directorio; el deep link va por correo al
+    custodio (custodio_service.enviar_vinculo_telegram), nunca se le muestra
+    al propietario: así es el propio custodio quien escribe al bot y queda
     vinculado con su chat_id real.
     """
-    return _emitir_codigo(db, id_custodio=custodio.id)
+    return _emitir_codigo(db, vigencia=VIGENCIA_CODIGO_CUSTODIO, id_custodio=custodio.id)
 
 
 def responder_sin_codigo(db: Session, chat_id: int | str) -> None:

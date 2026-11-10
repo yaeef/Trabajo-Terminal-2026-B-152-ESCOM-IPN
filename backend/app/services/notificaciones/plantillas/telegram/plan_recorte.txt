@@ -1,0 +1,1 @@
+🗑️ Terminó el plazo sin renovación: eliminamos lo que excedía tu plan Gratuito ({{ bovedas | length }} bóveda(s) y {{ archivos | length }} archivo(s)). Te enviamos el detalle por correo.

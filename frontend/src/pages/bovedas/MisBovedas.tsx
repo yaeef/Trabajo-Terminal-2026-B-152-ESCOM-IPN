@@ -2,6 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { bovedasService } from '../../services/bovedas.service';
+import { subscriptionService } from '../../services/subscription.service';
+import { custodiosService } from '../../services/custodios.service';
+import PrimerPasoCustodios from '../../components/PrimerPasoCustodios';
+import { custodioNotificable, MIN_CUSTODIOS_BOVEDA, type CustodioResponse } from '../../types/custodios.types';
+import { fechaCorta, type PlanActual } from '../../types/subscription.types';
 import { useNotice } from '../../store/NoticeContext';
 import { bovedaBadge, type BovedaResponse } from '../../types/bovedas.types';
 import { getApiErrorMessage } from '../../utils/errors';
@@ -74,6 +79,46 @@ export default function MisBovedas() {
     const [deleting, setDeleting] = useState(false);
     const [deleteErr, setDeleteErr] = useState('');
 
+    // Plan vencido con más bóvedas de las que permite el Gratuito: cuáles se
+    // conservarían si llega el recorte (la elegida, si no la de más custodios
+    // y luego la más antigua — mismo orden que services/impago.py).
+    const [susc, setSusc] = useState<PlanActual | null>(null);
+    // Para avisar que el primer paso son los custodios (null = aún no se sabe).
+    const [custodios, setCustodios] = useState<CustodioResponse[] | null>(null);
+    useEffect(() => {
+        custodiosService.list().then(setCustodios).catch(() => setCustodios(null));
+    }, []);
+    const faltanCustodios =
+        custodios !== null && custodios.filter(custodioNotificable).length < MIN_CUSTODIOS_BOVEDA;
+    const [eligiendo, setEligiendo] = useState<number | null>(null);
+    useEffect(() => {
+        subscriptionService.getActual().then(setSusc).catch(() => setSusc(null));
+    }, []);
+    const impago = susc?.impago ?? null;
+    const conservadas = useMemo(() => {
+        if (!impago || !susc || bovedas.length <= susc.plan.max_bovedas) return null;
+        const elegida = impago.id_boveda_conservar;
+        const orden = [...bovedas].sort(
+            (a, b) =>
+                Number(a.id !== elegida) - Number(b.id !== elegida) ||
+                b.custodios_vinculados - a.custodios_vinculados ||
+                (a.created_at ?? '').localeCompare(b.created_at ?? '') ||
+                a.id - b.id,
+        );
+        return new Set(orden.slice(0, susc.plan.max_bovedas).map((b) => b.id));
+    }, [bovedas, impago, susc]);
+
+    const conservar = async (id: number) => {
+        setEligiendo(id);
+        try {
+            setSusc(await subscriptionService.conservarBoveda(id));
+        } catch (e) {
+            notifyError(getApiErrorMessage(e, 'No se pudo guardar tu elección.'));
+        } finally {
+            setEligiendo(null);
+        }
+    };
+
     const load = () => {
         setLoading(true);
         setLoadFailed(false);
@@ -144,12 +189,30 @@ export default function MisBovedas() {
                 </button>
             </div>
 
+            {custodios && <PrimerPasoCustodios custodios={custodios} />}
+
+            {conservadas && impago && (
+                <div className="conservar-nota mb-4">
+                    <i className="fas fa-triangle-exclamation me-2" />
+                    Tu plan terminó y el plan Gratuito permite {susc?.plan.max_bovedas} bóveda
+                    {susc?.plan.max_bovedas === 1 ? '' : 's'}.{' '}
+                    {impago.estado === 'pausado'
+                        ? 'La eliminación está en pausa mientras tu Interruptor de Hombre Muerto no esté activo.'
+                        : <>El <strong>{fechaCorta(impago.recorte_en)}</strong> se eliminarán las demás con todos sus archivos.</>}{' '}
+                    {impago.id_boveda_conservar
+                        ? 'Ya elegiste cuál conservar; puedes cambiarla.'
+                        : 'Si no eliges, se conservará la de más custodios (y, a igualdad, la más antigua).'}
+                </div>
+            )}
+
             {loading && <p className="text-muted">Cargando…</p>}
 
             {!loading && bovedas.length === 0 && !loadFailed && (
                 <div className="config-card text-center text-muted py-5">
                     <i className="fas fa-vault fa-2x mb-3 d-block" style={{ color: '#cbd5e1' }} />
-                    Aún no tienes bóvedas. Crea la primera con el botón de arriba.
+                    {faltanCustodios
+                        ? 'Aún no tienes bóvedas. Podrás crear la primera en cuanto tus custodios confirmen.'
+                        : 'Aún no tienes bóvedas. Crea la primera con el botón de arriba.'}
                 </div>
             )}
 
@@ -174,6 +237,12 @@ export default function MisBovedas() {
                                         </span>
                                     </div>
                                     <h5 className="fw-bold mb-1">{b.nombre}</h5>
+                                    {conservadas && (
+                                        <p className={`conservar-chip ${conservadas.has(b.id) ? 'is-conservada' : ''} mb-2`}>
+                                            <i className={`fas ${conservadas.has(b.id) ? 'fa-shield-halved' : 'fa-trash-alt'} me-1`} />
+                                            {conservadas.has(b.id) ? 'Se conservará' : 'Se eliminará'}
+                                        </p>
+                                    )}
                                     <p className={`badge-estado ${meta.cls} mb-2`}>
                                         <i className={`fas ${meta.icon} me-1`} /> {meta.label}
                                     </p>
@@ -198,6 +267,15 @@ export default function MisBovedas() {
                                         interruptor de hombre muerto libere la recuperación.
                                     </p>
                                 </div>
+                                {conservadas && !conservadas.has(b.id) && (
+                                    <button
+                                        className="btn btn-sm btn-outline-secondary w-100 mb-2"
+                                        onClick={() => conservar(b.id)}
+                                        disabled={eligiendo !== null}
+                                    >
+                                        {eligiendo === b.id ? 'Guardando…' : 'Conservar esta bóveda'}
+                                    </button>
+                                )}
                                 <div className="d-flex gap-2">
                                     <button
                                         className={`btn btn-sm flex-grow-1 ${badge === 'protegida' ? 'btn-blue-manage' : 'btn-ipn'}`}

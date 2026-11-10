@@ -37,7 +37,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(
-    title="TT2 API",
+    title=f"{settings.MARCA} API",
     version="0.1.0",
     lifespan=lifespan,
     docs_url="/docs" if settings.ENABLE_DOCS else None,
