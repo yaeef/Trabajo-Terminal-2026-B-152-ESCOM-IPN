@@ -56,12 +56,14 @@
     border-color: rgba(248, 81, 73, 0.35) !important;
 }
 
-/* Botón de tema flotante en las pantallas de auth */
+/* Botones de tema/idioma flotantes en las pantallas de auth */
 .auth-theme-toggle {
     position: fixed;
     top: 16px;
     right: 16px;
     z-index: 30;
+    display: flex;
+    gap: 8px;
 }
 
 [data-theme='dark'] .sidebar,
@@ -138,6 +140,12 @@
 .theme-toggle:hover {
     border-color: var(--escom-blue);
     color: var(--escom-blue);
+}
+/* Botón ES/EN: mismo cuadro que el de tema, con texto en vez de ícono */
+.lang-toggle {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
 }
 
 /* ============================================================
@@ -304,6 +312,37 @@
 [data-theme='dark'] .home-nav-link:hover {
     color: var(--escom-blue) !important;
 }
+/* Actividad interactiva de Shamir (components/home/DemoShamir) */
+[data-theme='dark'] .home-nav-link--demo,
+[data-theme='dark'] .home-nav-menu > a.home-nav-link--demo {
+    color: #f0a3c4;
+}
+[data-theme='dark'] .section-band.ds-seccion {
+    background: linear-gradient(135deg, #3a0d22 0%, #1b1734 55%, #0b2443 100%);
+}
+[data-theme='dark'] .ds-card {
+    --ds-ok: #3fb950;
+    --ds-ok-bg: rgba(63, 185, 80, 0.14);
+    --ds-linea: #3a434e;
+    --ds-pieza-l: 66%;
+    --ds-relleno-s: 30%;
+    --ds-relleno-l: 20%;
+}
+[data-theme='dark'] .ds-num,
+[data-theme='dark'] .ds-opcion.activa {
+    color: #0f141b;
+}
+[data-theme='dark'] .ds-etiqueta,
+[data-theme='dark'] .ds-pieza-codigo,
+[data-theme='dark'] .ds-vacio {
+    color: #9aa4af;
+}
+[data-theme='dark'] .ds-contador {
+    background: rgba(90, 162, 230, 0.16);
+}
+[data-theme='dark'] .ds-panel.is-over {
+    background: rgba(90, 162, 230, 0.08);
+}
 /* El botón "Empezar" del hero es idéntico en ambos temas (ver Home.css);
    solo se blinda por si alguna regla de .btn-light lo tocara en dark. */
 [data-theme='dark'] .home-hero-btn,
@@ -317,3 +356,42 @@
     color: #ffffff !important;
 }
 
+
+[data-theme='dark'] .channel-accion:hover:not(:disabled) {
+    background: rgba(90, 162, 230, 0.16);
+    color: var(--escom-blue);
+}
+
+/* Custodio elegido (paso 3): la regla de arriba sobre .custodian-selector-card
+   le quitaba el borde en tema oscuro y no se notaba la selección. */
+[data-theme='dark'] .custodian-selector-card.selected {
+    border-color: var(--ipn-maroon);
+    background: rgba(168, 51, 101, 0.16);
+    box-shadow: 0 0 0 3px rgba(168, 51, 101, 0.22);
+}
+[data-theme='dark'] .frag-chip {
+    background: rgba(168, 51, 101, 0.22);
+    color: #f0a3c4;
+}
+[data-theme='dark'] .frag-chip.frag-chip-top {
+    background: #a83365;
+    color: #ffffff;
+}
+[data-theme='dark'] .custodian-selector-card .sel-check {
+    color: #f0a3c4;
+}
+[data-theme='dark'] .nk-paso {
+    border-color: var(--border);
+}
+[data-theme='dark'] .nk-opcion {
+    background: var(--surface);
+    border-color: var(--border);
+}
+[data-theme='dark'] .nk-opcion:hover {
+    border-color: var(--escom-blue);
+}
+[data-theme='dark'] .nk-opcion.activa {
+    background: var(--escom-blue);
+    border-color: var(--escom-blue);
+    color: #0f141b;
+}

@@ -1,0 +1,131 @@
+/* Paso "confirma tu protocolo de vida" antes de la primera bóveda. */
+.protocolo-paso {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    max-width: 760px;
+}
+.protocolo-paso .primer-paso-lista {
+    margin-bottom: 0.2rem;
+}
+.primer-paso-lista li.is-actual .primer-paso-num {
+    background: var(--ipn-maroon);
+    color: #fff;
+}
+.pv-grupo {
+    border: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+.pv-grupo legend,
+.pv-titulo {
+    font-size: 0.98rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    padding: 0;
+}
+.pv-opciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+.pv-opcion {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1.1rem;
+    border-radius: 14px;
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    font-size: 0.95rem;
+    cursor: pointer;
+    min-height: 44px;
+}
+.pv-opcion input {
+    accent-color: var(--ipn-maroon);
+}
+.pv-opcion.is-sel {
+    border: 2px solid var(--ipn-maroon);
+    background: #fdf2f6;
+    font-weight: 600;
+}
+.pv-canal {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1rem;
+    border-radius: 14px;
+    font-size: 0.9rem;
+    text-decoration: none;
+}
+.pv-canal.is-ok {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+}
+.pv-canal.is-pendiente {
+    border: 1px dashed #94a3b8;
+    color: #334155;
+}
+.pv-resumen {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+}
+.pv-linea {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.6rem;
+}
+.pv-linea li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.75rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 0.88rem;
+}
+.pv-linea strong {
+    color: var(--escom-blue);
+    font-size: 0.98rem;
+}
+[data-theme='dark'] .pv-opcion,
+[data-theme='dark'] .pv-linea li {
+    background: var(--surface);
+    border-color: var(--border);
+    color: inherit;
+}
+[data-theme='dark'] .pv-opcion.is-sel {
+    border-color: #c0517f;
+    background: rgba(157, 30, 82, 0.18);
+}
+[data-theme='dark'] .pv-resumen {
+    background: var(--surface-2);
+    border-color: var(--border);
+}
+[data-theme='dark'] .pv-linea strong {
+    color: #93c5fd;
+}
+[data-theme='dark'] .pv-canal.is-ok {
+    background: rgba(22, 163, 74, 0.15);
+    border-color: #166534;
+    color: #86efac;
+}
+[data-theme='dark'] .pv-canal.is-pendiente {
+    color: inherit;
+}
+[data-theme='dark'] .primer-paso-lista li.is-actual .primer-paso-num {
+    background: #a83365;
+}

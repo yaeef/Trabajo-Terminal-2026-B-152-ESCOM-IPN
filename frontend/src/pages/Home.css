@@ -54,6 +54,11 @@
 .home-nav-link:hover {
     color: var(--escom-blue);
 }
+/* "Pruébalo" (actividad interactiva) resaltado en el menú */
+.home-nav-link--demo,
+.home-nav-menu > a.home-nav-link--demo {
+    color: var(--ipn-maroon);
+}
 
 .home-nav-menu {
     position: absolute;

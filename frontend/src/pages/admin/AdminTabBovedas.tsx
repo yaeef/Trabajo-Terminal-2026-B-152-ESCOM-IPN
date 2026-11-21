@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react';
 import { adminService } from '../../services/admin.service';
 import { useNotice } from '../../store/NoticeContext';
-import type { BovedaResponse } from '../../types/bovedas.types';
+import { categoriaLabel, type BovedaResponse } from '../../types/bovedas.types';
+import { locale, t } from '../../i18n';
 import { getApiErrorMessage } from '../../utils/errors';
 
 interface Props {
     idPropietario: number;
 }
 
-const ESTADO_LABEL: Record<string, string> = {
-    borrador: 'Borrador',
-    activa: 'Activa',
-    en_recuperacion: 'En recuperación',
-    expirada: 'Expirada',
-};
+const estadoLabel = (e: string): string =>
+    ({
+        borrador: t('Borrador', 'Draft'),
+        activa: t('Activa', 'Active'),
+        en_recuperacion: t('En recuperación', 'In recovery'),
+        expirada: t('Expirada', 'Expired'),
+    })[e] ?? e;
 
 export default function AdminTabBovedas({ idPropietario }: Props) {
     const [bovedas, setBovedas] = useState<BovedaResponse[]>([]);
@@ -28,23 +30,23 @@ export default function AdminTabBovedas({ idPropietario }: Props) {
             .then(setBovedas)
             .catch((e) => {
                 setLoadFailed(true);
-                notifyError(getApiErrorMessage(e, 'No se pudo cargar las bóvedas.'));
+                notifyError(getApiErrorMessage(e, t('No se pudo cargar las bóvedas.', "Couldn't load the vaults.")));
             })
             .finally(() => setLoading(false));
     }, [idPropietario]);
 
-    if (loading) return <p className="text-muted">Cargando…</p>;
+    if (loading) return <p className="text-muted">{t('Cargando…', 'Loading…')}</p>;
     if (loadFailed) return null;
 
     return (
         <div>
             <p className="text-muted small mb-3">
-                Solo metadatos: nunca el contenido cifrado de los activos, ni la llave, ni los fragmentos.
+                {t('Solo metadatos: nunca el contenido cifrado de los activos, ni la llave, ni los fragmentos.', 'Metadata only: never the encrypted asset contents, the key or the shares.')}
             </p>
             {bovedas.length === 0 ? (
                 <div className="admin-card text-center text-muted py-5">
                     <i className="fas fa-vault fa-2x mb-3 d-block" style={{ color: '#cbd5e1' }} />
-                    Este propietario aún no tiene bóvedas.
+                    {t('Este propietario aún no tiene bóvedas.', "This owner doesn't have any vaults yet.")}
                 </div>
             ) : (
                 <div className="admin-card p-0">
@@ -52,11 +54,11 @@ export default function AdminTabBovedas({ idPropietario }: Props) {
                         <table className="table table-hover align-middle mb-0">
                             <thead style={{ background: '#f8fafc' }}>
                                 <tr>
-                                    <th className="border-0 ps-4 py-3 small text-muted text-uppercase fw-bold">Bóveda</th>
-                                    <th className="border-0 py-3 small text-muted text-uppercase fw-bold">Estado</th>
-                                    <th className="border-0 py-3 small text-muted text-uppercase fw-bold">Umbral</th>
-                                    <th className="border-0 py-3 small text-muted text-uppercase fw-bold">Custodios vinculados</th>
-                                    <th className="border-0 pe-4 py-3 small text-muted text-uppercase fw-bold text-end">Creada</th>
+                                    <th className="border-0 ps-4 py-3 small text-muted text-uppercase fw-bold">{t('Bóveda', 'Vault')}</th>
+                                    <th className="border-0 py-3 small text-muted text-uppercase fw-bold">{t('Estado', 'Status')}</th>
+                                    <th className="border-0 py-3 small text-muted text-uppercase fw-bold">{t('Umbral', 'Threshold')}</th>
+                                    <th className="border-0 py-3 small text-muted text-uppercase fw-bold">{t('Custodios vinculados', 'Linked custodians')}</th>
+                                    <th className="border-0 pe-4 py-3 small text-muted text-uppercase fw-bold text-end">{t('Creada', 'Created')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -64,17 +66,19 @@ export default function AdminTabBovedas({ idPropietario }: Props) {
                                     <tr key={b.id}>
                                         <td className="ps-4">
                                             <div className="fw-bold">{b.nombre}</div>
-                                            <div className="text-muted small">{b.categoria ?? 'Sin categoría'} · {b.pid}</div>
+                                            <div className="text-muted small">{b.categoria ? categoriaLabel(b.categoria) : t('Sin categoría', 'No category')} · {b.pid}</div>
                                         </td>
                                         <td>
                                             <span className="admin-badge" style={{ background: '#e2e8f0', color: '#334155' }}>
-                                                {ESTADO_LABEL[b.estado] ?? b.estado}
+                                                {estadoLabel(b.estado)}
                                             </span>
                                         </td>
-                                        <td>{b.umbral_k ?? '—'} de {b.total_fragmentos_n ?? '—'}</td>
+                                        <td>
+                                            {b.umbral_k ?? '—'} {t('de', 'of')} {b.total_fragmentos_n ?? '—'}
+                                        </td>
                                         <td>{b.custodios_vinculados}</td>
                                         <td className="pe-4 text-end small text-muted">
-                                            {b.created_at ? new Date(b.created_at).toLocaleDateString('es-MX') : '—'}
+                                            {b.created_at ? new Date(b.created_at).toLocaleDateString(locale()) : '—'}
                                         </td>
                                     </tr>
                                 ))}

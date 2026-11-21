@@ -2,10 +2,11 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { bovedasService } from '../../services/bovedas.service';
-import type { CustodioResponse } from '../../types/bovedas.types';
+import { CATEGORIAS_BOVEDA, categoriaLabel, type CustodioResponse } from '../../types/bovedas.types';
 import { custodioNotificable } from '../../types/custodios.types';
 import { useNotice } from '../../store/NoticeContext';
 import { getApiErrorMessage } from '../../utils/errors';
+import { subscriptionService } from '../../services/subscription.service';
 import {
     deriveDEK,
     computeVerifier,
@@ -16,7 +17,6 @@ import {
     passphraseMeter as meter,
     MIN_PASSPHRASE_BITS as MIN_BITS,
     deriveFromEnvelope,
-    toHex,
 } from '../../crypto/vaultCrypto';
 import { wipe } from '../../crypto/sensitiveMemory';
 import { downloadEmergencySheet } from '../../crypto/emergencySheet';
@@ -29,22 +29,26 @@ import {
 } from '../../crypto/sss';
 import './bovedas.css';
 import PrimerPasoCustodios from '../../components/PrimerPasoCustodios';
+import ProtocoloPrimerPaso from '../../components/ProtocoloPrimerPaso';
+import { getLang, t } from '../../i18n';
 
 const MIN_N = 3; // RN-006: con mayoría simple, n=2 no admite ningún k válido
+const MAX_N = 10; // tope absoluto del reparto (el plan puede permitir menos)
 /** RN-006: k debe representar mayoría simple de los n custodios (floor(n/2)+1 <= k < n). */
 const minK = (n: number) => Math.floor(n / 2) + 1;
+const rango = (a: number, b: number) => Array.from({ length: Math.max(b - a + 1, 0) }, (_, i) => a + i);
 
-const STEPS = ['Configuración', 'Fragmentación', 'Vinculación', 'Subir Activos'];
+const steps = () => [t('Configuración', 'Setup'), t('Fragmentación', 'Splitting'), t('Vinculación', 'Linking'), t('Subir Activos', 'Upload Assets')];
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function Stepper({ step }: { step: number }) {
     return (
         <div className="stepper">
-            {STEPS.map((label, i) => {
+            {steps().map((label, i) => {
                 const n = i + 1;
                 const cls = n < step ? 'done' : n === step ? 'active' : '';
                 return (
-                    <div className={`step ${cls}`} key={label}>
+                    <div className={`step ${cls}`} key={n}>
                         <div className="step-circle">{n < step ? <i className="fas fa-check" /> : n}</div>
                         <div className="step-label">{label}</div>
                     </div>
@@ -68,7 +72,7 @@ function WizardModal({ children, danger }: { children: ReactNode; danger?: boole
     );
 }
 
-type ModalName = null | 'passWarn' | 'dist' | 'confirm' | 'limit' | 'success';
+type ModalName = null | 'passWarn' | 'hoja' | 'dist' | 'confirm' | 'limit' | 'success';
 
 export default function NuevaBoveda() {
     const navigate = useNavigate();
@@ -93,9 +97,11 @@ export default function NuevaBoveda() {
     // datos de la bóveda creada (para la hoja de emergencia)
     const [bovedaPid, setBovedaPid] = useState('');
 
-    // paso 2
-    const [n, setN] = useState(5);
-    const [k, setK] = useState(3);
+    // paso 2: primero el total (n) y después cuántos abren (k)
+    const [n, setN] = useState<number | null>(null);
+    const [k, setK] = useState<number | null>(null);
+    const [maxCustodiosPlan, setMaxCustodiosPlan] = useState<number>(MAX_N);
+    const [hojaConfirmada, setHojaConfirmada] = useState(false);
     const [split, setSplit] = useState<SplitResult | null>(null);
     const [xCoords, setXCoords] = useState<number[]>([]);
 
@@ -120,18 +126,9 @@ export default function NuevaBoveda() {
 
     // modales + animación de progreso
     const [modal, setModal] = useState<ModalName>(null);
-    const [distPhase, setDistPhase] = useState<'warn' | 'downloading'>('warn');
+    const [distPhase, setDistPhase] = useState<'warn' | 'downloading' | 'verify'>('warn');
     const [prog, setProg] = useState({ pct: 0, text: '' });
     const limitTimer = useRef<number | null>(null);
-
-    const runProgress = async (steps: Array<[number, string]>, after: () => void | Promise<void>) => {
-        for (const [pct, text] of steps) {
-            setProg({ pct, text });
-            await sleep(750);
-        }
-        await sleep(400);
-        await after();
-    };
 
     // --- resume ---
     const [resumeReady, setResumeReady] = useState(!resumeId);
@@ -148,7 +145,7 @@ export default function NuevaBoveda() {
                 if (b.umbral_k) setK(b.umbral_k);
                 if (b.total_fragmentos_n) setN(b.total_fragmentos_n);
             })
-            .catch((e) => notifyError(getApiErrorMessage(e, 'No se pudo cargar la bóveda.')));
+            .catch((e) => notifyError(getApiErrorMessage(e, t('No se pudo cargar la bóveda.', "Couldn't load the vault."))));
     }, [resumeId]);
 
     const handleResumeUnlock = async () => {
@@ -170,7 +167,7 @@ export default function NuevaBoveda() {
             }
             setResumeReady(true);
         } catch (e) {
-            notifyError(getApiErrorMessage(e, 'Pass-phrase incorrecta.'));
+            notifyError(getApiErrorMessage(e, t('Llave maestra incorrecta.', 'Incorrect master key.')));
         } finally {
             setBusy(false);
         }
@@ -194,13 +191,16 @@ export default function NuevaBoveda() {
             setVerifier(v);
             setBovedaId(b.id);
             setBovedaPid(b.pid);
-            // Obligatoria: sin la pass-phrase (ni recuperación por custodios)
+            // Obligatoria: sin la llave maestra (ni recuperación por custodios)
             // los activos son irrecuperables. Necesita el PID, así que va
-            // justo después de crear la bóveda.
+            // justo después de crear la bóveda. El navegador puede bloquear la
+            // descarga: la ventana 'hoja' deja volver a bajarla y pide
+            // confirmar que se tiene antes de seguir.
             downloadEmergencySheet({ tipo: 'boveda', nombreBoveda: nombre, pid: b.pid, passphrase });
-            setStep(2);
+            setHojaConfirmada(false);
+            setModal('hoja');
         } catch (e) {
-            notifyError(getApiErrorMessage(e, 'No se pudo crear la bóveda.'));
+            notifyError(getApiErrorMessage(e, t('No se pudo crear la bóveda.', "Couldn't create the vault.")));
         } finally {
             setBusy(false);
         }
@@ -213,7 +213,7 @@ export default function NuevaBoveda() {
 
     // --- paso 2 -> fragmentar (WASM) ---
     const doSplit = async () => {
-        if (!dek) return;
+        if (!dek || !n || !k) return;
         setBusy(true);
         try {
             split?.shares.forEach((s) => wipe(s.y)); // descarta un reparto previo
@@ -221,14 +221,14 @@ export default function NuevaBoveda() {
             setSplit(r);
             setXCoords(r.xCoords);
         } catch (e) {
-            notifyError((e as Error).message || 'Falló la fragmentación.');
+            notifyError((e as Error).message || t('Falló la fragmentación.', 'Splitting failed.'));
         } finally {
             setBusy(false);
         }
     };
 
     const submitStep2 = async () => {
-        if (!bovedaId || !split) return;
+        if (!bovedaId || !split || !n || !k) return;
         setBusy(true);
         try {
             await bovedasService.uploadVss(bovedaId, {
@@ -243,11 +243,23 @@ export default function NuevaBoveda() {
             // el nombre del custodio asignado. Se borran al final de submitStep3.
             setStep(3);
         } catch (e) {
-            notifyError(getApiErrorMessage(e, 'No se pudieron subir los compromisos.'));
+            notifyError(getApiErrorMessage(e, t('No se pudieron guardar los fragmentos. Inténtalo de nuevo.', "Couldn't save the shares. Please try again.")));
         } finally {
             setBusy(false);
         }
     };
+
+    // --- protocolo de vida: antes de la PRIMERA bóveda se revisa y confirma.
+    // Sin columna nueva en la BD: "primera" = el propietario no tiene bóvedas.
+    const [tieneBovedas, setTieneBovedas] = useState<boolean | null>(resumeId ? true : null);
+    const [protocoloConfirmado, setProtocoloConfirmado] = useState(false);
+    useEffect(() => {
+        if (resumeId) return;
+        bovedasService
+            .list()
+            .then((l) => setTieneBovedas(l.length > 0))
+            .catch(() => setTieneBovedas(true)); // si falla, no bloquea; el protocolo sigue en Configuración
+    }, [resumeId]);
 
     // --- directorio de custodios: se necesita desde el Paso 2 (validar que haya
     // suficientes verificados antes de fragmentar), no solo en el Paso 3 ---
@@ -255,8 +267,14 @@ export default function NuevaBoveda() {
         bovedasService
             .listDirectorio()
             .then(setDirectorio)
-            .catch((e) => notifyError(getApiErrorMessage(e, 'No se pudo cargar el directorio de custodios.')))
+            .catch((e) => notifyError(getApiErrorMessage(e, t('No se pudo cargar el directorio de custodios.', "Couldn't load the custodian directory."))))
             .finally(() => setLoadingDirectorio(false));
+        // Tope de fragmentos del plan (= custodios que permite). Si falla, se
+        // usa el tope general y el backend sigue validando.
+        subscriptionService
+            .getActual()
+            .then((a) => setMaxCustodiosPlan(Math.min(a.plan.max_custodios, MAX_N)))
+            .catch(() => undefined);
     }, []);
 
     const toggleCustodio = (id: number) => {
@@ -264,7 +282,7 @@ export default function NuevaBoveda() {
         if (c && !custodioNotificable(c)) return; // sin canal verificado
         setSelected((prev) => {
             if (prev.includes(id)) return prev.filter((x) => x !== id);
-            if (prev.length >= n) {
+            if (n && prev.length >= n) {
                 setModal('limit');
                 if (limitTimer.current) window.clearTimeout(limitTimer.current);
                 limitTimer.current = window.setTimeout(() => setModal((m) => (m === 'limit' ? null : m)), 3000);
@@ -292,7 +310,7 @@ export default function NuevaBoveda() {
             setSplit(null);
             setStep(4);
         } catch (e) {
-            notifyError(getApiErrorMessage(e, 'No se pudo confirmar la vinculación.'));
+            notifyError(getApiErrorMessage(e, t('No se pudo confirmar la vinculación.', "Couldn't confirm the linking.")));
         } finally {
             setBusy(false);
         }
@@ -312,10 +330,27 @@ export default function NuevaBoveda() {
     }, [step, navigate]);
 
     const selectedCustodios = selected
-        .map((id, i) => ({ c: directorio.find((d) => d.id === id), x: xCoords[i] }))
-        .filter((r): r is { c: CustodioResponse; x: number } => Boolean(r.c));
+        .map((id, i) => ({ c: directorio.find((d) => d.id === id), x: xCoords[i], num: i + 1 }))
+        .filter((r): r is { c: CustodioResponse; x: number; num: number } => Boolean(r.c));
 
     const notificables = directorio.filter(custodioNotificable);
+
+    // Opciones válidas del paso 2: el total va de 3 al menor entre lo que
+    // permite el plan y los custodios confirmados; el umbral, de más de la
+    // mitad a uno menos que el total.
+    const maxN = Math.max(MIN_N, Math.min(maxCustodiosPlan, notificables.length || MIN_N));
+    const opcionesN = rango(MIN_N, maxN);
+    const opcionesK = n ? rango(minK(n), n - 1) : [];
+    const elegirN = (nv: number) => {
+        setN(nv);
+        const ks = rango(minK(nv), nv - 1);
+        setK(ks.length === 1 ? ks[0] : null);
+        setSplit(null);
+    };
+    // Con una sola opción (plan Gratuito: 3 custodios) se elige sola.
+    useEffect(() => {
+        if (step === 2 && !resumeId && n === null && opcionesN.length === 1) elegirN(opcionesN[0]);
+    }, [step, opcionesN.length]);
 
     // Descarga cada .sss ya nombrado con el custodio que lo recibirá. Los
     // compromisos VSS no se descargan: ya están en el servidor y contra ellos
@@ -325,14 +360,14 @@ export default function NuevaBoveda() {
     // se omite por completo (ver botón "Vincular y Continuar").
     const downloadAllParaCustodios = async () => {
         if (!split) return;
-        for (const { c, x } of selectedCustodios) {
+        for (const { c, x, num } of selectedCustodios) {
             const s = split.shares.find((sh) => sh.id === x);
             if (!s) continue;
             downloadText(
-                `share_${slugNombreArchivo(nombre)}_${slugNombreArchivo(c.nombre)}_x${x}.sss`,
+                `fragmento_${slugNombreArchivo(nombre)}_${slugNombreArchivo(c.nombre)}_${num}.sss`,
                 await encodeShareFile(s.id, s.y),
             );
-            await sleep(120);
+            await sleep(400); // espaciadas: algunos navegadores frenan descargas seguidas
         }
     };
 
@@ -341,30 +376,55 @@ export default function NuevaBoveda() {
     // (el backend también lo exige). Reanudar un borrador no pasa por aquí.
     if (!resumeId && step === 1 && !loadingDirectorio && notificables.length < MIN_N) {
         return (
-            <DashboardLayout activeItem="bovedas" topBarLabel="Configurar Bóveda" backTo="/bovedas">
+            <DashboardLayout activeItem="bovedas" topBarLabel={t('Configurar Bóveda', 'Set Up Vault')} backTo="/bovedas">
                 <PrimerPasoCustodios custodios={directorio} variante="pagina" />
+            </DashboardLayout>
+        );
+    }
+
+    // Segundo paso: con los custodios listos, la primera bóveda pide confirmar
+    // el protocolo de vida (umbral, espera y canales) antes del paso 1.
+    if (!resumeId && step === 1 && !protocoloConfirmado && tieneBovedas !== true) {
+        return (
+            <DashboardLayout activeItem="bovedas" topBarLabel={t('Configurar Bóveda', 'Set Up Vault')} backTo="/bovedas">
+                {tieneBovedas === null || loadingDirectorio ? (
+                    <div className="text-center text-muted py-5">{t('Cargando…', 'Loading…')}</div>
+                ) : (
+                    <ProtocoloPrimerPaso
+                        custodiosListos={notificables.map((c) => c.nombre)}
+                        onListo={() => setProtocoloConfirmado(true)}
+                        onVolver={() => navigate('/bovedas')}
+                    />
+                )}
             </DashboardLayout>
         );
     }
 
     if (!resumeReady) {
         return (
-            <DashboardLayout activeItem="bovedas" topBarLabel="Configurar Bóveda" backTo="/bovedas">
+            <DashboardLayout activeItem="bovedas" topBarLabel={t('Configurar Bóveda', 'Set Up Vault')} backTo="/bovedas">
                 <div className="config-card" style={{ maxWidth: 560 }}>
-                    <h3 className="fw-bold mb-1">Reanudar configuración</h3>
-                    <p className="text-muted">
-                        Ingresa la pass-phrase de <strong>{nombre || 'la bóveda'}</strong> para continuar. No se
-                        guardó en ningún lado: se vuelve a derivar la llave aquí.
-                    </p>
+                    <h3 className="fw-bold mb-1">{t('Reanudar configuración', 'Resume setup')}</h3>
+                    {getLang() === 'es' ? (
+                        <p className="text-muted">
+                            Escribe la llave maestra de <strong>{nombre || 'la bóveda'}</strong> para continuar.
+                            Kleimos no la guarda en ningún lado.
+                        </p>
+                    ) : (
+                        <p className="text-muted">
+                            Enter the master key of <strong>{nombre || 'the vault'}</strong> to continue. Kleimos
+                            doesn't store it anywhere.
+                        </p>
+                    )}
                     <input
                         type="password"
                         className="form-control shadow-none mb-3"
-                        placeholder="pass-phrase de la bóveda"
+                        placeholder={t('Llave maestra de la bóveda', 'Vault master key')}
                         value={passphrase}
                         onChange={(e) => setPassphrase(e.target.value)}
                     />
                     <button className="btn btn-ipn" onClick={handleResumeUnlock} disabled={busy || !passphrase}>
-                        {busy ? 'Verificando…' : 'Desbloquear'}
+                        {busy ? t('Verificando…', 'Verifying…') : t('Desbloquear', 'Unlock')}
                     </button>
                 </div>
             </DashboardLayout>
@@ -372,42 +432,35 @@ export default function NuevaBoveda() {
     }
 
     return (
-        <DashboardLayout activeItem="bovedas" topBarLabel="Configurar Nueva Bóveda" backTo="/bovedas">
+        <DashboardLayout activeItem="bovedas" topBarLabel={t('Configurar Nueva Bóveda', 'Set Up New Vault')} backTo="/bovedas">
             <Stepper step={step} />
 
             {/* ---------- PASO 1 ---------- */}
             {step === 1 && (
                 <div className="config-card">
-                    <h3 className="fw-bold mb-1">Paso 1: Configuración</h3>
-                    <p className="text-muted mb-4">Identidad de la bóveda y su pass-phrase (raíz del cifrado AES-256).</p>
+                    <h3 className="fw-bold mb-1">{t('Paso 1: Configuración', 'Step 1: Setup')}</h3>
+                    <p className="text-muted mb-4">{t('Ponle nombre a la bóveda y elige su llave maestra: con ella se protegen tus archivos.', 'Name the vault and choose its master key: it protects your files.')}</p>
 
                     <div className="row g-3 mb-3">
                         <div className="col-md-8">
-                            <label className="form-label-b d-block">Nombre de la bóveda</label>
-                            <input className="form-control shadow-none" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej: Carteras Frías 2026" />
+                            <label className="form-label-b d-block">{t('Nombre de la bóveda', 'Vault name')}</label>
+                            <input className="form-control shadow-none" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder={t('Ej: Carteras Frías 2026', 'e.g. Cold Wallets 2026')} />
                         </div>
                         <div className="col-md-4">
-                            <label className="form-label-b d-block">Categoría</label>
+                            <label className="form-label-b d-block">{t('Categoría', 'Category')}</label>
                             <select className="form-select shadow-none" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
-                                <option>Finanzas / Crypto</option>
-                                <option>Documentos Legales</option>
-                                <option>Personal</option>
-                                <option>Accesos / Contraseñas</option>
-                                <option>Cuentas Digitales</option>
-                                <option>Seguros y Beneficiarios</option>
-                                <option>Propiedades y Patrimonio</option>
-                                <option>Salud</option>
-                                <option>Negocios / Empresa</option>
-                                <option>Trabajo / Profesional</option>
-                                <option>Instrucciones de Sucesión</option>
-                                <option>Otro</option>
+                                {CATEGORIAS_BOVEDA.map((c) => (
+                                    <option key={c} value={c}>
+                                        {categoriaLabel(c)}
+                                    </option>
+                                ))}
                             </select>
                         </div>
                     </div>
 
                     <div className="mb-3">
-                        <label className="form-label-b d-block">Mensaje para custodios (opcional)</label>
-                        <textarea className="form-control shadow-none" rows={2} value={mensaje} onChange={(e) => setMensaje(e.target.value)} placeholder="Se mostrará a los custodios durante la recuperación…" />
+                        <label className="form-label-b d-block">{t('Mensaje para custodios (opcional)', 'Message for custodians (optional)')}</label>
+                        <textarea className="form-control shadow-none" rows={2} value={mensaje} onChange={(e) => setMensaje(e.target.value)} placeholder={t('Lo verán tus custodios cuando abran la bóveda…', 'Your custodians will see it when they open the vault…')} />
                     </div>
 
                     {(() => {
@@ -418,13 +471,13 @@ export default function NuevaBoveda() {
                             <>
                                 <div className="passphrase-box mb-3">
                                     <div className="d-flex justify-content-between align-items-center mb-2">
-                                        <label className="form-label-b m-0">Pass-phrase de cifrado (client-side)</label>
+                                        <label className="form-label-b m-0">{t('Llave maestra', 'Master key')}</label>
                                         <button
                                             type="button"
                                             className="btn btn-sm btn-light"
                                             onClick={() => { setPassphrase(suggestPassphrase()); setShowPass(true); }}
                                         >
-                                            <i className="fas fa-dice me-1" /> Sugerir
+                                            <i className="fas fa-dice me-1" /> {t('Sugerir', 'Suggest')}
                                         </button>
                                     </div>
                                     <div className="input-group">
@@ -434,10 +487,10 @@ export default function NuevaBoveda() {
                                             style={{ fontFamily: "'JetBrains Mono', monospace" }}
                                             value={passphrase}
                                             onChange={(e) => setPassphrase(e.target.value)}
-                                            placeholder="ocho-palabras-al-azar-separadas-por-guion"
+                                            placeholder={t('Escríbela o pulsa «Sugerir»', 'Type it or press “Suggest”')}
                                         />
                                         <button className="btn btn-outline-secondary" type="button" onClick={() => setShowPass((s) => !s)}>
-                                            {showPass ? 'Ocultar' : 'Mostrar'}
+                                            {showPass ? t('Ocultar', 'Hide') : t('Mostrar', 'Show')}
                                         </button>
                                     </div>
                                     <div className="strength-meter">
@@ -446,40 +499,56 @@ export default function NuevaBoveda() {
                                     {passphrase && (
                                         <div className="d-flex justify-content-between small">
                                             <span style={{ color: m.color, fontWeight: 700 }}>{m.label}</span>
-                                            {m.label === 'Débil' && (
-                                                <span className="text-muted">usa «Sugerir» para una frase segura</span>
+                                            {m.debil && (
+                                                <span className="text-muted">{t('usa «Sugerir» para una llave segura', 'use “Suggest” for a secure key')}</span>
                                             )}
                                         </div>
                                     )}
                                     <p className="m-0 mt-2 text-muted small">
-                                        <i className="fas fa-info-circle me-1" /> Kleimos nunca la guarda. De ella se deriva la
-                                        llave AES-256 que además se fragmenta con Shamir.
+                                        <i className="fas fa-info-circle me-1" /> {t('Puede ser una frase de varias palabras o una combinación de caracteres al azar: mientras más larga y menos predecible, mejor. Kleimos nunca la guarda.', 'It can be a multi-word phrase or a random combination of characters: the longer and less predictable, the better. Kleimos never stores it.')}
                                     </p>
 
                                     <div className="passphrase-warning mt-3">
                                         <i className="fas fa-triangle-exclamation me-2" />
-                                        <span>
-                                            <strong>Resguardar y recordar esta pass-phrase es tu responsabilidad.</strong>{' '}
-                                            Si la pierdes, los activos de la bóveda <strong>no se pueden recuperar</strong>{' '}
-                                            hasta que se active el proceso de recuperación con custodios.
-                                        </span>
+                                        {getLang() === 'es' ? (
+                                            <span>
+                                                <strong>Guardar y recordar tu llave maestra es tu responsabilidad.</strong>{' '}
+                                                Si la pierdes, los archivos de la bóveda <strong>no se pueden abrir</strong>{' '}
+                                                hasta que se active la recuperación con tus custodios.
+                                            </span>
+                                        ) : (
+                                            <span>
+                                                <strong>Keeping and remembering your master key is your responsibility.</strong>{' '}
+                                                If you lose it, the vault's files <strong>can't be opened</strong>{' '}
+                                                until recovery with your custodians is triggered.
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
 
                                 <p className="small mb-4">
-                                    <i className="fas fa-file-arrow-down me-1" /> Al continuar se descargará la{' '}
-                                    <strong>hoja de emergencia</strong> con la pass-phrase (obligatoria). Imprímela y
-                                    guárdala en físico; no la guardes en la nube ni la compartas.
+                                    <i className="fas fa-file-arrow-down me-1" />{' '}
+                                    {getLang() === 'es' ? (
+                                        <>
+                                            Al continuar se descargará la <strong>hoja de emergencia</strong> con tu llave
+                                            maestra. Imprímela y guárdala en físico; no la subas a la nube ni la compartas.
+                                        </>
+                                    ) : (
+                                        <>
+                                            When you continue, the <strong>emergency sheet</strong> with your master key will
+                                            download. Print it and keep it on paper; don't upload it to the cloud or share it.
+                                        </>
+                                    )}
                                 </p>
 
                                 <div className="d-flex justify-content-between pt-3 border-top">
-                                    <button className="btn btn-light rounded-pill px-4" onClick={() => navigate('/bovedas')}>Cancelar</button>
+                                    <button className="btn btn-light rounded-pill px-4" onClick={() => navigate('/bovedas')}>{t('Cancelar', 'Cancel')}</button>
                                     <button
                                         className="btn btn-ipn"
                                         onClick={() => setModal('passWarn')}
                                         disabled={busy || !nombre || !okToContinue}
                                     >
-                                        {busy ? 'Derivando llave…' : 'Continuar a Fragmentación'} <i className="fas fa-arrow-right ms-2" />
+                                        {busy ? t('Creando bóveda…', 'Creating vault…') : t('Continuar a Fragmentación', 'Continue to Splitting')} <i className="fas fa-arrow-right ms-2" />
                                     </button>
                                 </div>
                             </>
@@ -491,47 +560,102 @@ export default function NuevaBoveda() {
             {/* ---------- PASO 2 ---------- */}
             {step === 2 && (
                 <div className="config-card">
-                    <h3 className="fw-bold mb-1">Paso 2: Fragmentación</h3>
-                    <p className="text-muted mb-4">Fragmenta la llave de la bóveda con Shamir (motor WASM). Define n y el umbral k.</p>
+                    <h3 className="fw-bold mb-1">{t('Paso 2: Fragmentación', 'Step 2: Splitting')}</h3>
+                    <p className="text-muted mb-4">{t('Divide la llave de la bóveda en partes: una por custodio. Elige cuántas partes se necesitan para abrirla.', 'Split the vault key into parts: one per custodian. Choose how many parts are needed to open it.')}</p>
 
                     <div className="sss-control-box mb-4">
-                        <div className="row g-4 mb-3">
-                            <div className="col-md-6">
-                                <div className="d-flex justify-content-between">
-                                    <span className="form-label-b">Fragmentos (n)</span>
-                                    <span className="slider-value">{n}</span>
+                        <div className="nk-paso">
+                            <span className="nk-num">1</span>
+                            <div className="flex-grow-1">
+                                <p className="form-label-b mb-1">{t('¿En cuántos fragmentos la divides?', 'How many shares do you split it into?')}</p>
+                                <p className="text-muted small mb-2">
+                                    {opcionesN.length === 1
+                                        ? t(
+                                              `Tu plan permite ${maxCustodiosPlan} custodios, así que la llave se divide en ${MIN_N} fragmentos.`,
+                                              `Your plan allows ${maxCustodiosPlan} custodians, so the key is split into ${MIN_N} shares.`,
+                                          )
+                                        : t(
+                                              `Uno por custodio. Puedes elegir entre ${MIN_N} y ${maxN}: tienes ${notificables.length} custodios confirmados y tu plan permite hasta ${maxCustodiosPlan}.`,
+                                              `One per custodian. You can choose between ${MIN_N} and ${maxN}: you have ${notificables.length} confirmed custodians and your plan allows up to ${maxCustodiosPlan}.`,
+                                          )}
+                                </p>
+                                <div className="nk-opciones" role="group" aria-label={t('Total de fragmentos', 'Total shares')}>
+                                    {opcionesN.map((v) => (
+                                        <button
+                                            key={v}
+                                            type="button"
+                                            className={`nk-opcion ${n === v ? 'activa' : ''}`}
+                                            aria-pressed={n === v}
+                                            onClick={() => elegirN(v)}
+                                        >
+                                            {v}
+                                        </button>
+                                    ))}
                                 </div>
-                                <input type="range" className="form-range" min={MIN_N} max={10} value={n}
-                                    onChange={(e) => {
-                                        const nv = Number(e.target.value);
-                                        setN(nv);
-                                        setK((kv) => Math.min(Math.max(kv, minK(nv)), nv - 1));
-                                        setSplit(null);
-                                    }} />
-                            </div>
-                            <div className="col-md-6">
-                                <div className="d-flex justify-content-between">
-                                    <span className="form-label-b">Umbral (k)</span>
-                                    <span className="slider-value">{k}</span>
-                                </div>
-                                <input type="range" className="form-range" min={minK(n)} max={n - 1} value={k}
-                                    onChange={(e) => { setK(Number(e.target.value)); setSplit(null); }} />
                             </div>
                         </div>
-                        <div className="logic-hint">
-                            <i className="fas fa-shield-alt me-2" />
-                            Se generan <strong>{n}</strong> fragmentos; hacen falta <strong>{k}</strong> para reconstruir la llave.
+
+                        <div className={`nk-paso ${n ? '' : 'inactivo'}`}>
+                            <span className="nk-num">2</span>
+                            <div className="flex-grow-1">
+                                <p className="form-label-b mb-1">{t('¿Cuántos se necesitan para abrirla?', 'How many are needed to open it?')}</p>
+                                <p className="text-muted small mb-2">
+                                    {!n
+                                        ? t('Primero elige en cuántos fragmentos la divides.', 'First choose how many shares to split it into.')
+                                        : opcionesK.length === 1
+                                          ? t(
+                                                `Con ${n} fragmentos se necesitan ${opcionesK[0]} para abrirla (más de la mitad).`,
+                                                `With ${n} shares, ${opcionesK[0]} are needed to open it (more than half).`,
+                                            )
+                                          : t(
+                                                `Con ${n} fragmentos puedes elegir entre ${opcionesK[0]} y ${opcionesK[opcionesK.length - 1]}: deben ser más de la mitad y menos que el total.`,
+                                                `With ${n} shares you can choose between ${opcionesK[0]} and ${opcionesK[opcionesK.length - 1]}: more than half and fewer than the total.`,
+                                            )}
+                                </p>
+                                <div className="nk-opciones" role="group" aria-label={t('Fragmentos necesarios para abrir', 'Shares needed to open')}>
+                                    {opcionesK.map((v) => (
+                                        <button
+                                            key={v}
+                                            type="button"
+                                            className={`nk-opcion ${k === v ? 'activa' : ''}`}
+                                            aria-pressed={k === v}
+                                            onClick={() => { setK(v); setSplit(null); }}
+                                        >
+                                            {v}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
+
+                        {n && k && (
+                            <div className="logic-hint">
+                                <i className="fas fa-shield-alt me-2" />
+                                {getLang() === 'es' ? (
+                                    <>
+                                        Para abrir la bóveda se necesitarán <strong>{k} de {n}</strong> fragmentos. Si se
+                                        pierden hasta {n - k}, todavía se podrá abrir.
+                                    </>
+                                ) : (
+                                    <>
+                                        Opening the vault will require <strong>{k} of {n}</strong> shares. If up to {n - k}{' '}
+                                        are lost, it can still be opened.
+                                    </>
+                                )}
+                            </div>
+                        )}
                     </div>
 
-                    {!loadingDirectorio && notificables.length < n && (
+                    {!loadingDirectorio && n && notificables.length < n && (
                         <p className="text-muted small text-center mb-3">
-                            Tienes {notificables.length} custodio{notificables.length === 1 ? '' : 's'} con
-                            canal verificado y necesitas {n}.{' '}
+                            {t(
+                                `Tienes ${notificables.length} custodio${notificables.length === 1 ? '' : 's'} con canal verificado y necesitas ${n}.`,
+                                `You have ${notificables.length} custodian${notificables.length === 1 ? '' : 's'} with a verified channel and need ${n}.`,
+                            )}{' '}
                             <button className="btn btn-link p-0 align-baseline" onClick={() => navigate('/custodios')}>
-                                Ir a Custodios
+                                {t('Ir a Custodios', 'Go to Custodians')}
                             </button>{' '}
-                            o reduce <em>n</em> arriba.
+                            {t('o elige menos fragmentos.', 'or choose fewer shares.')}
                         </p>
                     )}
 
@@ -539,22 +663,19 @@ export default function NuevaBoveda() {
                         <button
                             className="btn btn-outline-primary px-5"
                             onClick={doSplit}
-                            disabled={busy || loadingDirectorio || notificables.length < n}
+                            disabled={busy || loadingDirectorio || !n || !k || notificables.length < (n ?? 0)}
                         >
-                            <i className="fas fa-microchip me-2" /> {busy ? 'Generando…' : 'Generar Fragmentos'}
+                            <i className="fas fa-key me-2" /> {busy ? t('Generando…', 'Generating…') : t('Generar fragmentos', 'Generate shares')}
                         </button>
                     </div>
 
                     {split && (
                         <div className="row g-3 mb-3">
-                            {split.shares.map((s) => (
-                                <div className="col-md-4" key={s.id}>
-                                    <div className="share-card">
-                                        <div className="d-flex justify-content-between">
-                                            <span className="share-id">Fragmento x={s.id}</span>
-                                            <i className="fas fa-key text-muted" style={{ fontSize: '0.7rem' }} />
-                                        </div>
-                                        <div className="share-data">{toHex(s.y).slice(0, 24)}…</div>
+                            {split.shares.map((s, i) => (
+                                <div className="col-6 col-md-3" key={s.id}>
+                                    <div className="share-card text-center">
+                                        <i className="fas fa-key mb-2" style={{ color: 'var(--escom-blue)' }} />
+                                        <div className="share-id">{t('Fragmento', 'Share')} {i + 1}</div>
                                     </div>
                                 </div>
                             ))}
@@ -563,18 +684,18 @@ export default function NuevaBoveda() {
 
                     {bovedaPid && (
                         <button className="btn btn-sm btn-outline-secondary rounded-pill mb-3" onClick={descargarHoja}>
-                            <i className="fas fa-file-arrow-down me-1" /> Descargar hoja de emergencia
+                            <i className="fas fa-file-arrow-down me-1" /> {t('Descargar hoja de emergencia', 'Download emergency sheet')}
                         </button>
                     )}
 
                     <div className="d-flex justify-content-between pt-3 border-top">
-                        <button className="btn btn-light rounded-pill px-4" onClick={() => setStep(1)} disabled={!!resumeId}>Anterior</button>
+                        <button className="btn btn-light rounded-pill px-4" onClick={() => setStep(1)} disabled={!!resumeId}>{t('Anterior', 'Previous')}</button>
                         <button
                             className="btn btn-ipn"
                             onClick={submitStep2}
                             disabled={busy || !split}
                         >
-                            {busy ? 'Subiendo compromisos…' : 'Continuar a Vinculación'} <i className="fas fa-arrow-right ms-2" />
+                            {busy ? t('Guardando…', 'Saving…') : t('Continuar a Vinculación', 'Continue to Linking')} <i className="fas fa-arrow-right ms-2" />
                         </button>
                     </div>
                 </div>
@@ -583,18 +704,29 @@ export default function NuevaBoveda() {
             {/* ---------- PASO 3 ---------- */}
             {step === 3 && (
                 <div className="config-card">
-                    <h3 className="fw-bold mb-1">Paso 3: Vinculación de Custodios</h3>
+                    <h3 className="fw-bold mb-1">{t('Paso 3: Vinculación de Custodios', 'Step 3: Custodian Linking')}</h3>
                     <p className="text-muted mb-3">
-                        Elige a quién le entregas cada fragmento. Se empareja en orden con las coordenadas del reparto.
+                        {t('Elige a quién le entregas cada fragmento.', 'Choose who receives each share.')}
                     </p>
 
                     <div className="logic-hint mb-4">
                         <i className="fas fa-users me-2" />
-                        Debes vincular <strong>los {n} custodios</strong> (uno por fragmento) ·{' '}
-                        <strong>{selected.length}/{n}</strong> seleccionados
+                        {getLang() === 'es' ? (
+                            <>
+                                Debes vincular <strong>los {n} custodios</strong> (uno por fragmento) ·{' '}
+                                <strong>{selected.length}/{n}</strong> seleccionados
+                            </>
+                        ) : (
+                            <>
+                                You must link <strong>all {n} custodians</strong> (one per share) ·{' '}
+                                <strong>{selected.length}/{n}</strong> selected
+                            </>
+                        )}
                         <div className="small mt-1" style={{ opacity: 0.85 }}>
-                            Con solo {k} el esquema no tolera fallos: si un custodio pierde su fragmento ya no se
-                            alcanza el umbral. Con {n} resiste hasta {n - k} pérdida{n - k === 1 ? '' : 's'}.
+                            {t(
+                                `Se necesitan ${k} de ${n} para abrir la bóveda: si se pierden hasta ${(n ?? 0) - (k ?? 0)}, todavía se podrá abrir.`,
+                                `${k} of ${n} are needed to open the vault: if up to ${(n ?? 0) - (k ?? 0)} are lost, it can still be opened.`,
+                            )}
                         </div>
                     </div>
 
@@ -603,23 +735,35 @@ export default function NuevaBoveda() {
                         const sinVerificar = directorio.length - notificables.length;
                         return (
                             <>
-                                {notificables.length < n && (
+                                {notificables.length < (n ?? 0) && (
                                     <p className="text-muted small">
-                                        Tienes {notificables.length} custodio{notificables.length === 1 ? '' : 's'} con
-                                        canal verificado y necesitas {n}.{' '}
+                                        {t(
+                                            `Tienes ${notificables.length} custodio${notificables.length === 1 ? '' : 's'} con canal verificado y necesitas ${n}.`,
+                                            `You have ${notificables.length} custodian${notificables.length === 1 ? '' : 's'} with a verified channel and need ${n}.`,
+                                        )}{' '}
                                         <button className="btn btn-link p-0 align-baseline" onClick={() => navigate('/custodios')}>
-                                            Ir a Custodios
+                                            {t('Ir a Custodios', 'Go to Custodians')}
                                         </button>{' '}
-                                        o vuelve al paso anterior y baja <em>n</em>.
+                                        {t('o vuelve al paso anterior y elige menos fragmentos.', 'or go back to the previous step and choose fewer shares.')}
                                     </p>
                                 )}
                                 {sinVerificar > 0 && (
                                     <p className="small" style={{ color: 'var(--danger-red)' }}>
                                         <i className="fas fa-triangle-exclamation me-1" />
-                                        {sinVerificar} custodio{sinVerificar === 1 ? '' : 's'} sin canal verificado no
-                                        {sinVerificar === 1 ? ' aparece' : ' aparecen'} como seleccionable —
-                                        no podría{sinVerificar === 1 ? '' : 'n'} ser notificado
-                                        {sinVerificar === 1 ? '' : 's'} en la recuperación.
+                                        {getLang() === 'es' ? (
+                                            <>
+                                                {sinVerificar} custodio{sinVerificar === 1 ? '' : 's'} sin canal verificado no
+                                                {sinVerificar === 1 ? ' aparece' : ' aparecen'} como seleccionable —
+                                                no podría{sinVerificar === 1 ? '' : 'n'} ser notificado
+                                                {sinVerificar === 1 ? '' : 's'} en la recuperación.
+                                            </>
+                                        ) : (
+                                            <>
+                                                {sinVerificar} custodian{sinVerificar === 1 ? '' : 's'} without a verified channel{' '}
+                                                {sinVerificar === 1 ? "isn't" : "aren't"} selectable — they couldn't be notified
+                                                during recovery.
+                                            </>
+                                        )}
                                     </p>
                                 )}
                             </>
@@ -636,16 +780,17 @@ export default function NuevaBoveda() {
                                     <div
                                         className={`custodian-selector-card ${isSel ? 'selected' : ''} ${notificable ? '' : 'is-disabled'}`}
                                         onClick={() => toggleCustodio(c.id)}
-                                        title={notificable ? '' : 'Sin canal verificado'}
+                                        title={notificable ? '' : t('Sin canal verificado', 'No verified channel')}
                                     >
+                                        {isSel && <span className="frag-chip frag-chip-top">{t('Fragmento', 'Share')} {pos + 1}</span>}
                                         <div className="d-flex align-items-center gap-2">
                                             <div className="custodian-avatar">{c.nombre.slice(0, 2).toUpperCase()}</div>
-                                            <div className="flex-grow-1">
-                                                <p className="m-0 fw-bold small">{c.nombre}</p>
-                                                <p className="m-0 text-muted" style={{ fontSize: '0.65rem' }}>{c.correo}</p>
+                                            <div className="flex-grow-1 cust-info">
+                                                <p className="m-0 fw-bold small text-truncate">{c.nombre}</p>
+                                                <p className="m-0 text-muted text-truncate" style={{ fontSize: '0.65rem' }} title={c.correo}>{c.correo}</p>
                                             </div>
-                                            {isSel && <span className="x-chip">x={xCoords[pos]}</span>}
-                                            {!notificable && <span className="no-verif-chip">sin verificar</span>}
+                                            {isSel && <i className="fas fa-check-circle sel-check" aria-hidden="true" />}
+                                            {!notificable && <span className="no-verif-chip">{t('sin verificar', 'unverified')}</span>}
                                         </div>
                                     </div>
                                 </div>
@@ -654,13 +799,13 @@ export default function NuevaBoveda() {
                     </div>
 
                     <div className="d-flex justify-content-between pt-3 border-top">
-                        <button className="btn btn-light rounded-pill px-4" onClick={() => setStep(2)} disabled={!!resumeId}>Anterior</button>
+                        <button className="btn btn-light rounded-pill px-4" onClick={() => setStep(2)} disabled={!!resumeId}>{t('Anterior', 'Previous')}</button>
                         <button
                             className="btn btn-ipn"
                             onClick={() => setModal('confirm')}
                             disabled={busy || selected.length !== n}
                         >
-                            Confirmar Vinculación <i className="fas fa-arrow-right ms-2" />
+                            {t('Confirmar Vinculación', 'Confirm Linking')} <i className="fas fa-arrow-right ms-2" />
                         </button>
                     </div>
                 </div>
@@ -670,9 +815,9 @@ export default function NuevaBoveda() {
             {step === 4 && (
                 <div className="config-card text-center">
                     <div className="mb-3" style={{ color: 'var(--escom-blue)' }}><i className="fas fa-check-circle fa-3x" /></div>
-                    <h3 className="fw-bold">Bóveda configurada</h3>
-                    <p className="text-muted">Redirigiendo a Mis Bóvedas…</p>
-                    <button className="btn btn-ipn mt-2" onClick={() => navigate('/bovedas')}>Ir ahora</button>
+                    <h3 className="fw-bold">{t('Bóveda configurada', 'Vault set up')}</h3>
+                    <p className="text-muted">{t('Redirigiendo a Mis Bóvedas…', 'Redirecting to My Vaults…')}</p>
+                    <button className="btn btn-ipn mt-2" onClick={() => navigate('/bovedas')}>{t('Ir ahora', 'Go now')}</button>
                 </div>
             )}
 
@@ -683,24 +828,73 @@ export default function NuevaBoveda() {
                     <div className="mb-3 text-warning">
                         <i className="fas fa-shield-virus fa-4x animate__animated animate__pulse animate__infinite" />
                     </div>
-                    <h4 className="fw-bold">¡Resguarda tu Frase Maestra!</h4>
-                    <p className="text-muted small mb-3">
-                        Esta pass-phrase cifra tus activos localmente. <strong>Sin ella, tus archivos serán ilegibles
-                        para siempre.</strong> Al continuar se descargará tu hoja de emergencia con ella.
-                    </p>
+                    <h4 className="fw-bold">{t('¡Guarda tu llave maestra!', 'Save your master key!')}</h4>
+                    {getLang() === 'es' ? (
+                        <p className="text-muted small mb-3">
+                            Con esta llave se protegen tus archivos. <strong>Sin ella no podrás abrirlos.</strong> Al
+                            continuar se descargará tu hoja de emergencia con ella.
+                        </p>
+                    ) : (
+                        <p className="text-muted small mb-3">
+                            This key protects your files. <strong>Without it you won't be able to open them.</strong> When
+                            you continue, your emergency sheet with the key will download.
+                        </p>
+                    )}
                     <div className="bg-light p-3 rounded-3 mb-4 text-start">
-                        <p className="small fw-bold mb-1 text-muted text-uppercase">Tu frase:</p>
+                        <p className="small fw-bold mb-1 text-muted text-uppercase">{t('Tu llave maestra:', 'Your master key:')}</p>
                         <code className="fw-bold" style={{ fontSize: '1.05rem', wordBreak: 'break-all' }}>{passphrase}</code>
                     </div>
                     <div className="d-flex gap-3">
-                        <button className="btn btn-light w-100 rounded-pill" onClick={() => setModal(null)}>Regresar</button>
+                        <button className="btn btn-light w-100 rounded-pill" onClick={() => setModal(null)}>{t('Regresar', 'Back')}</button>
                         <button
                             className="btn btn-ipn w-100"
                             onClick={async () => { setModal(null); await submitStep1(); }}
                         >
-                            Continuar y descargar hoja
+                            {t('Continuar y descargar hoja', 'Continue and download sheet')}
                         </button>
                     </div>
+                </WizardModal>
+            )}
+
+            {modal === 'hoja' && (
+                <WizardModal>
+                    <div className="mb-3 text-primary"><i className="fas fa-file-arrow-down fa-3x" /></div>
+                    <h4 className="fw-bold">{t('Guarda tu llave maestra', 'Keep your master key safe')}</h4>
+                    {getLang() === 'es' ? (
+                        <p className="text-muted small mb-3">
+                            Se descargó tu <strong>hoja de emergencia</strong>. Ábrela, revisa que se vea completa e
+                            imprímela o guárdala en un lugar seguro. Si no aparece en tus descargas, tu navegador pudo
+                            bloquearla.
+                        </p>
+                    ) : (
+                        <p className="text-muted small mb-3">
+                            Your <strong>emergency sheet</strong> was downloaded. Open it, check that it looks complete and
+                            print it or keep it somewhere safe. If it's not in your downloads, your browser may have
+                            blocked it.
+                        </p>
+                    )}
+                    <button className="btn btn-outline-primary rounded-pill px-4 mb-3" onClick={descargarHoja}>
+                        <i className="fas fa-rotate-right me-2" /> {t('Descargar de nuevo', 'Download again')}
+                    </button>
+                    <label className="d-flex gap-2 text-start small bg-light rounded-3 p-3 mb-4" style={{ cursor: 'pointer' }}>
+                        <input
+                            type="checkbox"
+                            className="form-check-input mt-0 flex-shrink-0"
+                            checked={hojaConfirmada}
+                            onChange={(e) => setHojaConfirmada(e.target.checked)}
+                        />
+                        <span>{t('Confirmo que tengo mi hoja de emergencia y que puedo leer la llave maestra en ella.', 'I confirm I have my emergency sheet and can read the master key on it.')}</span>
+                    </label>
+                    <button
+                        className="btn btn-ipn w-100"
+                        disabled={!hojaConfirmada}
+                        onClick={() => {
+                            setModal(null);
+                            setStep(2);
+                        }}
+                    >
+                        {t('Confirmar y continuar', 'Confirm and continue')}
+                    </button>
                 </WizardModal>
             )}
 
@@ -711,52 +905,91 @@ export default function NuevaBoveda() {
                             <div className="mb-3 text-warning">
                                 <i className="fas fa-paper-plane fa-4x animate__animated animate__tada animate__infinite" />
                             </div>
-                            <h4 className="fw-bold">Distribución de Fragmentos</h4>
-                            <p className="text-muted small mb-3">
-                                La seguridad depende de que los fragmentos <strong>no se almacenen juntos</strong>. Es tu
-                                responsabilidad entregarlos de forma segura.
-                            </p>
+                            <h4 className="fw-bold">{t('Distribución de Fragmentos', 'Share Distribution')}</h4>
+                            {getLang() === 'es' ? (
+                                <p className="text-muted small mb-3">
+                                    La seguridad depende de que los fragmentos <strong>no se almacenen juntos</strong>. Es tu
+                                    responsabilidad entregarlos de forma segura.
+                                </p>
+                            ) : (
+                                <p className="text-muted small mb-3">
+                                    Security depends on the shares <strong>not being stored together</strong>. It's your
+                                    responsibility to deliver them securely.
+                                </p>
+                            )}
                             <div className="bg-light p-3 rounded-3 mb-4 text-start small">
                                 <ul className="text-muted ps-3 mb-0">
-                                    <li>Entrega en persona o por canal cifrado.</li>
-                                    <li>Cada custodio resguarda su fragmento por separado.</li>
+                                    <li>{t('Entrégalos en persona o por un medio seguro.', 'Deliver them in person or through a secure channel.')}</li>
+                                    <li>{t('Cada custodio resguarda su fragmento por separado.', 'Each custodian keeps their share separately.')}</li>
                                     <li className="mt-2 text-danger fw-bold">
-                                        Al continuar se descargarán todos los fragmentos en este equipo.
+                                        {t('Al continuar se descargarán todos los fragmentos en este equipo.', 'When you continue, all shares will download to this device.')}
                                     </li>
                                 </ul>
                             </div>
                             <div className="d-flex gap-3">
                                 <button className="btn btn-light w-100 rounded-pill" onClick={() => setModal(null)}>
-                                    Revisar fragmentos
+                                    {t('Revisar fragmentos', 'Review shares')}
                                 </button>
                                 <button
                                     className="btn btn-ipn w-100"
                                     onClick={async () => {
                                         setDistPhase('downloading');
                                         await downloadAllParaCustodios();
-                                        await runProgress(
-                                            [
-                                                [30, 'Compilando fragmentos criptográficos…'],
-                                                [70, 'Preparando descarga local…'],
-                                                [100, 'Descarga completada.'],
-                                            ],
-                                            async () => { setModal(null); await submitStep3(); },
-                                        );
+                                        setDistPhase('verify');
                                     }}
                                 >
-                                    Aceptar y Descargar
+                                    {t('Aceptar y Descargar', 'Accept and Download')}
                                 </button>
                             </div>
                         </>
-                    ) : (
+                    ) : distPhase === 'downloading' ? (
                         <>
                             <div className="mb-3 text-primary">
                                 <i className="fas fa-cloud-download-alt fa-4x animate__animated animate__bounce animate__infinite" />
                             </div>
-                            <h4 className="fw-bold">Descargando Fragmentos</h4>
-                            <p className="text-muted small">{prog.text || 'Generando archivos .sss…'}</p>
-                            <div className="wizard-progress">
-                                <div className="wizard-progress-bar" style={{ width: `${prog.pct}%` }} />
+                            <h4 className="fw-bold">{t('Descargando fragmentos…', 'Downloading shares…')}</h4>
+                            <p className="text-muted small mb-0">
+                                {t('Si tu navegador pregunta si permites varias descargas, elige «Permitir».', 'If your browser asks whether to allow multiple downloads, choose “Allow”.')}
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <div className="mb-3 text-primary"><i className="fas fa-folder-open fa-3x" /></div>
+                            <h4 className="fw-bold">{t(`¿Se descargaron los ${selectedCustodios.length} fragmentos?`, `Did all ${selectedCustodios.length} shares download?`)}</h4>
+                            <p className="text-muted small mb-3">
+                                {t('Revisa tu carpeta de descargas. Si falta alguno, tu navegador pudo bloquear la descarga.', 'Check your downloads folder. If any is missing, your browser may have blocked the download.')}
+                            </p>
+                            <div className="text-start mb-4">
+                                {selectedCustodios.map(({ c, num }) => (
+                                    <div className="confirm-list-item" key={c.id}>
+                                        <i className="fas fa-file text-muted" />
+                                        <span className="small text-break flex-grow-1">
+                                            fragmento_{slugNombreArchivo(nombre)}_{slugNombreArchivo(c.nombre)}_{num}.sss
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="d-flex gap-3">
+                                <button
+                                    className="btn btn-outline-primary w-100 rounded-pill"
+                                    disabled={busy}
+                                    onClick={async () => {
+                                        setDistPhase('downloading');
+                                        await downloadAllParaCustodios();
+                                        setDistPhase('verify');
+                                    }}
+                                >
+                                    {t('Reintentar descarga', 'Retry download')}
+                                </button>
+                                <button
+                                    className="btn btn-ipn w-100"
+                                    disabled={busy}
+                                    onClick={async () => {
+                                        await submitStep3();
+                                    }}
+                                >
+                                    {busy ? t('Guardando…', 'Saving…') : t('Sí, se descargaron', 'Yes, they downloaded')}
+                                </button>
                             </div>
                         </>
                     )}
@@ -766,12 +999,12 @@ export default function NuevaBoveda() {
             {modal === 'confirm' && (
                 <WizardModal>
                     <div className="mb-3 text-primary"><i className="fas fa-clipboard-check fa-3x" /></div>
-                    <h4 className="fw-bold">Confirmar Selección</h4>
+                    <h4 className="fw-bold">{t('Confirmar Selección', 'Confirm Selection')}</h4>
                     <p className="text-muted small mb-3">
-                        Estos custodios recibirán un fragmento y serán los responsables de la recuperación.
+                        {t('Estos custodios recibirán un fragmento y serán los responsables de la recuperación.', 'These custodians will receive a share and will be responsible for recovery.')}
                     </p>
                     <div className="mb-4">
-                        {selectedCustodios.map(({ c, x }) => (
+                        {selectedCustodios.map(({ c, num }) => (
                             <div className="confirm-list-item" key={c.id}>
                                 <div className="custodian-avatar" style={{ width: 34, height: 34, fontSize: '0.7rem' }}>
                                     {c.nombre.slice(0, 2).toUpperCase()}
@@ -780,12 +1013,12 @@ export default function NuevaBoveda() {
                                     <p className="m-0 fw-bold small">{c.nombre}</p>
                                     <p className="m-0 text-muted" style={{ fontSize: '0.6rem' }}>{c.correo}</p>
                                 </div>
-                                <span className="x-chip">x={x}</span>
+                                <span className="frag-chip">{t('Fragmento', 'Share')} {num}</span>
                             </div>
                         ))}
                     </div>
                     <div className="d-flex gap-3">
-                        <button className="btn btn-light w-100 rounded-pill" onClick={() => setModal(null)}>Modificar</button>
+                        <button className="btn btn-light w-100 rounded-pill" onClick={() => setModal(null)}>{t('Modificar', 'Edit')}</button>
                         <button
                             className="btn btn-ipn w-100"
                             onClick={async () => {
@@ -803,7 +1036,7 @@ export default function NuevaBoveda() {
                                 }
                             }}
                         >
-                            {split ? 'Continuar a Distribución' : 'Vincular y Continuar'}
+                            {split ? t('Continuar a la entrega', 'Continue to delivery') : t('Vincular y continuar', 'Link and continue')}
                         </button>
                     </div>
                 </WizardModal>
@@ -814,9 +1047,9 @@ export default function NuevaBoveda() {
                     <div className="mb-3 text-warning">
                         <i className="fas fa-users-slash fa-4x animate__animated animate__shakeX" />
                     </div>
-                    <h4 className="fw-bold">Límite Alcanzado</h4>
+                    <h4 className="fw-bold">{t('Límite Alcanzado', 'Limit Reached')}</h4>
                     <p className="text-muted small mb-0">
-                        El esquema es de {n} fragmentos. No puedes asignar más de {n} custodios.
+                        {t(`Elegiste ${n} fragmentos. No puedes asignar más de ${n} custodios.`, `You chose ${n} shares. You can't assign more than ${n} custodians.`)}
                     </p>
                     <div className="wizard-timebar mt-4">
                         <div className="wizard-timebar-fill" />
@@ -829,9 +1062,9 @@ export default function NuevaBoveda() {
                     <div className="mb-3" style={{ color: 'var(--escom-blue)' }}>
                         <i className="fas fa-check-circle fa-4x animate__animated animate__bounceIn" />
                     </div>
-                    <h4 className="fw-bold">¡Bóveda Lista!</h4>
+                    <h4 className="fw-bold">{t('¡Bóveda Lista!', 'Vault Ready!')}</h4>
                     <p className="text-muted small mb-0">
-                        Compromisos VSS almacenados y {n} custodios vinculados. Redirigiendo a Mis Bóvedas…
+                        {t(`${n} custodios vinculados. Te llevamos a Mis bóvedas…`, `${n} custodians linked. Taking you to My Vaults…`)}
                     </p>
                     <div className="wizard-progress mt-4">
                         <div

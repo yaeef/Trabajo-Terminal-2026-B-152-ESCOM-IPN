@@ -5,6 +5,8 @@ export interface BovedaRecuperacionResponse {
     nombre: string;
     categoria: string | null;
     mensaje_custodios: string | null;
+    /** Nombre de pila del propietario, para firmar su mensaje. */
+    propietario_nombre?: string | null;
     umbral_k: number | null;
     total_fragmentos_n: number | null;
     recuperacion_iniciada_en: string | null;

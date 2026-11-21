@@ -6,6 +6,7 @@ import { useNotice } from '../store/NoticeContext';
 import type { CheckinHistoryResponse, ProtocoloVidaResponse } from '../types/dms.types';
 import { formatRelativo, getMetodoIconPrefix, getMetodoInfo, getStatusInfo, splitFechaHora } from '../utils/checkins';
 import './HistorialCheckins.css';
+import { t } from '../i18n';
 
 const DEFAULT_PERIODICIDAD_DIAS = 60; // mismo fallback que usa el backend
 const PAGE_SIZE = 10;
@@ -27,7 +28,7 @@ export default function HistorialCheckins() {
                 setHistorial(checkins);
             })
             .catch(() => {
-                if (!cancelled) notifyError('No se pudo cargar el historial de check-ins.');
+                if (!cancelled) notifyError(t('No se pudo cargar el historial de check-ins.', "Couldn't load the check-in history."));
             })
             .finally(() => {
                 if (!cancelled) setLoading(false);
@@ -52,11 +53,11 @@ export default function HistorialCheckins() {
     }, [historial, page]);
 
     return (
-        <DashboardLayout activeItem="checkins" topBarLabel="Auditoría del Sistema">
+        <DashboardLayout activeItem="checkins" topBarLabel={t('Auditoría del Sistema', 'System Audit')}>
             <div className="d-flex justify-content-between align-items-center mb-5 flex-wrap gap-3">
                 <div>
-                    <h2 className="fw-bold mb-1">Historial de Check-in</h2>
-                    <p className="text-muted m-0">Registro cronológico de señales de vida recibidas por los nodos.</p>
+                    <h2 className="fw-bold mb-1">{t('Historial de Check-in', 'Check-in History')}</h2>
+                    <p className="text-muted m-0">{t('Registro cronológico de señales de vida recibidas por los nodos.', 'Chronological log of life signals received by the nodes.')}</p>
                 </div>
                 <VerificationStatusWidget protocoloVida={protocoloVida} loading={loading} />
             </div>
@@ -65,15 +66,15 @@ export default function HistorialCheckins() {
             <div className="row g-4 mb-5">
                 <div className="col-md-4">
                     <div className="stat-card h-100">
-                        <p className="verif-label mb-2">Inactividad Permitida</p>
+                        <p className="verif-label mb-2">{t('Inactividad Permitida', 'Allowed Inactivity')}</p>
                         <h3 className="fw-bold m-0" style={{ color: 'var(--escom-blue)' }}>
-                            {loading ? '—' : `${inactividadPermitida} Días`}
+                            {loading ? '—' : t(`${inactividadPermitida} Días`, `${inactividadPermitida} Days`)}
                         </h3>
                     </div>
                 </div>
                 <div className="col-md-4">
                     <div className="stat-card h-100" style={{ borderTopColor: 'var(--ipn-maroon)' }}>
-                        <p className="verif-label mb-2">Última Señal</p>
+                        <p className="verif-label mb-2">{t('Última Señal', 'Last Signal')}</p>
                         <h3 className="fw-bold m-0" style={{ color: 'var(--ipn-maroon)' }}>
                             {loading || !historial?.ultima_senal ? '—' : formatRelativo(historial.ultima_senal)}
                         </h3>
@@ -81,7 +82,7 @@ export default function HistorialCheckins() {
                 </div>
                 <div className="col-md-4">
                     <div className="stat-card h-100" style={{ borderTopColor: statusInfo?.colorVar ?? '#e2e8f0' }}>
-                        <p className="verif-label mb-2">Estado del Interruptor</p>
+                        <p className="verif-label mb-2">{t('Estado del protocolo de vida', 'Life protocol status')}</p>
                         <h3 className="fw-bold m-0" style={{ color: statusInfo?.colorVar ?? undefined }}>
                             {loading ? '—' : statusInfo?.label}
                         </h3>
@@ -95,18 +96,18 @@ export default function HistorialCheckins() {
                     <table className="table table-hover align-middle mb-0">
                         <thead style={{ background: '#f8fafc' }}>
                             <tr>
-                                <th className="border-0 ps-4 py-3 small text-muted text-uppercase fw-bold">Marca de Tiempo</th>
-                                <th className="border-0 py-3 small text-muted text-uppercase fw-bold">Método</th>
-                                <th className="border-0 py-3 small text-muted text-uppercase fw-bold">Identificador</th>
-                                <th className="border-0 py-3 small text-muted text-uppercase fw-bold">Red / IP</th>
-                                <th className="border-0 pe-4 py-3 small text-muted text-uppercase fw-bold text-end">Impacto</th>
+                                <th className="border-0 ps-4 py-3 small text-muted text-uppercase fw-bold">{t('Marca de Tiempo', 'Timestamp')}</th>
+                                <th className="border-0 py-3 small text-muted text-uppercase fw-bold">{t('Método', 'Method')}</th>
+                                <th className="border-0 py-3 small text-muted text-uppercase fw-bold">{t('Identificador', 'Identifier')}</th>
+                                <th className="border-0 py-3 small text-muted text-uppercase fw-bold">{t('Red / IP', 'Network / IP')}</th>
+                                <th className="border-0 pe-4 py-3 small text-muted text-uppercase fw-bold text-end">{t('Impacto', 'Impact')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading && (
                                 <tr>
                                     <td colSpan={5} className="text-center text-muted py-5">
-                                        Cargando historial...
+                                        {t('Cargando historial...', 'Loading history...')}
                                     </td>
                                 </tr>
                             )}
@@ -115,7 +116,7 @@ export default function HistorialCheckins() {
                                 <tr>
                                     <td colSpan={5} className="text-center text-muted py-5">
                                         <i className="fas fa-calendar-check fa-2x mb-3 d-block" style={{ color: '#cbd5e1' }}></i>
-                                        Aún no hay check-ins registrados.
+                                        {t('Aún no hay check-ins registrados.', 'No check-ins recorded yet.')}
                                     </td>
                                 </tr>
                             )}
@@ -161,7 +162,7 @@ export default function HistorialCheckins() {
                 {!loading && totalLogs > PAGE_SIZE && (
                     <div className="d-flex justify-content-between align-items-center px-4 py-3 border-top">
                         <span className="small text-muted">
-                            Mostrando {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, totalLogs)} de {totalLogs}
+                            {t('Mostrando', 'Showing')} {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, totalLogs)} {t('de', 'of')} {totalLogs}
                         </span>
                         <div className="d-flex gap-2">
                             <button
@@ -170,10 +171,10 @@ export default function HistorialCheckins() {
                                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                                 disabled={page === 1}
                             >
-                                <i className="fas fa-chevron-left me-1"></i> Anterior
+                                <i className="fas fa-chevron-left me-1"></i> {t('Anterior', 'Previous')}
                             </button>
                             <span className="small text-muted align-self-center px-2">
-                                Página {page} de {totalPages}
+                                {t('Página', 'Page')} {page} {t('de', 'of')} {totalPages}
                             </span>
                             <button
                                 type="button"
@@ -181,7 +182,7 @@ export default function HistorialCheckins() {
                                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                                 disabled={page === totalPages}
                             >
-                                Siguiente <i className="fas fa-chevron-right ms-1"></i>
+                                {t('Siguiente', 'Next')} <i className="fas fa-chevron-right ms-1"></i>
                             </button>
                         </div>
                     </div>

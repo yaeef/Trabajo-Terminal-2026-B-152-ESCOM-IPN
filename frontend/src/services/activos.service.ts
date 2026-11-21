@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import api from './api';
 import type {
     IniciarSubidaPayload,
@@ -38,12 +39,12 @@ export const activosService = {
             headers: { 'x-ms-blob-type': 'BlockBlob', 'Content-Type': 'application/octet-stream' },
             body: ciphertext,
         });
-        if (!r.ok) throw new Error(`Fallo al subir el archivo cifrado (HTTP ${r.status}).`);
+        if (!r.ok) throw new Error(t(`Fallo al subir el archivo cifrado (HTTP ${r.status}).`, `Failed to upload the encrypted file (HTTP ${r.status}).`));
     },
 
     getBlob: async (sasUrl: string): Promise<ArrayBuffer> => {
         const r = await fetch(sasUrl);
-        if (!r.ok) throw new Error(`Fallo al descargar el archivo (HTTP ${r.status}).`);
+        if (!r.ok) throw new Error(t(`Fallo al descargar el archivo (HTTP ${r.status}).`, `Failed to download the file (HTTP ${r.status}).`));
         return r.arrayBuffer();
     },
 };

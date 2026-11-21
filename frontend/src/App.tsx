@@ -33,8 +33,12 @@ import AdminPropietarios from './pages/admin/AdminPropietarios';
 import AdminPropietarioDetalle from './pages/admin/AdminPropietarioDetalle';
 import AdminNotificaciones from './pages/admin/AdminNotificaciones';
 import AdminAuditoria from './pages/admin/AdminAuditoria';
+import { useLang } from './i18n';
 
 function App() {
+    // Suscribe la raíz al idioma: al cambiarlo se re-renderiza todo el árbol
+    // (sin desmontar) y cada t('es', 'en') toma el texto nuevo.
+    useLang();
     return (
         <NoticeProvider>
             <Router>

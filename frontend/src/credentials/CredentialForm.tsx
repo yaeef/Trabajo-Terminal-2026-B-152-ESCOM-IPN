@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import type { Plantilla, CampoPlantilla } from './templates';
+import { t } from '../i18n';
 
 interface Props {
     plantilla: Plantilla;
@@ -47,7 +48,7 @@ export default function CredentialForm({ plantilla, value, onChange }: Props) {
                         className="btn btn-outline-secondary"
                         tabIndex={-1}
                         onClick={() => toggle(c.key)}
-                        aria-label={revelados[c.key] ? 'Ocultar' : 'Mostrar'}
+                        aria-label={revelados[c.key] ? t('Ocultar', 'Hide') : t('Mostrar', 'Show')}
                     >
                         <i className={`fas ${revelados[c.key] ? 'fa-eye-slash' : 'fa-eye'}`} />
                     </button>

@@ -14,6 +14,7 @@
 // con estilos de impresión.
 
 import { parseBackendDate } from '../utils/dates';
+import { getLang, locale, t } from '../i18n';
 
 interface HojaBoveda {
     tipo: 'boveda';
@@ -40,7 +41,7 @@ const esc = (s: string) =>
         { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string
     ));
 
-const fmtFecha = (d: Date) => d.toLocaleString('es-MX', { dateStyle: 'long', timeStyle: 'short' });
+const fmtFecha = (d: Date) => d.toLocaleString(locale(), { dateStyle: 'long', timeStyle: 'short' });
 
 interface Contenido {
     titulo: string;
@@ -55,52 +56,85 @@ interface Contenido {
 function contenido(o: SheetOpts): Contenido {
     if (o.tipo === 'boveda') {
         return {
-            titulo: 'Hoja de emergencia · Kleimos Legacy',
-            subtitulo: `Bóveda “<strong>${esc(o.nombreBoveda)}</strong>”`,
-            etiquetaFrase: 'Pass-phrase de la bóveda',
-            advertencia:
-                'Cualquiera con esta hoja puede descifrar los activos de la bóveda. Imprímela y guárdala en ' +
-                'un lugar físico seguro (caja fuerte, caja de seguridad bancaria). <b>No la guardes en la nube, ' +
-                'no le tomes foto, no la envíes por mensaje o correo.</b>',
-            campos: [['Identificador público (PID)', esc(o.pid)]],
+            titulo: t('Hoja de emergencia · Kleimos Legacy', 'Emergency sheet · Kleimos Legacy'),
+            subtitulo: `${t('Bóveda', 'Vault')} “<strong>${esc(o.nombreBoveda)}</strong>”`,
+            etiquetaFrase: t('Llave maestra de la bóveda', 'Vault master key'),
+            advertencia: t(
+                'Cualquiera con esta hoja puede abrir los archivos de la bóveda. Imprímela y guárdala en ' +
+                    'un lugar físico seguro (caja fuerte, caja de seguridad bancaria). <b>No la guardes en la nube, ' +
+                    'no le tomes foto, no la envíes por mensaje o correo.</b>',
+                "Anyone with this sheet can open the vault's files. Print it and keep it in " +
+                    "a secure physical place (safe, bank safe-deposit box). <b>Don't store it in the cloud, " +
+                    "don't photograph it, don't send it by message or email.</b>",
+            ),
+            campos: [[t('Código de la bóveda', 'Vault code'), esc(o.pid)]],
             usos: [
-                'De esta frase se deriva la llave AES-256 que cifra los activos de la bóveda.',
-                'Si la olvidas, <b>solo</b> podrás recuperar los activos mediante el proceso de ' +
-                    'recuperación con custodios (reconstrucción del secreto por Shamir).',
-                'El servidor de Kleimos nunca conoce esta frase ni la llave: por eso este respaldo es ' +
-                    'tu única copia si decides no memorizarla.',
+                t(
+                    'Con esta llave maestra se protegen y se abren los archivos de la bóveda.',
+                    "This master key protects and opens the vault's files.",
+                ),
+                t(
+                    'Si la olvidas, <b>solo</b> podrás recuperar los archivos con la ayuda de tus custodios, ' +
+                        'cuando se active la recuperación.',
+                    'If you forget it, you can <b>only</b> recover the files with the help of your custodians, ' +
+                        'once recovery is triggered.',
+                ),
+                t(
+                    'Kleimos nunca conoce tu llave maestra: por eso esta hoja es tu única copia si decides no ' +
+                        'memorizarla.',
+                    'Kleimos never knows your master key: that is why this sheet is your only copy if you choose ' +
+                        'not to memorize it.',
+                ),
             ],
-            archivo: `hoja-emergencia-${o.pid}.html`,
+            archivo: `${t('hoja-emergencia', 'emergency-sheet')}-${o.pid}.html`,
         };
     }
     const expira = o.expiraEn ? fmtFecha(parseBackendDate(o.expiraEn)) : null;
     return {
-        titulo: 'Hoja de emergencia · Sesión de recuperación',
-        subtitulo: `Bóveda “<strong>${esc(o.nombreBoveda)}</strong>” — eres el Beneficiario Principal`,
-        etiquetaFrase: 'Pass-phrase de sesión',
-        advertencia:
-            'Con esta pass-phrase y tu fragmento se puede entrar a la sesión como Beneficiario Principal y ' +
-            'recibir los fragmentos de los demás custodios. Guárdala en un lugar físico seguro. ' +
-            '<b>No la compartas con nadie, tampoco con los otros custodios.</b>',
+        titulo: t('Hoja de emergencia · Sesión de recuperación', 'Emergency sheet · Recovery session'),
+        subtitulo: t(
+            `Bóveda “<strong>${esc(o.nombreBoveda)}</strong>” — eres el Beneficiario Principal`,
+            `Vault “<strong>${esc(o.nombreBoveda)}</strong>” — you are the Primary Beneficiary`,
+        ),
+        etiquetaFrase: t('Clave de la sesión', 'Session key'),
+        advertencia: t(
+            'Con esta clave y tu fragmento se puede entrar a la sesión como Beneficiario Principal y ' +
+                'recibir los fragmentos de los demás custodios. Guárdala en un lugar físico seguro. ' +
+                '<b>No la compartas con nadie, tampoco con los otros custodios.</b>',
+            'With this key and your share you can enter the session as Primary Beneficiary and ' +
+                "receive the other custodians' shares. Keep it in a secure physical place. " +
+                "<b>Don't share it with anyone, not even the other custodians.</b>",
+        ),
         campos: [
-            ['Identificador público (PID)', esc(o.pid)],
-            ['Tu fragmento', `x = ${o.xFragmento}`],
-            ...(expira ? ([['La sesión expira', esc(expira)]] as Array<[string, string]>) : []),
+            [t('Código de la bóveda', 'Vault code'), esc(o.pid)],
+            ...(expira ? ([[t('La sesión expira', 'The session expires'), esc(expira)]] as Array<[string, string]>) : []),
         ],
         usos: [
-            'Para volver a la sesión desde cualquier dispositivo: abre el portal de recuperación, busca ' +
-                'la bóveda por su PID, sube tu fragmento (.sss) e ingresa esta pass-phrase.',
-            'No es la pass-phrase de la bóveda: solo protege tu llave de sesión, con la que se ' +
-                'descifran los fragmentos que aportan los demás custodios.',
-            'El servidor de Kleimos no la conoce (solo guarda tu llave pública): si la pierdes, no podrás ' +
-                'reingresar, y cuando la sesión expire otro custodio tendrá que fundar una nueva.',
+            t(
+                'Para volver a la sesión desde cualquier dispositivo: abre la página de recuperación, busca ' +
+                    'la bóveda por su código, sube tu fragmento (.sss) y escribe esta clave.',
+                'To return to the session from any device: open the recovery page, look up ' +
+                    'the vault by its code, upload your share (.sss) and enter this key.',
+            ),
+            t(
+                'No es la llave maestra de la bóveda: solo sirve para esta recuperación y para recibir los ' +
+                    'fragmentos que entregan los demás custodios.',
+                "It isn't the vault's master key: it only works for this recovery and to receive the " +
+                    'shares the other custodians hand in.',
+            ),
+            t(
+                'Kleimos no la conoce: si la pierdes, no podrás volver a entrar, y cuando la sesión venza otro ' +
+                    'custodio tendrá que empezar una nueva.',
+                "Kleimos doesn't know it: if you lose it, you won't be able to get back in, and when the session " +
+                    'expires another custodian will have to start a new one.',
+            ),
         ],
-        archivo: `hoja-sesion-recuperacion-${o.pid}.html`,
+        archivo: `${t('hoja-sesion-recuperacion', 'recovery-session-sheet')}-${o.pid}.html`,
     };
 }
 
 function buildHtml(o: SheetOpts, c: Contenido): string {
-    const fecha = new Date().toLocaleString('es-MX');
+    const fecha = new Date().toLocaleString(locale());
     const campos = c.campos
         .map(([label, valor]) => `
     <div class="field">
@@ -109,7 +143,7 @@ function buildHtml(o: SheetOpts, c: Contenido): string {
     </div>`)
         .join('');
     return `<!doctype html>
-<html lang="es"><head><meta charset="utf-8">
+<html lang="${getLang()}"><head><meta charset="utf-8">
 <title>${c.titulo} — ${esc(o.nombreBoveda)}</title>
 <style>
   :root { color-scheme: light; }
@@ -147,10 +181,10 @@ function buildHtml(o: SheetOpts, c: Contenido): string {
   <div class="bar"></div>
   <div class="pad">
     <h1>${c.titulo}</h1>
-    <p class="muted">${c.subtitulo} — generada el ${esc(fecha)}</p>
+    <p class="muted">${c.subtitulo} — ${t('generada el', 'generated on')} ${esc(fecha)}</p>
 
     <div class="warn">
-      <strong>⚠ Documento altamente sensible</strong>
+      <strong>⚠ ${t('Documento altamente sensible', 'Highly sensitive document')}</strong>
       ${c.advertencia}
     </div>
 
@@ -161,7 +195,7 @@ function buildHtml(o: SheetOpts, c: Contenido): string {
 ${campos}
 
     <div class="field">
-      <div class="label">Para qué sirve</div>
+      <div class="label">${t('Para qué sirve', 'What it is for')}</div>
       <ol>
         ${c.usos.map((u) => `<li>${u}</li>`).join('\n        ')}
       </ol>
@@ -169,10 +203,10 @@ ${campos}
 
     <button class="noprint" onclick="window.print()"
       style="margin-top:8px;padding:10px 18px;border:none;border-radius:50px;background:#621132;color:#fff;font-weight:600;cursor:pointer">
-      Imprimir
+      ${t('Imprimir', 'Print')}
     </button>
   </div>
-  <div class="foot">Kleimos Legacy · ESCOM-IPN · Este archivo no se sincroniza con ningún servidor.</div>
+  <div class="foot">Kleimos Legacy · ESCOM-IPN · ${t('Este archivo no se sincroniza con ningún servidor.', "This file isn't synced with any server.")}</div>
 </div>
 </body></html>`;
 }

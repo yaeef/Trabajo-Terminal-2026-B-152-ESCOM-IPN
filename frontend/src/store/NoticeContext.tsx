@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import NoticeModal, { type NoticeType } from '../components/common/NoticeModal';
+import { t } from '../i18n';
 
 interface NoticeState {
     type: NoticeType;
@@ -13,14 +14,15 @@ interface NoticeContextValue {
     notifySuccess: (message: string, title?: string) => void;
 }
 
-const DEFAULT_TITLES: Record<NoticeType, string> = {
-    // Genérico a propósito: cubre tanto fallos técnicos como datos
-    // incorrectos del usuario (p. ej. "Credenciales incorrectas" no es
-    // un "error" del sistema, así que el título no debe presuponer culpa).
-    error: 'No se pudo continuar',
-    warning: 'Atención',
-    success: 'Listo',
-};
+const defaultTitle = (type: NoticeType): string =>
+    ({
+        // Genérico a propósito: cubre tanto fallos técnicos como datos
+        // incorrectos del usuario (p. ej. "Credenciales incorrectas" no es
+        // un "error" del sistema, así que el título no debe presuponer culpa).
+        error: t('No se pudo continuar', "Couldn't continue"),
+        warning: t('Atención', 'Attention'),
+        success: t('Listo', 'Done'),
+    })[type];
 
 const NoticeContext = createContext<NoticeContextValue | undefined>(undefined);
 
@@ -28,7 +30,7 @@ export function NoticeProvider({ children }: { children: ReactNode }) {
     const [notice, setNotice] = useState<NoticeState | null>(null);
 
     const notify = (type: NoticeType) => (message: string, title?: string) => {
-        setNotice({ type, title: title || DEFAULT_TITLES[type], message });
+        setNotice({ type, title: title || defaultTitle(type), message });
     };
 
     const value: NoticeContextValue = {

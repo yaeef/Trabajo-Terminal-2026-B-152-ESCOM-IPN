@@ -2,7 +2,8 @@
 """
 Traducción única de errores de dominio (services/errores.py) a respuestas
 HTTP. Las rutas no atrapan nada: el error sube, la unidad de trabajo
-revierte la transacción y este manejador responde `{"detail": mensaje}`.
+revierte la transacción y este manejador responde `{"detail": mensaje}`
+(más `"codigo"` si el error trae uno).
 """
 
 from fastapi import FastAPI, Request, status
@@ -37,7 +38,10 @@ def codigo_http(error: ErrorDeDominio) -> int:
 
 async def _responder(_request: Request, error: Exception) -> JSONResponse:
     assert isinstance(error, ErrorDeDominio)
-    return JSONResponse(status_code=codigo_http(error), content={"detail": str(error)})
+    contenido: dict[str, str] = {"detail": str(error)}
+    if error.codigo:
+        contenido["codigo"] = error.codigo
+    return JSONResponse(status_code=codigo_http(error), content=contenido)
 
 
 def registrar_manejadores(app: FastAPI) -> None:

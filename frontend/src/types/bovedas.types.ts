@@ -1,5 +1,39 @@
 // Tipos 1:1 con backend/app/schemas/boveda.py
 
+import { t } from '../i18n';
+
+// Categorías de bóveda: el valor guardado en el backend es el español;
+// categoriaLabel solo traduce lo que se muestra.
+const CATEGORIAS: Record<string, string> = {
+    'Finanzas / Crypto': 'Finance / Crypto',
+    'Documentos Legales': 'Legal Documents',
+    'Personal': 'Personal',
+    'Accesos / Contraseñas': 'Logins / Passwords',
+    'Cuentas Digitales': 'Digital Accounts',
+    'Seguros y Beneficiarios': 'Insurance & Beneficiaries',
+    'Propiedades y Patrimonio': 'Property & Assets',
+    'Salud': 'Health',
+    'Negocios / Empresa': 'Business / Company',
+    'Trabajo / Profesional': 'Work / Professional',
+    'Instrucciones de Sucesión': 'Succession Instructions',
+    'Otro': 'Other',
+};
+
+export const CATEGORIAS_BOVEDA = Object.keys(CATEGORIAS);
+
+const ESTADOS_EN: Record<string, string> = {
+    borrador: 'draft',
+    activa: 'active',
+    en_recuperacion: 'in recovery',
+    expirada: 'expired',
+};
+
+/** Estado de la bóveda tal como se muestra (en español, el valor del backend). */
+export const estadoBovedaLabel = (e: string): string => t(e, ESTADOS_EN[e] ?? e);
+
+/** Texto a mostrar de una categoría guardada (valores desconocidos se muestran tal cual). */
+export const categoriaLabel = (c: string): string => (CATEGORIAS[c] ? t(c, CATEGORIAS[c]) : c);
+
 export interface KdfEnvelopeDTO {
     algo: string;
     salt: string;

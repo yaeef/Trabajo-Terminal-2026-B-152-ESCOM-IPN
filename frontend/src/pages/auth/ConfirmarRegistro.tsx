@@ -4,6 +4,8 @@ import { authService } from '../../services/auth.service';
 import { getApiErrorMessage } from '../../utils/errors';
 import './AuthTheme.css';
 import KleimosLogo from '../../components/brand/KleimosLogo';
+import LanguageToggle from '../../components/common/LanguageToggle';
+import { t } from '../../i18n';
 
 /**
  * Activa una cuenta recién registrada con el token del correo de
@@ -23,7 +25,7 @@ export default function ConfirmarRegistro() {
     useEffect(() => {
         if (!token) {
             setEstado('error');
-            setMensaje('Este enlace no incluye un token de confirmación válido.');
+            setMensaje(t('Este enlace no es válido. Ábrelo de nuevo desde tu correo.', 'This link is not valid. Open it again from your email.'));
             return;
         }
 
@@ -32,12 +34,15 @@ export default function ConfirmarRegistro() {
             .then(() => setEstado('exito'))
             .catch((err) => {
                 setEstado('error');
-                setMensaje(getApiErrorMessage(err, 'No se pudo confirmar tu correo.'));
+                setMensaje(getApiErrorMessage(err, t('No se pudo confirmar tu correo.', "Couldn't confirm your email.")));
             });
     }, [token]);
 
     return (
         <div className="auth-page">
+            <div className="auth-theme-toggle">
+                <LanguageToggle />
+            </div>
             <div className="card-auth animate__animated animate__fadeInUp">
                 <div className="top-gradient"></div>
                 <div className="card-body p-4 p-md-5 text-center">
@@ -50,9 +55,9 @@ export default function ConfirmarRegistro() {
                                 <i className="fas fa-envelope-open-text fa-3x" style={{ color: 'var(--escom-blue)' }}></i>
                             </div>
                             <h3 className="fw-bold mt-3" style={{ color: 'var(--escom-blue)' }}>
-                                Confirmando correo...
+                                {t('Confirmando correo...', 'Confirming email...')}
                             </h3>
-                            <p className="text-muted">Un momento por favor.</p>
+                            <p className="text-muted">{t('Un momento por favor.', 'One moment please.')}</p>
                         </>
                     )}
 
@@ -62,11 +67,11 @@ export default function ConfirmarRegistro() {
                                 <i className="fas fa-check fa-3x"></i>
                             </div>
                             <h3 className="fw-bold" style={{ color: 'var(--escom-blue)' }}>
-                                Cuenta activada
+                                {t('Cuenta activada', 'Account activated')}
                             </h3>
-                            <p className="text-muted">Tu correo quedó confirmado. Ya puedes iniciar sesión.</p>
+                            <p className="text-muted">{t('Tu correo quedó confirmado. Ya puedes iniciar sesión.', 'Your email is confirmed. You can now sign in.')}</p>
                             <Link to="/login" className="btn btn-ipn w-100 mt-3 py-3 shadow-sm">
-                                Iniciar sesión <i className="fas fa-arrow-right ms-2"></i>
+                                {t('Iniciar sesión', 'Sign in')} <i className="fas fa-arrow-right ms-2"></i>
                             </Link>
                         </>
                     )}
@@ -77,11 +82,11 @@ export default function ConfirmarRegistro() {
                                 <i className="fas fa-link-slash fa-3x"></i>
                             </div>
                             <h3 className="fw-bold" style={{ color: 'var(--escom-blue)' }}>
-                                Enlace inválido
+                                {t('Enlace inválido', 'Invalid link')}
                             </h3>
                             <p className="text-muted">{mensaje}</p>
                             <Link to="/login" className="btn btn-ipn w-100 mt-3 py-3 shadow-sm">
-                                Ir al login <i className="fas fa-arrow-right ms-2"></i>
+                                {t('Ir al login', 'Go to sign in')} <i className="fas fa-arrow-right ms-2"></i>
                             </Link>
                         </>
                     )}

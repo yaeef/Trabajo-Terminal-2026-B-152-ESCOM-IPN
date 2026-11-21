@@ -22,9 +22,11 @@ class Suscripcion(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     nombre: Mapped[str] = mapped_column(String(50))
-    max_almacenamiento: Mapped[int]  # GB
+    max_almacenamiento_mb: Mapped[int]
     max_bovedas: Mapped[int]
     max_custodios: Mapped[int]
+    # Archivos subidos (las plantillas de credenciales no cuentan). None = sin límite.
+    max_archivos: Mapped[int | None]
     # Único ciclo de facturación: anual. 0 = plan gratuito (sin caducidad).
     costo_anual: Mapped[Decimal] = mapped_column(Numeric(10, 2), default=Decimal("0"))
     # Año de reserva: importe único que deja guardado un año extra del plan

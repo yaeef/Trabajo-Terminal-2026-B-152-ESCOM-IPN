@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react';
 import { adminService } from '../../services/admin.service';
 import { useNotice } from '../../store/NoticeContext';
-import type { CustodioResponse } from '../../types/custodios.types';
+import { parentescoLabel, type CustodioResponse } from '../../types/custodios.types';
 import { getApiErrorMessage } from '../../utils/errors';
 import AdminMotivoModal from './AdminMotivoModal';
+import { t } from '../../i18n';
 
 interface Props {
     idPropietario: number;
 }
 
 function VerifTag({ ok }: { ok: boolean }) {
-    return <span className="admin-badge" style={ok ? { background: '#dcfce7', color: '#15803d' } : { background: '#fee2e2', color: '#b91c1c' }}>{ok ? 'Verificado' : 'No verificado'}</span>;
+    return <span className="admin-badge" style={ok ? { background: '#dcfce7', color: '#15803d' } : { background: '#fee2e2', color: '#b91c1c' }}>{ok ? t('Verificado', 'Verified') : t('No verificado', 'Not verified')}</span>;
 }
 
 export default function AdminTabCustodios({ idPropietario }: Props) {
@@ -24,7 +25,7 @@ export default function AdminTabCustodios({ idPropietario }: Props) {
         adminService
             .custodiosDePropietario(idPropietario)
             .then(setCustodios)
-            .catch((e) => notifyError(getApiErrorMessage(e, 'No se pudo cargar el directorio de custodios.')))
+            .catch((e) => notifyError(getApiErrorMessage(e, t('No se pudo cargar el directorio de custodios.', "Couldn't load the custodian directory."))))
             .finally(() => setLoading(false));
     };
     useEffect(cargar, [idPropietario]);
@@ -34,22 +35,22 @@ export default function AdminTabCustodios({ idPropietario }: Props) {
         try {
             await adminService.reenviarVerificacionCustodio(idPropietario, objetivo.id, { motivo });
             setObjetivo(null);
-            notifySuccess(`Se reenvió la verificación a ${objetivo.correo}.`);
+            notifySuccess(t(`Se reenvió la verificación a ${objetivo.correo}.`, `The verification was resent to ${objetivo.correo}.`));
             cargar();
         } catch (e) {
-            notifyError(getApiErrorMessage(e, 'No se pudo reenviar la verificación.'));
+            notifyError(getApiErrorMessage(e, t('No se pudo reenviar la verificación.', "Couldn't resend the verification.")));
             throw e;
         }
     };
 
-    if (loading) return <p className="text-muted">Cargando…</p>;
+    if (loading) return <p className="text-muted">{t('Cargando…', 'Loading…')}</p>;
 
     return (
         <div>
             {custodios.length === 0 ? (
                 <div className="admin-card text-center text-muted py-5">
                     <i className="fas fa-users-slash fa-2x mb-3 d-block" style={{ color: '#cbd5e1' }} />
-                    Este propietario aún no registra custodios.
+                    {t('Este propietario aún no registra custodios.', "This owner hasn't registered any custodians yet.")}
                 </div>
             ) : (
                 <div className="admin-card p-0">
@@ -57,10 +58,10 @@ export default function AdminTabCustodios({ idPropietario }: Props) {
                         <table className="table table-hover align-middle mb-0">
                             <thead style={{ background: '#f8fafc' }}>
                                 <tr>
-                                    <th className="border-0 ps-4 py-3 small text-muted text-uppercase fw-bold">Custodio</th>
-                                    <th className="border-0 py-3 small text-muted text-uppercase fw-bold">Correo</th>
+                                    <th className="border-0 ps-4 py-3 small text-muted text-uppercase fw-bold">{t('Custodio', 'Custodian')}</th>
+                                    <th className="border-0 py-3 small text-muted text-uppercase fw-bold">{t('Correo', 'Email')}</th>
                                     <th className="border-0 py-3 small text-muted text-uppercase fw-bold">Telegram</th>
-                                    <th className="border-0 pe-4 py-3 small text-muted text-uppercase fw-bold text-end">Acciones</th>
+                                    <th className="border-0 pe-4 py-3 small text-muted text-uppercase fw-bold text-end">{t('Acciones', 'Actions')}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -68,7 +69,7 @@ export default function AdminTabCustodios({ idPropietario }: Props) {
                                     <tr key={c.id}>
                                         <td className="ps-4">
                                             <div className="fw-bold">{c.nombre_completo || c.nombre}</div>
-                                            <div className="text-muted small">{c.parentesco} · ID #C-{c.id}</div>
+                                            <div className="text-muted small">{parentescoLabel(c.parentesco)} · ID #C-{c.id}</div>
                                         </td>
                                         <td>
                                             <div className="small mb-1">{c.correo}</div>
@@ -80,7 +81,7 @@ export default function AdminTabCustodios({ idPropietario }: Props) {
                                         <td className="pe-4 text-end">
                                             {!c.correo_verificado && (
                                                 <button className="btn btn-sm btn-outline-secondary rounded-pill" onClick={() => setObjetivo(c)}>
-                                                    Reenviar verificación
+                                                    {t('Reenviar verificación', 'Resend verification')}
                                                 </button>
                                             )}
                                         </td>
@@ -94,9 +95,15 @@ export default function AdminTabCustodios({ idPropietario }: Props) {
 
             {objetivo && (
                 <AdminMotivoModal
-                    title={`Reenviar verificación a ${objetivo.nombre_completo || objetivo.nombre}`}
-                    description={`Se reenvía un enlace de verificación de correo a ${objetivo.correo}.`}
-                    confirmLabel="Reenviar"
+                    title={t(
+                        `Reenviar verificación a ${objetivo.nombre_completo || objetivo.nombre}`,
+                        `Resend verification to ${objetivo.nombre_completo || objetivo.nombre}`,
+                    )}
+                    description={t(
+                        `Se reenvía un enlace de verificación de correo a ${objetivo.correo}.`,
+                        `An email verification link is resent to ${objetivo.correo}.`,
+                    )}
+                    confirmLabel={t('Reenviar', 'Resend')}
                     onConfirm={reenviar}
                     onClose={() => setObjetivo(null)}
                 />

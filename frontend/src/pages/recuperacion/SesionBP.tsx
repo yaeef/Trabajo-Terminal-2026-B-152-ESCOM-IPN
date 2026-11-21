@@ -11,6 +11,7 @@ import { useNotice } from '../../store/NoticeContext';
 import { getApiErrorMessage } from '../../utils/errors';
 import { nombreRecordado } from '../../utils/recuperacionIdentidad';
 import type { BovedaRecuperacionResponse, SesionEstadoResponse } from '../../types/recuperacion.types';
+import { locale, t } from '../../i18n';
 
 const POLL_MS = 8000;
 
@@ -19,7 +20,7 @@ interface DepositoEvaluado extends FilaDeposito {
 }
 
 function fmtHora(iso: string): string {
-    return new Date(iso).toLocaleString('es-MX', {
+    return new Date(iso).toLocaleString(locale(), {
         day: 'numeric',
         month: 'short',
         hour: '2-digit',
@@ -68,13 +69,13 @@ export default function SesionBP() {
             recuperacionService
                 .getSesion(pid)
                 .then((s) => !cancelled && setSesion(s))
-                .catch((e) => !cancelled && setErr(getApiErrorMessage(e, 'No se pudo cargar el estado de la sesión.')));
+                .catch((e) => !cancelled && setErr(getApiErrorMessage(e, t('No se pudo cargar el estado de la sesión.', "Couldn't load the session status."))));
         };
         cargar();
-        const t = setInterval(cargar, POLL_MS);
+        const id = setInterval(cargar, POLL_MS);
         return () => {
             cancelled = true;
-            clearInterval(t);
+            clearInterval(id);
         };
     }, [pid]);
 
@@ -131,11 +132,11 @@ export default function SesionBP() {
         setReconstruyendo(true);
         const shares = depositos.filter((d) => d.estado === 'valido' && d.share).map((d) => d.share!);
         try {
-            setProgresoTxt('Calculando coeficientes…');
+            setProgresoTxt(t('Juntando los fragmentos…', 'Gathering the shares…'));
             await new Promise((r) => setTimeout(r, 500));
-            setProgresoTxt('Interpolando el polinomio (Shamir)…');
+            setProgresoTxt(t('Reconstruyendo la llave…', 'Rebuilding the key…'));
             const dek = await recoverKey(shares);
-            setProgresoTxt('Llave maestra reconstruida.');
+            setProgresoTxt(t('Llave maestra reconstruida.', 'Master key rebuilt.'));
             await new Promise((r) => setTimeout(r, 400));
             setDek(dek);
             // Reporte informativo para los custodios — no expone la DEK ni
@@ -144,7 +145,7 @@ export default function SesionBP() {
             recuperacionService.marcarReconstruido(pid).catch(() => undefined);
             navigate(`/recuperacion/${pid}/activos`);
         } catch (e) {
-            notifyError(e instanceof Error ? e.message : 'No se pudo reconstruir la llave maestra.');
+            notifyError(e instanceof Error ? e.message : t('No se pudo reconstruir la llave maestra.', "Couldn't rebuild the master key."));
             shares.forEach((s) => wipe(s.y));
         } finally {
             setReconstruyendo(false);
@@ -176,14 +177,17 @@ export default function SesionBP() {
                 <div className="alert alert-success py-2 small d-flex align-items-center flex-wrap gap-2">
                     <i className="fas fa-check-circle" />
                     <span>
-                        Ya reconstruiste la llave maestra y accediste a los activos a las {fmtHora(bp.reconstruidoEn)}.
+                        {t(
+                            `Ya reconstruiste la llave maestra y accediste a los activos a las ${fmtHora(bp.reconstruidoEn)}.`,
+                            `You already rebuilt the master key and accessed the assets at ${fmtHora(bp.reconstruidoEn)}.`,
+                        )}
                     </span>
                     <button
                         type="button"
                         className="btn btn-link btn-sm p-0 ms-auto fw-bold"
                         onClick={() => navigate(`/recuperacion/${pid}/activos`)}
                     >
-                        Ir a Activos <i className="fas fa-arrow-right ms-1" />
+                        {t('Ir a Activos', 'Go to Assets')} <i className="fas fa-arrow-right ms-1" />
                     </button>
                 </div>
             )}
@@ -191,13 +195,13 @@ export default function SesionBP() {
             <div className="row g-4 mb-4">
                 <div className="col-md-8">
                     <div className="stat-card h-100">
-                        <h2 className="fw-bold mb-1">Panel de Reconstrucción</h2>
-                        <p className="text-muted">Gestiona los fragmentos recibidos para restaurar el patrimonio.</p>
+                        <h2 className="fw-bold mb-1">{t('Panel de Reconstrucción', 'Reconstruction Panel')}</h2>
+                        <p className="text-muted">{t('Gestiona los fragmentos recibidos para restaurar el patrimonio.', 'Manage the received shares to restore the estate.')}</p>
                         <div className="mt-4">
                             <div className="d-flex justify-content-between align-items-center mb-2">
-                                <span className="recuperacion-label">Progreso del quórum (k={k})</span>
+                                <span className="recuperacion-label">{t('Progreso del quórum', 'Quorum progress')} (k={k})</span>
                                 <span className="fw-bold">
-                                    {validCount} / {k} fragmentos
+                                    {validCount} / {k} {t('fragmentos', 'shares')}
                                 </span>
                             </div>
                             <div className="progress" style={{ height: 12, borderRadius: 10, background: '#f1f5f9' }}>
@@ -211,7 +215,7 @@ export default function SesionBP() {
                             </div>
                             {n > 0 && (
                                 <p className="text-muted small mt-2 mb-0">
-                                    {depositos.length} de {n} custodios han depositado en total.
+                                    {t(`${depositos.length} de ${n} custodios han depositado en total.`, `${depositos.length} of ${n} custodians have deposited in total.`)}
                                 </p>
                             )}
                         </div>
@@ -219,18 +223,18 @@ export default function SesionBP() {
                 </div>
                 <div className="col-md-4">
                     <div className="stat-card h-100 d-flex flex-column justify-content-center text-center">
-                        <span className="recuperacion-label mb-3">Acción criptográfica</span>
+                        <span className="recuperacion-label mb-3">{t('Abrir la bóveda', 'Open the vault')}</span>
                         <button
                             type="button"
                             className="btn btn-ipn py-3 shadow"
                             disabled={!puedeReconstruir || reconstruyendo}
                             onClick={reconstruir}
                         >
-                            <i className="fas fa-unlock-alt me-2" /> Recuperar
+                            <i className="fas fa-unlock-alt me-2" /> {t('Recuperar', 'Recover')}
                         </button>
                         {!puedeReconstruir && (
                             <p className="text-muted small mt-2 mb-0">
-                                Faltan {Math.max(k - validCount, 0)} fragmento(s) válido(s).
+                                {t(`Faltan ${Math.max(k - validCount, 0)} fragmento(s) válido(s).`, `${Math.max(k - validCount, 0)} valid share(s) missing.`)}
                             </p>
                         )}
                     </div>
@@ -248,8 +252,8 @@ export default function SesionBP() {
                                 <div className="mb-4 text-primary animate__animated animate__pulse animate__infinite">
                                     <i className="fas fa-microchip fa-4x" />
                                 </div>
-                                <h4 className="fw-bold">Procesando interpolación</h4>
-                                <p className="text-muted small">Ejecutando el polinomio de Shamir en tu navegador…</p>
+                                <h4 className="fw-bold">{t('Abriendo la bóveda', 'Opening the vault')}</h4>
+                                <p className="text-muted small">{t('Reconstruyendo la llave en tu navegador…', 'Rebuilding the key in your browser…')}</p>
                                 <p
                                     className="small fw-bold text-uppercase mt-3 mb-0"
                                     style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--ipn-maroon)' }}

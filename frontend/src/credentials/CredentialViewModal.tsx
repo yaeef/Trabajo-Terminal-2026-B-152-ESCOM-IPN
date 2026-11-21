@@ -15,6 +15,7 @@ import {
 import { openCredentialSheet } from './credentialSheet';
 import { saveBlob } from '../crypto/assetCrypto';
 import { useNotice } from '../store/NoticeContext';
+import { t } from '../i18n';
 
 interface Props {
     envelope: CredentialEnvelope;
@@ -54,20 +55,20 @@ export default function CredentialViewModal({
                 <div className="modal-content shadow-lg">
                     <div className="modal-header">
                         <div>
-                            <h5 className="modal-title fw-bold m-0">{plantilla?.label ?? 'Credenciales'}</h5>
+                            <h5 className="modal-title fw-bold m-0">{plantilla?.label ?? t('Credenciales', 'Credentials')}</h5>
                             <p className="text-muted m-0 small">{nombreActivo}</p>
                         </div>
-                        <button type="button" className="btn-close" onClick={onClose} aria-label="Cerrar" />
+                        <button type="button" className="btn-close" onClick={onClose} aria-label={t('Cerrar', 'Close')} />
                     </div>
 
                     <div className="modal-body">
                         <div className="alert alert-warning py-2 small">
                             <i className="fas fa-triangle-exclamation me-1" />
-                            Contenido descifrado en tu navegador. No lo dejes visible en pantallas compartidas.
+                            {t('Contenido descifrado en tu navegador. No lo dejes visible en pantallas compartidas.', "Content decrypted in your browser. Don't leave it visible on shared screens.")}
                         </div>
 
                         {filas.length === 0 ? (
-                            <p className="text-muted small m-0">Este activo no tiene campos con valor.</p>
+                            <p className="text-muted small m-0">{t('Este activo no tiene campos con valor.', "This asset doesn't have any filled-in fields.")}</p>
                         ) : (
                             filas.map((f) => (
                                 <div className="mb-3" key={f.key}>
@@ -97,7 +98,7 @@ export default function CredentialViewModal({
                                         )}
                                         <button
                                             className="btn btn-sm btn-outline-secondary"
-                                            title="Copiar"
+                                            title={t('Copiar', 'Copy')}
                                             onClick={() => navigator.clipboard?.writeText(f.valor)}
                                         >
                                             <i className="fas fa-copy" />
@@ -111,7 +112,7 @@ export default function CredentialViewModal({
                     <div className="modal-footer">
                         {onEditar && (
                             <button className="btn btn-outline-primary rounded-pill" onClick={onEditar}>
-                                <i className="fas fa-pen me-1" /> Editar
+                                <i className="fas fa-pen me-1" /> {t('Editar', 'Edit')}
                             </button>
                         )}
                         <button
@@ -123,18 +124,18 @@ export default function CredentialViewModal({
                                 saveBlob(`${nombreActivo}${CRED_SUFFIX}`, blob);
                             }}
                         >
-                            <i className="fas fa-file-code me-1" /> Descargar JSON
+                            <i className="fas fa-file-code me-1" /> {t('Descargar JSON', 'Download JSON')}
                         </button>
                         <button
                             className="btn btn-ipn rounded-pill"
                             onClick={() => {
                                 const ok = openCredentialSheet({ envelope, nombreActivo, bovedaNombre });
-                                if (!ok) notifyWarning('El navegador bloqueó la pestaña. Permite las ventanas emergentes e inténtalo de nuevo.');
+                                if (!ok) notifyWarning(t('El navegador bloqueó la pestaña. Permite las ventanas emergentes e inténtalo de nuevo.', 'The browser blocked the tab. Allow pop-ups and try again.'));
                             }}
                         >
-                            <i className="fas fa-file-pdf me-1" /> Descargar PDF
+                            <i className="fas fa-file-pdf me-1" /> {t('Descargar PDF', 'Download PDF')}
                         </button>
-                        <button className="btn btn-light rounded-pill" onClick={onClose}>Cerrar</button>
+                        <button className="btn btn-light rounded-pill" onClick={onClose}>{t('Cerrar', 'Close')}</button>
                     </div>
                 </div>
             </div>

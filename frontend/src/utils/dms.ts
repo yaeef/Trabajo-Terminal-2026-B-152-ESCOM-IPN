@@ -1,4 +1,5 @@
 import type { ProtocoloVidaResponse } from '../types/dms.types';
+import { locale } from '../i18n';
 import { parseBackendDate } from './dates';
 
 const DEFAULT_PERIODICIDAD_DIAS = 60; // mismo fallback que dms_service.registrar_prueba_de_vida en backend
@@ -35,5 +36,5 @@ export function calcularProximaVerificacion(data: ProtocoloVidaResponse): Proxim
 }
 
 export function formatFechaCorta(fecha: Date): string {
-    return fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+    return fecha.toLocaleDateString(locale(), { day: '2-digit', month: 'short', year: 'numeric' });
 }

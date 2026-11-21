@@ -7,6 +7,8 @@ import './AuthTheme.css';
 import RequisitosContrasena from '../../components/common/RequisitosContrasena';
 import { requisitoFaltante } from '../../utils/password';
 import KleimosLogo from '../../components/brand/KleimosLogo';
+import LanguageToggle from '../../components/common/LanguageToggle';
+import { t } from '../../i18n';
 
 /**
  * CU-005 (paso 2): ingresar la nueva contraseña usando el token recibido
@@ -36,7 +38,7 @@ export default function ResetPassword() {
             return;
         }
         if (nuevaPassword !== confirmar) {
-            notifyError('Las contraseñas no coinciden.');
+            notifyError(t('Las contraseñas no coinciden.', "Passwords don't match."));
             return;
         }
 
@@ -46,7 +48,7 @@ export default function ResetPassword() {
             setSuccess(true);
             setTimeout(() => navigate('/login'), 2500);
         } catch (err) {
-            notifyError(getApiErrorMessage(err, 'No se pudo restablecer la contraseña.'));
+            notifyError(getApiErrorMessage(err, t('No se pudo restablecer la contraseña.', "Couldn't reset the password.")));
         } finally {
             setIsSubmitting(false);
         }
@@ -55,6 +57,9 @@ export default function ResetPassword() {
     if (!token) {
         return (
             <div className="auth-page">
+                <div className="auth-theme-toggle">
+                    <LanguageToggle />
+                </div>
                 <div className="card-auth animate__animated animate__fadeInUp">
                     <div className="top-gradient"></div>
                     <div className="card-body p-4 p-md-5 text-center">
@@ -64,10 +69,10 @@ export default function ResetPassword() {
                         <div className="error-icon-circle animate__animated animate__bounceIn">
                             <i className="fas fa-link-slash fa-3x"></i>
                         </div>
-                        <h3 className="fw-bold" style={{ color: 'var(--escom-blue)' }}>Enlace inválido</h3>
-                        <p className="text-muted">Este enlace no incluye un token de recuperación válido.</p>
+                        <h3 className="fw-bold" style={{ color: 'var(--escom-blue)' }}>{t('Enlace inválido', 'Invalid link')}</h3>
+                        <p className="text-muted">{t('Este enlace no incluye un token de recuperación válido.', "This link doesn't include a valid recovery token.")}</p>
                         <Link to="/recuperar-password" className="btn btn-ipn w-100 mt-3 py-3 shadow-sm">
-                            Solicitar uno nuevo <i className="fas fa-arrow-right ms-2"></i>
+                            {t('Solicitar uno nuevo', 'Request a new one')} <i className="fas fa-arrow-right ms-2"></i>
                         </Link>
                     </div>
                 </div>
@@ -78,6 +83,9 @@ export default function ResetPassword() {
     if (success) {
         return (
             <div className="auth-page">
+                <div className="auth-theme-toggle">
+                    <LanguageToggle />
+                </div>
                 <div className="card-auth animate__animated animate__fadeInUp">
                     <div className="top-gradient"></div>
                     <div className="card-body p-4 p-md-5 text-center">
@@ -87,8 +95,8 @@ export default function ResetPassword() {
                         <div className="success-icon-circle animate__animated animate__bounceIn">
                             <i className="fas fa-check fa-3x"></i>
                         </div>
-                        <h3 className="fw-bold" style={{ color: 'var(--escom-blue)' }}>Contraseña actualizada</h3>
-                        <p className="text-muted">Redirigiendo al login...</p>
+                        <h3 className="fw-bold" style={{ color: 'var(--escom-blue)' }}>{t('Contraseña actualizada', 'Password updated')}</h3>
+                        <p className="text-muted">{t('Redirigiendo al login...', 'Redirecting to sign in...')}</p>
                         <div className="progress-timer" style={{ width: '0%' }}></div>
                     </div>
                 </div>
@@ -98,6 +106,9 @@ export default function ResetPassword() {
 
     return (
         <div className="auth-page">
+            <div className="auth-theme-toggle">
+                <LanguageToggle />
+            </div>
             <div className="card-auth animate__animated animate__fadeInUp">
                 <div className="top-gradient"></div>
                 <div className="card-body p-4 p-md-5">
@@ -109,20 +120,20 @@ export default function ResetPassword() {
                             <i className="fas fa-lock fa-3x" style={{ color: 'var(--escom-blue)' }}></i>
                         </div>
                         <h3 className="fw-bold mb-1 mt-3" style={{ color: 'var(--escom-blue)' }}>
-                            Restablecer contraseña
+                            {t('Restablecer contraseña', 'Reset password')}
                         </h3>
-                        <p className="text-muted small">Ingresa tu nueva contraseña.</p>
+                        <p className="text-muted small">{t('Ingresa tu nueva contraseña.', 'Enter your new password.')}</p>
                     </div>
 
                     <form onSubmit={handleSubmit}>
                         <div className="mb-3">
-                            <label className="form-label small fw-bold text-muted">Nueva contraseña</label>
+                            <label className="form-label small fw-bold text-muted">{t('Nueva contraseña', 'New password')}</label>
                             <div className="input-group">
                                 <span className="input-group-text"><i className="fas fa-lock"></i></span>
                                 <input
                                     type={showPassword ? 'text' : 'password'}
                                     className="form-control shadow-none"
-                                    placeholder="Mínimo 12 caracteres"
+                                    placeholder={t('Mínimo 12 caracteres', 'At least 12 characters')}
                                     value={nuevaPassword}
                                     onChange={(e) => setNuevaPassword(e.target.value)}
                                     required
@@ -132,8 +143,8 @@ export default function ResetPassword() {
                                     className="input-group-text"
                                     role="button"
                                     onClick={() => setShowPassword((prev) => !prev)}
-                                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                                    title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                    aria-label={showPassword ? t('Ocultar contraseña', 'Hide password') : t('Mostrar contraseña', 'Show password')}
+                                    title={showPassword ? t('Ocultar contraseña', 'Hide password') : t('Mostrar contraseña', 'Show password')}
                                 >
                                     <i className={showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
                                 </button>
@@ -141,7 +152,7 @@ export default function ResetPassword() {
                         </div>
 
                         <div className="mb-4">
-                            <label className="form-label small fw-bold text-muted">Confirmar nueva contraseña</label>
+                            <label className="form-label small fw-bold text-muted">{t('Confirmar nueva contraseña', 'Confirm new password')}</label>
                             <div className="input-group">
                                 <span className="input-group-text"><i className="fas fa-check-double"></i></span>
                                 <input
@@ -157,8 +168,8 @@ export default function ResetPassword() {
                                     className="input-group-text"
                                     role="button"
                                     onClick={() => setShowConfirmPassword((prev) => !prev)}
-                                    aria-label={showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                                    title={showConfirmPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                    aria-label={showConfirmPassword ? t('Ocultar contraseña', 'Hide password') : t('Mostrar contraseña', 'Show password')}
+                                    title={showConfirmPassword ? t('Ocultar contraseña', 'Hide password') : t('Mostrar contraseña', 'Show password')}
                                 >
                                     <i className={showConfirmPassword ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
                                 </button>
@@ -170,16 +181,16 @@ export default function ResetPassword() {
 
                         <button type="submit" className="btn btn-ipn w-100 py-3 mb-3 shadow-sm" disabled={isSubmitting}>
                             {isSubmitting ? (
-                                'Guardando...'
+                                t('Guardando...', 'Saving...')
                             ) : (
-                                <>Restablecer contraseña <i className="fas fa-shield-halved ms-2"></i></>
+                                <>{t('Restablecer contraseña', 'Reset password')} <i className="fas fa-shield-halved ms-2"></i></>
                             )}
                         </button>
                     </form>
 
                     <div className="text-center">
                         <Link to="/login" className="text-decoration-none fw-bold small" style={{ color: 'var(--escom-blue)' }}>
-                            <i className="fas fa-arrow-left me-1"></i> Volver al login
+                            <i className="fas fa-arrow-left me-1"></i> {t('Volver al login', 'Back to sign in')}
                         </Link>
                     </div>
                 </div>

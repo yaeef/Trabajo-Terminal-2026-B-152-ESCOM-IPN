@@ -3,6 +3,7 @@ import { isAxiosError } from 'axios';
 import { authService } from '../../services/auth.service';
 import { useNotice } from '../../store/NoticeContext';
 import { getApiErrorMessage } from '../../utils/errors';
+import { t } from '../../i18n';
 import './ReenviarConfirmacion.css';
 
 interface Props {
@@ -21,8 +22,8 @@ export default function ReenviarConfirmacion({ usuario, password, esperaInicial 
 
     useEffect(() => {
         if (espera <= 0) return;
-        const t = window.setTimeout(() => setEspera((s) => s - 1), 1000);
-        return () => window.clearTimeout(t);
+        const id = window.setTimeout(() => setEspera((s) => s - 1), 1000);
+        return () => window.clearTimeout(id);
     }, [espera]);
 
     const reenviar = async () => {
@@ -36,10 +37,13 @@ export default function ReenviarConfirmacion({ usuario, password, esperaInicial 
                 const cuerpo = e.response.data as { espera_segundos?: number } | undefined;
                 const retry = Number(cuerpo?.espera_segundos ?? e.response.headers['retry-after']);
                 if (retry > 0) setEspera(retry);
-                notifyWarning(getApiErrorMessage(e, 'Espera un momento antes de pedir otro.'), 'Espera un momento');
+                notifyWarning(
+                    getApiErrorMessage(e, t('Espera un momento antes de pedir otro.', 'Please wait a moment before requesting another one.')),
+                    t('Espera un momento', 'Please wait'),
+                );
                 return;
             }
-            notifyError(getApiErrorMessage(e, 'No se pudo reenviar el correo de verificación.'));
+            notifyError(getApiErrorMessage(e, t('No se pudo reenviar el correo de verificación.', "Couldn't resend the verification email.")));
         } finally {
             setEnviando(false);
         }
@@ -56,10 +60,10 @@ export default function ReenviarConfirmacion({ usuario, password, esperaInicial 
         >
             <i className="fas fa-envelope me-2" />
             {enviando
-                ? 'Enviando…'
+                ? t('Enviando…', 'Sending…')
                 : espera > 0
-                  ? `Reenviar correo en ${minutos}:${segundos}`
-                  : 'Reenviar correo de verificación'}
+                  ? t(`Reenviar correo en ${minutos}:${segundos}`, `Resend email in ${minutos}:${segundos}`)
+                  : t('Reenviar correo de verificación', 'Resend verification email')}
         </button>
     );
 }

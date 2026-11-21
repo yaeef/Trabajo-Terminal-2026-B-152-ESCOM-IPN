@@ -328,8 +328,103 @@
     border-color: var(--escom-blue);
 }
 .custodian-selector-card.selected {
-    border-color: var(--ipn-maroon);
-    background: rgba(98, 17, 50, 0.05);
+    border: 2px solid var(--ipn-maroon);
+    padding: calc(1.1rem - 1px);
+    background: rgba(98, 17, 50, 0.07);
+    box-shadow: 0 0 0 3px rgba(98, 17, 50, 0.12);
+}
+.custodian-selector-card.selected .custodian-avatar {
+    background: var(--ipn-maroon);
+    color: #ffffff;
+}
+.custodian-selector-card .cust-info {
+    min-width: 0;
+}
+.custodian-selector-card .custodian-avatar {
+    flex-shrink: 0;
+}
+/* Etiqueta "Fragmento N" sobre el borde superior de la tarjeta elegida. */
+.frag-chip.frag-chip-top {
+    position: absolute;
+    top: -11px;
+    right: 14px;
+    background: var(--ipn-maroon);
+    color: #ffffff;
+}
+.custodian-selector-card .sel-check {
+    flex-shrink: 0;
+    color: var(--ipn-maroon);
+    font-size: 1.15rem;
+}
+/* "Fragmento N" en la tarjeta del custodio elegido y en la confirmación. */
+.frag-chip {
+    font-size: 0.7rem;
+    font-weight: 700;
+    white-space: nowrap;
+    background: rgba(98, 17, 50, 0.1);
+    color: var(--ipn-maroon);
+    padding: 3px 10px;
+    border-radius: 999px;
+}
+
+/* Paso 2: primero el total, después cuántos abren (botones de opción). */
+.nk-paso {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 1rem 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+.nk-paso:first-child {
+    padding-top: 0;
+}
+.nk-paso.inactivo {
+    opacity: 0.5;
+}
+.nk-num {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--escom-blue);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+.nk-paso.inactivo .nk-num {
+    background: #94a3b8;
+}
+.nk-opciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.nk-opcion {
+    min-width: 48px;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 12px;
+    border: 2px solid #cbd5e1;
+    background: #ffffff;
+    color: inherit;
+    font-weight: 700;
+    font-size: 1.05rem;
+    cursor: pointer;
+    transition: 0.15s;
+}
+.nk-opcion:hover {
+    border-color: var(--escom-blue);
+}
+.nk-opcion.activa {
+    background: var(--escom-blue);
+    border-color: var(--escom-blue);
+    color: #ffffff;
+}
+.sss-control-box .logic-hint {
+    margin-top: 1rem;
 }
 .custodian-selector-card.is-disabled {
     opacity: 0.5;

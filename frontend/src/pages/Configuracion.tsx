@@ -12,8 +12,7 @@ import type { ProtocoloVidaResponse } from '../types/dms.types';
 import type { TelegramLinkCodeResponse } from '../types/channels.types';
 import { getApiErrorMessage } from '../utils/errors';
 import './Configuracion.css';
-
-const CONFIRM_WORD = 'ELIMINAR';
+import { getLang, t } from '../i18n';
 
 // Valores fijos del protocolo de vida (deben coincidir con el backend:
 // schemas/user.py PERIODICIDAD_*_OPCIONES y el CHECK de la tabla propietario).
@@ -76,8 +75,8 @@ export default function Configuracion() {
     // Cuenta regresiva del enlace de vinculación de Telegram.
     useEffect(() => {
         if (!telegramLinkInfo || telegramSegundosRestantes <= 0) return;
-        const t = setTimeout(() => setTelegramSegundosRestantes((s) => s - 1), 1000);
-        return () => clearTimeout(t);
+        const id = setTimeout(() => setTelegramSegundosRestantes((s) => s - 1), 1000);
+        return () => clearTimeout(id);
     }, [telegramLinkInfo, telegramSegundosRestantes]);
 
     const handleUpdateUmbrales = async () => {
@@ -88,9 +87,9 @@ export default function Configuracion() {
                 periodicidad_periodo_gracia: gracia,
             });
             setProtocoloVida(actualizado);
-            notifySuccess('Umbrales actualizados correctamente.');
+            notifySuccess(t('Umbrales actualizados correctamente.', 'Thresholds updated successfully.'));
         } catch (err) {
-            notifyError(getApiErrorMessage(err, 'No se pudieron actualizar los umbrales.'));
+            notifyError(getApiErrorMessage(err, t('No se pudieron actualizar los umbrales.', "Couldn't update the thresholds.")));
         } finally {
             setSavingUmbral(false);
         }
@@ -103,7 +102,7 @@ export default function Configuracion() {
             setTelegramLinkInfo(info);
             setTelegramSegundosRestantes(info.expira_en_segundos);
         } catch (err) {
-            notifyError(getApiErrorMessage(err, 'No se pudo generar el enlace de vinculación.'));
+            notifyError(getApiErrorMessage(err, t('No se pudo generar el enlace de vinculación.', "Couldn't generate the linking link.")));
         } finally {
             setTelegramLoading(false);
         }
@@ -125,7 +124,7 @@ export default function Configuracion() {
             await channelsService.unlinkTelegram();
             await refreshUser();
         } catch (err) {
-            notifyError(getApiErrorMessage(err, 'No se pudo desvincular Telegram.'));
+            notifyError(getApiErrorMessage(err, t('No se pudo desvincular Telegram.', "Couldn't unlink Telegram.")));
         } finally {
             setTelegramLoading(false);
         }
@@ -135,7 +134,7 @@ export default function Configuracion() {
         e.preventDefault();
 
         if (correoNuevo === user?.correo) {
-            notifyError('El correo alternativo debe ser distinto al correo principal.');
+            notifyError(t('El correo alternativo debe ser distinto al correo principal.', 'The alternate email must be different from the primary email.'));
             return;
         }
 
@@ -146,7 +145,7 @@ export default function Configuracion() {
             setCorreoFormAbierto(false);
             setCorreoNuevo('');
         } catch (err) {
-            notifyError(getApiErrorMessage(err, 'No se pudo enviar el correo de confirmación.'));
+            notifyError(getApiErrorMessage(err, t('No se pudo enviar el correo de confirmación.', "Couldn't send the confirmation email.")));
         } finally {
             setCorreoLoading(false);
         }
@@ -159,7 +158,7 @@ export default function Configuracion() {
             await refreshUser();
             setCorreoSolicitado('');
         } catch (err) {
-            notifyError(getApiErrorMessage(err, 'No se pudo desvincular el correo alternativo.'));
+            notifyError(getApiErrorMessage(err, t('No se pudo desvincular el correo alternativo.', "Couldn't unlink the alternate email.")));
         } finally {
             setCorreoLoading(false);
         }
@@ -183,21 +182,23 @@ export default function Configuracion() {
             await refreshUser(); // ahora trae eliminacion_solicitada_en
             navigate('/cuenta-en-eliminacion', { replace: true });
         } catch (err) {
-            setDeleteErr(getApiErrorMessage(err, 'No se pudo programar la eliminación.'));
+            setDeleteErr(getApiErrorMessage(err, t('No se pudo programar la eliminación.', "Couldn't schedule the deletion.")));
             setDeleting(false);
         }
     };
 
     const telegramVinculado = Boolean(user?.id_telegram);
     const correoVinculado = Boolean(user?.correo_sec);
+    // Palabra de confirmación (solo la valida el frontend; el backend pide la contraseña).
+    const CONFIRM_WORD = t('ELIMINAR', 'DELETE');
     const puedeEliminar = deletePassword.length > 0 && deleteConfirm.trim().toUpperCase() === CONFIRM_WORD;
 
     return (
-        <DashboardLayout activeItem="configuracion" topBarLabel="Ajustes del Sistema">
+        <DashboardLayout activeItem="configuracion" topBarLabel={t('Ajustes del Sistema', 'System Settings')}>
             <div className="d-flex justify-content-between align-items-center mb-5 flex-wrap gap-3">
                 <div>
-                    <h2 className="fw-bold mb-1">Ajustes del Sistema</h2>
-                    <p className="text-muted m-0">Define las reglas de herencia y gestiona tu identidad.</p>
+                    <h2 className="fw-bold mb-1">{t('Ajustes del Sistema', 'System Settings')}</h2>
+                    <p className="text-muted m-0">{t('Define las reglas de herencia y gestiona tu identidad.', 'Define the inheritance rules and manage your identity.')}</p>
                 </div>
                 <VerificationStatusWidget protocoloVida={protocoloVida} loading={loadingProtocolo} />
             </div>
@@ -205,15 +206,15 @@ export default function Configuracion() {
             {/* SECCIÓN 1: PROTOCOLO DE VIDA */}
             <section className="config-section">
                 <div className="section-title">
-                    <i className="fas fa-heartbeat"></i> Protocolo de Vida (Dead Man's Switch)
+                    <i className="fas fa-heartbeat"></i> {t('Protocolo de Vida', 'Life Protocol')} (Dead Man's Switch)
                 </div>
                 <p className="section-desc">
-                    Reglas para determinar la inactividad y proceder con la fragmentación de llaves.
+                    {t('Reglas para determinar la inactividad y proceder con la fragmentación de llaves.', 'Rules to determine inactivity and proceed with the key sharing.')}
                 </p>
 
                 <div className="row g-4">
                     <div className="col-md-6">
-                        <label className="form-label">Umbral de Inactividad Total</label>
+                        <label className="form-label">{t('Umbral de Inactividad Total', 'Total Inactivity Threshold')}</label>
                         <select
                             className="form-select shadow-none"
                             value={umbral}
@@ -222,13 +223,13 @@ export default function Configuracion() {
                         >
                             {UMBRAL_OPCIONES.map((dias) => (
                                 <option key={dias} value={dias}>
-                                    {dias} Días{dias === DEFAULT_UMBRAL ? ' (Recomendado)' : ''}
+                                    {dias} {t('Días', 'Days')}{dias === DEFAULT_UMBRAL ? t(' (Recomendado)', ' (Recommended)') : ''}
                                 </option>
                             ))}
                         </select>
                     </div>
                     <div className="col-md-6">
-                        <label className="form-label">Periodo de Gracia Crítico</label>
+                        <label className="form-label">{t('Periodo de Gracia Crítico', 'Critical Grace Period')}</label>
                         <select
                             className="form-select shadow-none"
                             value={gracia}
@@ -237,7 +238,7 @@ export default function Configuracion() {
                         >
                             {GRACIA_OPCIONES.map((dias) => (
                                 <option key={dias} value={dias}>
-                                    {dias} Días
+                                    {dias} {t('Días', 'Days')}
                                 </option>
                             ))}
                         </select>
@@ -249,22 +250,21 @@ export default function Configuracion() {
                         onClick={handleUpdateUmbrales}
                         disabled={loadingProtocolo || savingUmbral}
                     >
-                        {savingUmbral ? 'Actualizando...' : 'Actualizar Umbrales'}
+                        {savingUmbral ? t('Actualizando...', 'Updating...') : t('Actualizar Umbrales', 'Update Thresholds')}
                     </button>
                 </div>
                 <p className="section-desc mt-3 mb-0">
-                    Iniciar sesión en el sistema cuenta como señal de vida y reinicia el contador de
-                    inactividad automáticamente.
+                    {t('Iniciar sesión en el sistema cuenta como señal de vida y reinicia el contador de inactividad automáticamente.', 'Signing in to the system counts as a sign of life and automatically resets the inactivity counter.')}
                 </p>
             </section>
 
             {/* SECCIÓN 2: CANALES */}
             <section className="config-section">
                 <div className="section-title">
-                    <i className="fas fa-satellite-dish"></i> Canales de Comunicación
+                    <i className="fas fa-satellite-dish"></i> {t('Canales de Comunicación', 'Communication Channels')}
                 </div>
                 <p className="section-desc">
-                    Vincula servicios para recibir alertas y realizar check-ins automáticos.
+                    {t('Vincula servicios para recibir alertas y realizar check-ins automáticos.', 'Link services to receive alerts and perform automatic check-ins.')}
                 </p>
 
                 {/* Telegram */}
@@ -274,7 +274,7 @@ export default function Configuracion() {
                         <div>
                             <div className="fw-bold small">Telegram Bot</div>
                             <div className="text-muted" style={{ fontSize: '0.75rem' }}>
-                                {telegramVinculado ? 'Vinculado' : 'No configurado'}
+                                {telegramVinculado ? t('Vinculado', 'Linked') : t('No configurado', 'Not set up')}
                             </div>
                         </div>
                     </div>
@@ -284,7 +284,7 @@ export default function Configuracion() {
                             onClick={handleDesvincularTelegram}
                             disabled={telegramLoading}
                         >
-                            {telegramLoading ? 'Desvinculando...' : 'Desvincular'}
+                            {telegramLoading ? t('Desvinculando...', 'Unlinking...') : t('Desvincular', 'Unlink')}
                         </button>
                     ) : (
                         <button
@@ -292,7 +292,7 @@ export default function Configuracion() {
                             onClick={handleVincularTelegram}
                             disabled={telegramLoading}
                         >
-                            {telegramLoading ? 'Generando...' : 'Vincular'}
+                            {telegramLoading ? t('Generando...', 'Generating...') : t('Vincular', 'Link')}
                         </button>
                     )}
                 </div>
@@ -300,9 +300,9 @@ export default function Configuracion() {
                 {telegramLinkInfo && !telegramVinculado && (
                     <div className="p-3 rounded-4 bg-light small mb-3">
                         <p className="mb-2">
-                            Abre este enlace en Telegram para completar la vinculación
+                            {t('Abre este enlace en Telegram para completar la vinculación', 'Open this link in Telegram to finish linking')}
                             {telegramSegundosRestantes > 0 && (
-                                <> (expira en {telegramSegundosRestantes}s)</>
+                                <> ({t('expira en', 'expires in')} {telegramSegundosRestantes}s)</>
                             )}
                             :
                         </p>
@@ -313,7 +313,7 @@ export default function Configuracion() {
                                 rel="noreferrer"
                                 className="btn btn-ipn btn-sm"
                             >
-                                Abrir Telegram <i className="fab fa-telegram ms-1"></i>
+                                {t('Abrir Telegram', 'Open Telegram')} <i className="fab fa-telegram ms-1"></i>
                             </a>
                             <button
                                 type="button"
@@ -321,7 +321,7 @@ export default function Configuracion() {
                                 onClick={handleRefrescarEstadoTelegram}
                                 disabled={telegramLoading}
                             >
-                                Ya vinculé, actualizar
+                                {t('Ya vinculé, actualizar', "I've linked it, refresh")}
                             </button>
                         </div>
                     </div>
@@ -332,9 +332,9 @@ export default function Configuracion() {
                     <div className="d-flex align-items-center">
                         <div className={`integration-status-dot ${correoVinculado ? 'linked' : 'unlinked'}`}></div>
                         <div>
-                            <div className="fw-bold">Correo Alternativo</div>
+                            <div className="fw-bold">{t('Correo Alternativo', 'Alternate Email')}</div>
                             <div className="small text-muted">
-                                {correoVinculado ? user?.correo_sec : 'No configurado'}
+                                {correoVinculado ? user?.correo_sec : t('No configurado', 'Not set up')}
                             </div>
                         </div>
                     </div>
@@ -344,14 +344,14 @@ export default function Configuracion() {
                             onClick={handleDesvincularCorreo}
                             disabled={correoLoading}
                         >
-                            {correoLoading ? 'Desvinculando...' : 'Desvincular'}
+                            {correoLoading ? t('Desvinculando...', 'Unlinking...') : t('Desvincular', 'Unlink')}
                         </button>
                     ) : (
                         <button
                             className="btn btn-sm btn-outline-secondary rounded-pill px-3"
                             onClick={() => setCorreoFormAbierto((prev) => !prev)}
                         >
-                            Vincular
+                            {t('Vincular', 'Link')}
                         </button>
                     )}
                 </div>
@@ -359,8 +359,17 @@ export default function Configuracion() {
                 {correoSolicitado && !correoVinculado && (
                     <div className="p-3 rounded-4 bg-light small mb-3 text-muted">
                         <i className="fas fa-info-circle me-1 text-primary"></i>
-                        Revisa la bandeja de entrada de <strong>{correoSolicitado}</strong> para confirmar la
-                        vinculación. El enlace expira en 30 minutos.
+                        {getLang() === 'es' ? (
+                            <>
+                                Revisa la bandeja de entrada de <strong>{correoSolicitado}</strong> para confirmar la
+                                vinculación. El enlace expira en 30 minutos.
+                            </>
+                        ) : (
+                            <>
+                                Check the inbox of <strong>{correoSolicitado}</strong> to confirm the link. The link
+                                expires in 30 minutes.
+                            </>
+                        )}
                     </div>
                 )}
 
@@ -370,13 +379,13 @@ export default function Configuracion() {
                             type="email"
                             className="form-control shadow-none"
                             style={{ maxWidth: 280 }}
-                            placeholder="correo.alterno@ejemplo.com"
+                            placeholder={t('correo.alterno@ejemplo.com', 'alternate.email@example.com')}
                             value={correoNuevo}
                             onChange={(e) => setCorreoNuevo(e.target.value)}
                             required
                         />
                         <button type="submit" className="btn btn-ipn btn-sm" disabled={correoLoading}>
-                            {correoLoading ? 'Enviando...' : 'Enviar confirmación'}
+                            {correoLoading ? t('Enviando...', 'Sending...') : t('Enviar confirmación', 'Send confirmation')}
                         </button>
                     </form>
                 )}
@@ -385,14 +394,14 @@ export default function Configuracion() {
             {/* SECCIÓN 3: PERFIL DE USUARIO */}
             <section className="config-section">
                 <div className="section-title">
-                    <i className="fas fa-user-circle"></i> Perfil de Usuario
+                    <i className="fas fa-user-circle"></i> {t('Perfil de Usuario', 'User Profile')}
                 </div>
-                <p className="section-desc">Información básica del propietario de la cuenta maestra.</p>
+                <p className="section-desc">{t('Información básica del propietario de la cuenta maestra.', 'Basic information about the master account owner.')}</p>
                 <div className="d-flex align-items-center justify-content-between p-3 border rounded-4 bg-light bg-opacity-25 flex-wrap gap-3">
                     <div className="d-flex align-items-center">
                         <img
                             src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                                user?.nombre ?? user?.username ?? 'Usuario'
+                                user?.nombre ?? user?.username ?? t('Usuario', 'User')
                             )}&background=003366&color=fff`}
                             className="rounded-circle border me-3"
                             width={50}
@@ -405,7 +414,7 @@ export default function Configuracion() {
                         </div>
                     </div>
                     <button className="btn btn-outline-primary px-4" onClick={() => navigate('/perfil')}>
-                        Editar Perfil <i className="fas fa-user-edit ms-2"></i>
+                        {t('Editar Perfil', 'Edit Profile')} <i className="fas fa-user-edit ms-2"></i>
                     </button>
                 </div>
             </section>
@@ -413,23 +422,31 @@ export default function Configuracion() {
             {/* SECCIÓN 4: ZONA CRÍTICA */}
             <section className="config-section config-section-danger">
                 <div className="section-title text-danger">
-                    <i className="fas fa-exclamation-triangle"></i> Zona Crítica
+                    <i className="fas fa-exclamation-triangle"></i> {t('Zona Crítica', 'Danger Zone')}
                 </div>
-                <p className="section-desc">Acciones irreversibles sobre el patrimonio digital.</p>
+                <p className="section-desc">{t('Acciones irreversibles sobre el patrimonio digital.', 'Irreversible actions on your digital estate.')}</p>
                 <div className="d-flex justify-content-between align-items-center flex-wrap gap-3">
                     <div>
-                        <div className="fw-bold">Eliminar Patrimonio Permanente</div>
-                        <div className="text-muted small">
-                            La cuenta entra en una cola de <strong>30 días</strong>. Si no vuelves a
-                            iniciar sesión y cancelar en ese plazo, se borran todas tus bóvedas,
-                            activos cifrados, compromisos y custodios, y tu identidad se anonimiza.
-                        </div>
+                        <div className="fw-bold">{t('Eliminar Patrimonio Permanente', 'Permanently Delete Estate')}</div>
+                        {getLang() === 'es' ? (
+                            <div className="text-muted small">
+                                La cuenta entra en una cola de <strong>30 días</strong>. Si no vuelves a
+                                iniciar sesión y cancelar en ese plazo, se borran todas tus bóvedas,
+                                archivos y custodios, y tus datos personales se borran.
+                            </div>
+                        ) : (
+                            <div className="text-muted small">
+                                The account enters a <strong>30-day</strong> queue. If you don't sign in again and
+                                cancel within that time, all your vaults, files and custodians are deleted, along
+                                with your personal data.
+                            </div>
+                        )}
                     </div>
                     <button
                         className="btn btn-danger rounded-pill px-4"
                         onClick={() => setDeleteOpen(true)}
                     >
-                        Programar eliminación
+                        {t('Programar eliminación', 'Schedule deletion')}
                     </button>
                 </div>
             </section>
@@ -447,20 +464,29 @@ export default function Configuracion() {
                                 <div className="text-center mb-3 text-danger">
                                     <i className="fas fa-triangle-exclamation fa-3x" />
                                 </div>
-                                <h4 className="fw-bold text-center mb-1">Programar eliminación</h4>
-                                <p className="text-muted small text-center mb-4">
-                                    Tu cuenta entrará en una cola de <strong>30 días</strong> y quedará
-                                    bloqueada. Si inicias sesión y cancelas antes de que venza el plazo,
-                                    no se pierde nada. Si no, se borran <strong>todas tus bóvedas</strong>,
-                                    activos cifrados, compromisos VSS y custodios, y tu identidad se
-                                    anonimiza. Esto también <strong>pausa la recuperación por custodios</strong>.
-                                </p>
+                                <h4 className="fw-bold text-center mb-1">{t('Programar eliminación', 'Schedule deletion')}</h4>
+                                {getLang() === 'es' ? (
+                                    <p className="text-muted small text-center mb-4">
+                                        Tu cuenta entrará en una cola de <strong>30 días</strong> y quedará
+                                        bloqueada. Si inicias sesión y cancelas antes de que venza el plazo,
+                                        no se pierde nada. Si no, se borran <strong>todas tus bóvedas</strong>,
+                                        archivos y custodios, y tus datos personales se
+                                        borran. Esto también <strong>pausa la recuperación por custodios</strong>.
+                                    </p>
+                                ) : (
+                                    <p className="text-muted small text-center mb-4">
+                                        Your account will enter a <strong>30-day</strong> queue and be locked. If you
+                                        sign in and cancel before the deadline, nothing is lost. Otherwise{' '}
+                                        <strong>all your vaults</strong>, files and custodians are deleted, along with
+                                        your personal data. This also <strong>pauses recovery by custodians</strong>.
+                                    </p>
+                                )}
 
                                 {deleteErr && (
                                     <div className="alert alert-danger py-2 small">{deleteErr}</div>
                                 )}
 
-                                <label className="form-label-b d-block mb-1">Contraseña de la cuenta</label>
+                                <label className="form-label-b d-block mb-1">{t('Contraseña de la cuenta', 'Account password')}</label>
                                 <input
                                     type="password"
                                     className="form-control shadow-none mb-3"
@@ -471,7 +497,7 @@ export default function Configuracion() {
                                 />
 
                                 <label className="form-label-b d-block mb-1">
-                                    Escribe <code>{CONFIRM_WORD}</code> para confirmar
+                                    {t('Escribe', 'Type')} <code>{CONFIRM_WORD}</code> {t('para confirmar', 'to confirm')}
                                 </label>
                                 <input
                                     type="text"
@@ -487,14 +513,14 @@ export default function Configuracion() {
                                         onClick={cerrarModalEliminar}
                                         disabled={deleting}
                                     >
-                                        Cancelar
+                                        {t('Cancelar', 'Cancel')}
                                     </button>
                                     <button
                                         className="btn btn-danger w-100 rounded-pill"
                                         onClick={handleEliminarCuenta}
                                         disabled={!puedeEliminar || deleting}
                                     >
-                                        {deleting ? 'Programando…' : 'Programar eliminación'}
+                                        {deleting ? t('Programando…', 'Scheduling…') : t('Programar eliminación', 'Schedule deletion')}
                                     </button>
                                 </div>
                             </div>

@@ -10,6 +10,7 @@
 
 import { WORDLIST, WORD_BITS } from './wordlist-es';
 import { trackSecret, wipe } from './sensitiveMemory';
+import { t } from '../i18n';
 
 export const KDF_ALGO = 'pbkdf2-sha256' as const;
 export const KDF_ITERATIONS = 600_000;
@@ -129,7 +130,8 @@ export function passphraseMeter(bits: number) {
     return {
         pct: Math.min(Math.round((bits / 68) * 100), 100),
         color: bits < 40 ? '#ef4444' : bits < 62 ? '#f59e0b' : '#2ecc71',
-        label: bits < 40 ? 'Débil' : bits < 62 ? 'Aceptable' : 'Fuerte',
+        label: bits < 40 ? t('Débil', 'Weak') : bits < 62 ? t('Aceptable', 'Fair') : t('Fuerte', 'Strong'),
+        debil: bits < 40,
     };
 }
 

@@ -64,7 +64,7 @@ def _exigir_passphrase(boveda: Boveda, verificador: str) -> None:
     esperado = boveda.passphrase_verificador or ""
     recibido = seguridad.hash_token((verificador or "").strip().lower())
     if not hmac.compare_digest(recibido, esperado):
-        raise PassphraseIncorrecta("Pass-phrase de la bóveda incorrecta.")
+        raise PassphraseIncorrecta("La llave maestra de la bóveda es incorrecta.")
 
 
 BYTES_PID = 16  # -> 22 chars urlsafe base64 sin padding
@@ -319,7 +319,7 @@ def obtener_vss(db: Session, usuario: Usuario, id_boveda: int) -> tuple[Boveda, 
     boveda = obtener_boveda_propia(db, usuario, id_boveda)
     vss = db.query(CompromisoVss).filter(CompromisoVss.id_boveda == boveda.id).first()
     if vss is None:
-        raise BovedaNoEncontrada("La bóveda aún no tiene compromisos VSS cargados.")
+        raise BovedaNoEncontrada("Esta bóveda todavía no está lista para recuperarse.")
     return boveda, vss
 
 
@@ -361,9 +361,9 @@ def _exigir_asignaciones_editables(usuario: Usuario) -> None:
     prop = usuario.propietario
     if prop is not None and prop.status_dms in EN_CURSO:
         raise BovedaConflicto(
-            "No puedes modificar los custodios asignados mientras el "
-            "Interruptor de Hombre Muerto está en curso (alerta o periodo de "
-            "gracia). Espera a que vuelva a estar activo."
+            "No puedes cambiar los custodios de tus bóvedas mientras tu protocolo de "
+            "vida está en curso (avisos o periodo de gracia). Espera a que vuelva a "
+            "la normalidad."
         )
 
 
@@ -390,7 +390,7 @@ def reemplazar_asignaciones(
 
     vss = db.query(CompromisoVss).filter(CompromisoVss.id_boveda == boveda.id).first()
     if vss is None:
-        raise BovedaConflicto("Carga primero los compromisos VSS de la bóveda.")
+        raise BovedaConflicto("Primero genera los fragmentos de la bóveda.")
 
     x_validas = set(vss.x_coords)
     n = boveda.total_fragmentos_n
@@ -403,18 +403,20 @@ def reemplazar_asignaciones(
     sin_verificar: list[str] = []
     for asignacion in asignaciones:
         if asignacion.x_fragmento not in x_validas:
-            raise BovedaConflicto(
-                f"La coordenada x={asignacion.x_fragmento} no pertenece al reparto de esta bóveda."
-            )
+            raise BovedaConflicto("Uno de los fragmentos elegidos no pertenece a esta bóveda.")
         custodio = (
             db.query(Custodio)
             .filter(Custodio.id == asignacion.id_custodio, Custodio.id_propietario == usuario.id)
             .first()
         )
         if custodio is None:
-            raise BovedaNoEncontrada(f"Custodio {asignacion.id_custodio} no encontrado.")
+            raise BovedaNoEncontrada("Uno de los custodios elegidos ya no existe.")
         if not (custodio.correo_verificado or custodio.telegram_verificado):
             sin_verificar.append(custodio.nombre)
+
+    cuota.exigir_custodios_habilitados(
+        db, usuario, boveda.id, {a.id_custodio for a in asignaciones}
+    )
 
     if sin_verificar:
         raise BovedaConflicto(

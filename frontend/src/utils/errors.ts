@@ -1,4 +1,5 @@
 import type { AxiosError } from 'axios';
+import { t } from '../i18n';
 
 interface FastApiErrorBody {
     detail?: string | { msg: string }[];
@@ -13,7 +14,7 @@ interface FastApiErrorBody {
  * Sin esto, renderizar `error.response.data.detail` directo en JSX
  * rompe cuando el backend devuelve un 422.
  */
-export function getApiErrorMessage(err: unknown, fallback = 'Ocurrió un error inesperado'): string {
+export function getApiErrorMessage(err: unknown, fallback = t('Ocurrió un error inesperado', 'An unexpected error occurred')): string {
     const error = err as AxiosError<FastApiErrorBody>;
     const detail = error?.response?.data?.detail;
 

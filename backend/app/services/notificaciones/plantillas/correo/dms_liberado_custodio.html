@@ -1,7 +1,8 @@
 {#-
   Un correo por custodio con CADA bóveda de este propietario que puede ayudar
-  a recuperar: su PID, su enlace directo y un QR (mismo enlace) para seguir
-  el trámite desde el celular — cualquier cámara lo reconoce y abre el enlace.
+  a recuperar: su código, su enlace directo y su QR (mismo enlace). El QR
+  viaja como archivo adjunto: `transportes.enviar_correo` quita la imagen del
+  cuerpo (Gmail no muestra imágenes data:) y la adjunta.
 -#}
 {% import "correo/_marco.html" as m %}
 {% set plural = "s" if bovedas|length != 1 else "" %}
@@ -16,10 +17,10 @@
           Se habilitó la recuperación de {{ propietario }}
         </h1>
         <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:{{ color.gris_tenue }};">
-          Hola {{ custodio }}: el Interruptor de Hombre Muerto de <b>{{ propietario }}</b> se
+          Hola {{ custodio }}: el protocolo de vida de <b>{{ propietario }}</b> se
           activó. Como custodio, ya puedes participar en la recuperación de la{{ plural }}
           siguiente{{ plural }} bóveda{{ plural }} aportando el fragmento que te fue entregado. Cada una
-          tiene su propio identificador (PID) — úsalo si el enlace no funciona.
+          tiene su propio código: úsalo si el enlace no funciona.
         </p>
       </td></tr>
       <tr><td style="padding:0 40px 8px;">
@@ -27,20 +28,17 @@
         {%- for b in bovedas %}
           <tr><td style="padding:14px 18px;background:{{ color.gris_suave }};border-radius:12px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-              <td width="96" valign="top" style="padding-right:14px;">
-                <img src="{{ b.enlace|qr }}" width="90" height="90" alt="Código QR de acceso"
-                     style="display:block;width:90px;height:90px;border-radius:8px;border:1px solid #e2e8f0;background:#ffffff;">
-              </td>
               <td valign="top">
                 <p style="margin:0 0 2px;font-size:11px;color:{{ color.gris_tenue }};text-transform:uppercase;
                    font-weight:700;letter-spacing:.4px;">{{ b.nombre }}</p>
                 <p style="margin:0 0 10px;font-size:12px;color:{{ color.gris_tenue }};
-                   font-family:'JetBrains Mono',monospace;word-break:break-all;">PID: {{ b.pid }}</p>
+                   font-family:'JetBrains Mono',monospace;word-break:break-all;">Código: {{ b.pid }}</p>
                 <a href="{{ b.enlace }}" style="display:inline-block;padding:10px 22px;background:{{ color.guinda }};
                    color:#ffffff;text-decoration:none;border-radius:999px;font-weight:700;font-size:13px;
                    font-family:'Segoe UI',Arial,sans-serif;">Ir a esta bóveda &rarr;</a>
+                <img src="{{ b.enlace|qr }}" alt="">
                 <p style="margin:8px 0 0;font-size:11px;color:#94a3b8;">
-                  O escanea el código con la cámara de tu celular.</p>
+                  O escanea el código QR adjunto con la cámara de tu celular.</p>
               </td>
             </tr></table>
           </td></tr>

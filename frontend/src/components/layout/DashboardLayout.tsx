@@ -2,6 +2,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useRef, useState, type ReactNode } from 'react';
 import { useAuth } from '../../store/AuthContext';
 import { getTheme, toggleTheme } from '../../theme';
+import { t } from '../../i18n';
+import { nombrePlan } from '../../types/subscription.types';
+import LanguageToggle from '../common/LanguageToggle';
 import { purgeAll } from '../../crypto/sensitiveMemory';
 import AvisoPlan from './AvisoPlan';
 import './DashboardLayout.css';
@@ -12,7 +15,8 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 // ---------------------------------------------------------------------------
 // Única fuente de verdad del sidebar. Se agrega/activa una entrada aquí
 // en cuanto su módulo tenga backend + pantalla propia; mientras tanto queda
-// como label deshabilitado ("Pronto").
+// como label deshabilitado ("Pronto"). Son funciones para que las etiquetas
+// se traduzcan en cada render (idioma activo).
 // ---------------------------------------------------------------------------
 
 export type NavKey =
@@ -34,23 +38,24 @@ interface NavItem {
     path?: string;
 }
 
-const NAV_ITEMS: NavItem[] = [
+const navItems = (): NavItem[] => [
     { key: 'dashboard', label: 'Dashboard', icon: 'fa-th-large', enabled: true, path: '/dashboard' },
-    { key: 'bovedas', label: 'Mis Bóvedas', icon: 'fa-vault', enabled: true, path: '/bovedas' },
-    { key: 'checkins', label: 'Historial de Check-ins', icon: 'fa-calendar-check', enabled: true, path: '/historial-checkins' },
-    { key: 'suscripcion', label: 'Suscripción', icon: 'fa-credit-card', enabled: true, path: '/suscripcion' },
-    { key: 'custodios', label: 'Custodios', icon: 'fa-users-cog', enabled: true, path: '/custodios' },
+    { key: 'bovedas', label: t('Mis Bóvedas', 'My Vaults'), icon: 'fa-vault', enabled: true, path: '/bovedas' },
+    { key: 'checkins', label: t('Historial de Check-ins', 'Check-in History'), icon: 'fa-calendar-check', enabled: true, path: '/historial-checkins' },
+    { key: 'suscripcion', label: t('Suscripción', 'Subscription'), icon: 'fa-credit-card', enabled: true, path: '/suscripcion' },
+    { key: 'custodios', label: t('Custodios', 'Custodians'), icon: 'fa-users-cog', enabled: true, path: '/custodios' },
 ];
 
 // Nav del panel admin: opera sobre cuentas de propietarios, no tiene bóvedas
 // ni custodios ni suscripción propios.
-const ADMIN_NAV_ITEMS: NavItem[] = [
-    { key: 'admin-propietarios', label: 'Propietarios', icon: 'fa-users', enabled: true, path: '/admin' },
-    { key: 'admin-notificaciones', label: 'Notificaciones', icon: 'fa-paper-plane', enabled: true, path: '/admin/notificaciones' },
-    { key: 'admin-auditoria', label: 'Auditoría', icon: 'fa-clipboard-list', enabled: true, path: '/admin/auditoria' },
+const adminNavItems = (): NavItem[] => [
+    { key: 'admin-propietarios', label: t('Propietarios', 'Owners'), icon: 'fa-users', enabled: true, path: '/admin' },
+    { key: 'admin-notificaciones', label: t('Notificaciones', 'Notifications'), icon: 'fa-paper-plane', enabled: true, path: '/admin/notificaciones' },
+    { key: 'admin-auditoria', label: t('Auditoría', 'Audit Log'), icon: 'fa-clipboard-list', enabled: true, path: '/admin/auditoria' },
 ];
 
-const CONFIG_ITEM: NavItem = { key: 'configuracion', label: 'Configuración', icon: 'fa-gear', enabled: true, path: '/configuracion' };
+const CONFIG_ICON = 'fa-gear';
+const CONFIG_PATH = '/configuracion';
 
 interface DashboardLayoutProps {
     /** Qué entrada del sidebar se resalta como activa en esta página. */
@@ -71,7 +76,7 @@ export default function DashboardLayout({ activeItem, topBarLabel, backTo, varia
 
     // Barra superior: nombre de pila + primer apellido (paterno).
     const nombreCompleto =
-        [user?.nombre, user?.paterno].filter(Boolean).join(' ') || user?.username || 'Usuario';
+        [user?.nombre, user?.paterno].filter(Boolean).join(' ') || user?.username || t('Usuario', 'User');
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [theme, setTheme] = useState(getTheme());
     const [loggingOut, setLoggingOut] = useState(false);
@@ -87,7 +92,7 @@ export default function DashboardLayout({ activeItem, topBarLabel, backTo, varia
         if (logoutRunning.current) return;
         logoutRunning.current = true;
         setMobileMenuOpen(false);
-        setCleanup({ pct: 8, text: 'Iniciando cierre seguro…' });
+        setCleanup({ pct: 8, text: t('Iniciando cierre seguro…', 'Starting secure sign-out…') });
         setLoggingOut(true);
 
         await sleep(150);
@@ -95,16 +100,16 @@ export default function DashboardLayout({ activeItem, topBarLabel, backTo, varia
         setCleanup({
             pct: 40,
             text: borradas > 0
-                ? `Borrando ${borradas} llave(s) criptográfica(s) de la memoria…`
-                : 'Verificando que no queden llaves en memoria…',
+                ? t('Cerrando tus bóvedas abiertas…', 'Closing your open vaults…')
+                : t('Cerrando sesión de forma segura…', 'Signing out securely…'),
         });
 
         await sleep(650);
         logout(); // quita access_token de localStorage + user=null
-        setCleanup({ pct: 75, text: 'Cerrando la sesión…' });
+        setCleanup({ pct: 75, text: t('Cerrando la sesión…', 'Ending the session…') });
 
         await sleep(550);
-        setCleanup({ pct: 100, text: 'Reiniciando la aplicación…' });
+        setCleanup({ pct: 100, text: t('Reiniciando la aplicación…', 'Restarting the app…') });
 
         await sleep(450);
         window.location.assign('/'); // recarga completa: destruye heap JS + WASM
@@ -112,7 +117,7 @@ export default function DashboardLayout({ activeItem, topBarLabel, backTo, varia
 
     // Contenido del menú compartido entre el sidebar de escritorio y el
     // panel deslizable de móvil, para no duplicar la lista de opciones.
-    const items = variant === 'admin' ? ADMIN_NAV_ITEMS : NAV_ITEMS;
+    const items = variant === 'admin' ? adminNavItems() : navItems();
     const navList = (
         <ul className="nav flex-column">
             {items.map((item) => (
@@ -126,9 +131,9 @@ export default function DashboardLayout({ activeItem, topBarLabel, backTo, varia
                             <i className={`fas ${item.icon} me-2`}></i> {item.label}
                         </Link>
                     ) : (
-                        <span className="nav-link is-disabled" title="Próximamente">
+                        <span className="nav-link is-disabled" title={t('Próximamente', 'Coming soon')}>
                             <i className={`fas ${item.icon} me-2`}></i> {item.label}
-                            <span className="soon-badge">Pronto</span>
+                            <span className="soon-badge">{t('Pronto', 'Soon')}</span>
                         </span>
                     )}
                 </li>
@@ -140,10 +145,10 @@ export default function DashboardLayout({ activeItem, topBarLabel, backTo, varia
                 <li className="nav-item">
                     <Link
                         className={`nav-link ${activeItem === 'configuracion' ? 'active' : ''}`}
-                        to={CONFIG_ITEM.path!}
+                        to={CONFIG_PATH}
                         onClick={() => setMobileMenuOpen(false)}
                     >
-                        <i className={`fas ${CONFIG_ITEM.icon} me-2`}></i> {CONFIG_ITEM.label}
+                        <i className={`fas ${CONFIG_ICON} me-2`}></i> {t('Configuración', 'Settings')}
                     </Link>
                 </li>
             )}
@@ -157,7 +162,7 @@ export default function DashboardLayout({ activeItem, topBarLabel, backTo, varia
                         handleLogout();
                     }}
                 >
-                    <i className="fas fa-power-off me-2"></i> Cerrar Sesión
+                    <i className="fas fa-power-off me-2"></i> {t('Cerrar Sesión', 'Sign Out')}
                 </a>
             </li>
         </ul>
@@ -190,25 +195,26 @@ export default function DashboardLayout({ activeItem, topBarLabel, backTo, varia
                             <span className="text-muted small fw-bold text-uppercase">{topBarLabel}</span>
                         </div>
                         <div className="d-flex align-items-center gap-2">
+                        <LanguageToggle />
                         <button
                             type="button"
                             className="theme-toggle"
                             onClick={() => setTheme(toggleTheme())}
-                            title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
-                            aria-label="Cambiar tema"
+                            title={theme === 'dark' ? t('Modo claro', 'Light mode') : t('Modo oscuro', 'Dark mode')}
+                            aria-label={t('Cambiar tema', 'Toggle theme')}
                         >
                             <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`}></i>
                         </button>
                         <div
                             className="user-profile is-clickable d-flex align-items-center"
                             onClick={() => navigate('/perfil')}
-                            title="Editar perfil"
+                            title={t('Editar perfil', 'Edit profile')}
                         >
                             <div className="text-end me-3">
                                 <p className="m-0 small fw-bold">{nombreCompleto}</p>
                                 {user?.suscripcion_activa && (
                                     <p className="m-0 text-muted" style={{ fontSize: '0.7rem' }}>
-                                        Plan {user.suscripcion_activa.nombre}
+                                        Plan {nombrePlan(user.suscripcion_activa.nombre)}
                                     </p>
                                 )}
                             </div>
@@ -219,7 +225,7 @@ export default function DashboardLayout({ activeItem, topBarLabel, backTo, varia
                                 className="rounded-circle shadow-sm"
                                 width={40}
                                 height={40}
-                                alt="Perfil"
+                                alt={t('Perfil', 'Profile')}
                             />
                         </div>
                         </div>
@@ -237,7 +243,7 @@ export default function DashboardLayout({ activeItem, topBarLabel, backTo, varia
                 type="button"
                 className="mobile-menu-fab d-lg-none"
                 onClick={() => setMobileMenuOpen((prev) => !prev)}
-                aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+                aria-label={mobileMenuOpen ? t('Cerrar menú', 'Close menu') : t('Abrir menú', 'Open menu')}
             >
                 <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'}`}></i>
             </button>
@@ -264,7 +270,7 @@ export default function DashboardLayout({ activeItem, topBarLabel, backTo, varia
                                     <div className="spinner-border text-primary" style={{ width: '4rem', height: '4rem', borderWidth: '0.3em' }} role="status"></div>
                                     <i className="fas fa-broom fa-2x animate__animated animate__swing animate__infinite logout-broom"></i>
                                 </div>
-                                <h4 className="fw-bold mb-2">Cerrando Sesión Segura</h4>
+                                <h4 className="fw-bold mb-2">{t('Cerrando Sesión Segura', 'Secure Sign-Out')}</h4>
                                 <p className="text-muted small mb-0">{cleanup.text}</p>
                                 <div className="progress mt-4" style={{ height: 6, borderRadius: 10 }}>
                                     <div

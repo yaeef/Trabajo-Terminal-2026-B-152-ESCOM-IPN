@@ -1,0 +1,531 @@
+/* Actividad interactiva de Shamir en la landing (DemoShamir.tsx).
+   Usa las variables del tema; los ajustes de modo oscuro están en theme.css. */
+
+/* --- Banda destacada (rompe la alternancia blanco/gris del resto de la landing) --- */
+.section-band.ds-seccion {
+    position: relative;
+    overflow: hidden;
+    padding: 96px 0 104px;
+    background: linear-gradient(135deg, #621132 0%, #2b1d4f 55%, #003366 100%);
+    color: #ffffff;
+}
+.ds-seccion > .container {
+    position: relative;
+    z-index: 1; /* encima de las piezas decorativas */
+}
+
+.ds-encabezado {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+.ds-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 6px 16px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+.ds-titulo {
+    margin: 0;
+    font-size: clamp(2.1rem, 4.5vw, 3rem);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+.ds-divisor {
+    width: 80px;
+    height: 4px;
+    margin: 1rem auto;
+    border-radius: 2px;
+    background: #f0a3c4;
+}
+.ds-subtitulo {
+    max-width: 640px;
+    margin: 0 auto;
+    font-size: 1.1rem;
+    line-height: 1.55;
+    color: rgba(255, 255, 255, 0.85);
+}
+.ds-resumen {
+    list-style: none;
+    margin: 1.75rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px 32px;
+}
+.ds-resumen li {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+.ds-resumen li + li::before {
+    content: '\f054'; /* chevron-right de Font Awesome */
+    position: absolute;
+    left: -21px;
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    font-size: 0.7rem;
+    opacity: 0.6;
+}
+@media (max-width: 575.98px) {
+    .section-band.ds-seccion {
+        padding: 64px 0 72px;
+    }
+    .ds-resumen li + li::before {
+        display: none;
+    }
+}
+
+/* Piezas decorativas de fondo */
+.ds-deco {
+    position: absolute;
+    width: var(--ds-tam);
+    height: var(--ds-tam);
+    overflow: visible;
+    pointer-events: none;
+    transform: rotate(var(--ds-giro));
+    animation: dsFlotar 9s ease-in-out infinite;
+}
+.ds-deco path {
+    fill: rgba(255, 255, 255, 0.05);
+    stroke: rgba(255, 255, 255, 0.22);
+    stroke-width: 1.5;
+}
+.ds-deco-1 { --ds-tam: 190px; --ds-giro: -18deg; top: 36px; left: -48px; }
+.ds-deco-2 { --ds-tam: 120px; --ds-giro: 22deg; top: 72px; right: 7%; animation-delay: -3s; }
+.ds-deco-3 { --ds-tam: 140px; --ds-giro: 12deg; bottom: 90px; left: 3%; animation-delay: -5s; }
+.ds-deco-4 { --ds-tam: 240px; --ds-giro: -26deg; bottom: -60px; right: -60px; animation-delay: -2s; }
+.ds-deco-5 { --ds-tam: 90px; --ds-giro: 40deg; top: 38%; right: 2%; animation-delay: -6s; }
+@media (max-width: 767.98px) {
+    .ds-deco-2,
+    .ds-deco-3,
+    .ds-deco-5 {
+        display: none;
+    }
+}
+@keyframes dsFlotar {
+    0%,
+    100% {
+        transform: translateY(0) rotate(var(--ds-giro));
+    }
+    50% {
+        transform: translateY(-14px) rotate(calc(var(--ds-giro) + 6deg));
+    }
+}
+
+/* Entrada al hacer scroll (la clase is-visible la pone un IntersectionObserver) */
+.ds-entrada {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.ds-entrada--tarde {
+    transition-delay: 0.15s;
+}
+.ds-seccion.is-visible .ds-entrada {
+    opacity: 1;
+    transform: none;
+}
+
+.ds-card {
+    color: var(--text-dark); /* la banda pone el texto en blanco */
+    --ds-ok: #1e8449;
+    --ds-ok-bg: rgba(46, 204, 113, 0.12);
+    --ds-linea: #cbd5e1;
+    --ds-pieza-l: 40%;
+    --ds-relleno-s: 70%;
+    --ds-relleno-l: 93%;
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 32px;
+    border-radius: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+@media (max-width: 575.98px) {
+    .ds-card {
+        padding: 20px 16px;
+        border-radius: 18px;
+    }
+}
+
+/* --- Pasos 1-3 --- */
+.ds-paso {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+}
+.ds-paso + .ds-paso {
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border);
+}
+.ds-num {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--escom-blue);
+    color: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+.ds-pregunta {
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.ds-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.ds-form .form-control {
+    flex: 1 1 220px;
+    max-width: 360px;
+    min-height: 46px;
+    border-radius: 12px;
+}
+.btn-ipn.ds-btn {
+    padding: 10px 24px;
+}
+.btn-ipn.ds-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.ds-llave {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-radius: 16px;
+    background: var(--surface-2);
+    border: 1px dashed var(--ds-linea);
+}
+.ds-llave-icono {
+    font-size: 1.8rem;
+    color: var(--ipn-maroon);
+    flex-shrink: 0;
+}
+.ds-llave-texto {
+    min-width: 0;
+}
+.ds-etiqueta {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+}
+.ds-hex {
+    display: block;
+    margin: 2px 0 4px;
+    padding: 0;
+    background: none;
+    color: var(--text-dark);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.95rem;
+    word-break: break-word;
+}
+
+.ds-opciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.ds-opcion {
+    min-width: 46px;
+    min-height: 44px;
+    padding: 0 12px;
+    border-radius: 12px;
+    border: 2px solid var(--ds-linea);
+    background: var(--surface);
+    color: inherit;
+    font-weight: 700;
+    font-size: 1.05rem;
+    cursor: pointer;
+    transition: 0.15s;
+}
+.ds-opcion:hover {
+    border-color: var(--escom-blue);
+}
+.ds-opcion.activa {
+    background: var(--escom-blue);
+    border-color: var(--escom-blue);
+    color: #ffffff;
+}
+
+/* --- Reparto y recuperación --- */
+.ds-demo {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+}
+.ds-instruccion {
+    text-align: center;
+    margin-bottom: 1.25rem;
+}
+
+.ds-panel {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    border-radius: 20px;
+    background: var(--surface-2);
+    border: 2px dashed transparent;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+@media (min-width: 992px) {
+    .ds-panel {
+        min-height: 280px; /* lado a lado: misma altura mínima para soltar con holgura */
+    }
+}
+@media (max-width: 575.98px) {
+    .ds-panel {
+        padding: 14px; /* caben 3 piezas por renglón a 390 px */
+    }
+}
+.ds-zona {
+    border-color: var(--ds-linea);
+}
+.ds-panel.is-over {
+    border-color: var(--escom-blue);
+    background: rgba(0, 51, 102, 0.05);
+}
+.ds-zona.is-ok {
+    border-style: solid;
+    border-color: #2ecc71;
+}
+
+.ds-panel-cabecera {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+.ds-contador {
+    font-size: 0.8rem;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(0, 51, 102, 0.1);
+    color: var(--escom-blue);
+}
+.ds-zona.is-ok .ds-contador {
+    background: var(--ds-ok-bg);
+    color: var(--ds-ok);
+}
+
+.ds-progreso {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+.ds-progreso span {
+    flex: 1;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--ds-linea);
+    transition: background-color 0.25s;
+}
+.ds-progreso span.lleno {
+    background: var(--escom-blue);
+}
+.ds-zona.is-ok .ds-progreso span {
+    background: #2ecc71;
+}
+
+.ds-piezas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+/* Pieza de rompecabezas: la figura es un SVG de fondo; número y hex van
+   centrados sobre el cuerpo (las pestañas/huecos ocupan el 16 % exterior). */
+.ds-pieza {
+    --ds-color: hsl(var(--ds-tono), 65%, var(--ds-pieza-l));
+    --ds-relleno: hsl(var(--ds-tono), var(--ds-relleno-s), var(--ds-relleno-l));
+    position: relative;
+    width: 120px;
+    height: 120px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: grab;
+    user-select: none;
+    touch-action: manipulation;
+    transition: transform 0.15s;
+    animation: dsAparece 0.3s ease-out;
+}
+.ds-pieza-forma {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    transition: filter 0.15s;
+}
+.ds-pieza-forma path {
+    fill: var(--ds-relleno);
+    stroke: var(--ds-color);
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+}
+.ds-pieza:hover {
+    transform: translateY(-2px);
+}
+.ds-pieza:hover .ds-pieza-forma {
+    filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.15));
+}
+.ds-pieza:active {
+    cursor: grabbing;
+}
+.ds-pieza:focus-visible {
+    outline: none;
+}
+.ds-pieza:focus-visible .ds-pieza-forma path {
+    stroke: var(--escom-blue);
+    stroke-width: 4;
+}
+.ds-pieza-num,
+.ds-pieza-codigo {
+    position: relative; /* encima del SVG */
+}
+.ds-pieza-num {
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1;
+    color: var(--text-dark);
+}
+.ds-pieza-codigo {
+    max-width: 5.5ch; /* «08 7B EA 6D» en dos renglones */
+    padding: 0;
+    background: none;
+    color: #475569;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1.1;
+    text-align: center;
+    white-space: normal;
+}
+@media (max-width: 575.98px) {
+    .ds-pieza {
+        width: 104px;
+        height: 104px;
+    }
+    .ds-pieza-num {
+        font-size: 0.82rem;
+    }
+    .ds-pieza-codigo {
+        font-size: 0.64rem;
+    }
+}
+
+.ds-vacio {
+    margin: 0;
+    padding: 24px 8px;
+    text-align: center;
+    font-weight: 600;
+    color: #64748b;
+}
+
+.ds-resultado {
+    margin-top: auto;
+    padding-top: 16px;
+    text-align: center;
+}
+.ds-resultado > div {
+    padding: 18px;
+    border-radius: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+}
+.ds-resultado .ds-exito {
+    background: var(--ds-ok-bg);
+    border-color: rgba(46, 204, 113, 0.4);
+}
+.ds-resultado-icono {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 2rem;
+    color: #94a3b8;
+}
+.ds-exito .ds-resultado-icono {
+    color: var(--ds-ok);
+    animation: dsLlave 0.6s ease-out;
+}
+.ds-palabra {
+    display: block;
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    letter-spacing: 0.04em;
+    color: var(--ds-ok);
+    word-break: break-word;
+}
+
+/* --- Animaciones --- */
+.ds-aparece {
+    animation: dsAparece 0.35s ease-out;
+}
+@keyframes dsAparece {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+@keyframes dsLlave {
+    0% {
+        opacity: 0;
+        transform: scale(0.4) rotate(-30deg);
+    }
+    70% {
+        opacity: 1;
+        transform: scale(1.15) rotate(8deg);
+    }
+    100% {
+        transform: none;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ds-card *,
+    .ds-card,
+    .ds-deco {
+        animation: none !important;
+        transition: none !important;
+    }
+    .ds-entrada {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+}

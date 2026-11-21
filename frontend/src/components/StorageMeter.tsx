@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { humanBytes } from '../crypto/assetCrypto';
 import './StorageMeter.css';
+import { t } from '../i18n';
 
 interface Props {
     usado: number;
@@ -16,7 +17,7 @@ interface Props {
  * El consumidor lo envuelve en la tarjeta que corresponda (`.storage-card`,
  * `.stat-card`, …); este componente solo pinta el medidor.
  */
-export default function StorageMeter({ usado, cuota, label = 'Espacio utilizado', note }: Props) {
+export default function StorageMeter({ usado, cuota, label = t('Espacio utilizado', 'Storage used'), note }: Props) {
     const conCuota = cuota > 0;
     const pct = conCuota ? Math.min((usado / cuota) * 100, 100) : 0;
     const nivel = pct >= 90 ? 'crit' : pct >= 75 ? 'warn' : 'ok';
@@ -36,9 +37,12 @@ export default function StorageMeter({ usado, cuota, label = 'Espacio utilizado'
             {note !== undefined ? (
                 <p className="smeter-note">{note}</p>
             ) : conCuota ? (
-                <p className="smeter-note">{pct < 1 ? '<1' : Math.round(pct)}% de tu cuota en uso</p>
+                <p className="smeter-note">
+                    {pct < 1 ? '<1' : Math.round(pct)}
+                    {t('% de tu cuota en uso', '% of your quota in use')}
+                </p>
             ) : (
-                <p className="smeter-note">Aún sin uso registrado</p>
+                <p className="smeter-note">{t('Aún sin uso registrado', 'No usage recorded yet')}</p>
             )}
         </div>
     );

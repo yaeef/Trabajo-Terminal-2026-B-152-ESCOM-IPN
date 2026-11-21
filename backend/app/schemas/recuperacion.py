@@ -58,6 +58,8 @@ class BovedaRecuperacionResponse(BaseModel):
     nombre: str
     categoria: str | None = None
     mensaje_custodios: str | None = None
+    # Solo el nombre de pila: para firmar el mensaje ("Mensaje de Juan").
+    propietario_nombre: str | None = None
     umbral_k: int | None = None
     total_fragmentos_n: int | None = None
     recuperacion_iniciada_en: datetime | None = None

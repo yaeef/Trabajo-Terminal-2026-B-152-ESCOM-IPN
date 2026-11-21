@@ -27,6 +27,7 @@ from app.models.recuperacion import (
     FragmentoDepositado,
     SesionRecuperacion,
 )
+from app.models.usuario import Usuario
 from app.schemas.recuperacion import (
     BovedaRecuperacionResponse,
     CrearSesionRequest,
@@ -70,11 +71,13 @@ def a_respuesta(db: Session, boveda: Boveda) -> BovedaRecuperacionResponse:
             days=settings.DMS_RECOVERY_WINDOW_DIAS
         )
     vss = db.query(CompromisoVss).filter(CompromisoVss.id_boveda == boveda.id).first()
+    propietario = db.get(Usuario, boveda.id_propietario)  # propietario.id = usuario.id
     return BovedaRecuperacionResponse(
         pid=boveda.pid,
         nombre=boveda.nombre,
         categoria=boveda.categoria,
         mensaje_custodios=boveda.mensaje_custodios,
+        propietario_nombre=propietario.nombre if propietario else None,
         umbral_k=boveda.umbral_k,
         total_fragmentos_n=boveda.total_fragmentos_n,
         recuperacion_iniciada_en=boveda.recuperacion_iniciada_en,

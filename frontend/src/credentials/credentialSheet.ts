@@ -13,6 +13,7 @@ import {
     plantillaById,
     type CredentialEnvelope,
 } from './templates';
+import { getLang, locale, t } from '../i18n';
 
 interface SheetOpts {
     envelope: CredentialEnvelope;
@@ -27,11 +28,11 @@ const esc = (s: string) =>
 
 function buildHtml(o: SheetOpts): string {
     const plantilla = plantillaById(o.envelope.b152_plantilla);
-    const titulo = plantilla?.label ?? 'Credenciales';
-    const generada = new Date().toLocaleString('es-MX');
+    const titulo = plantilla?.label ?? t('Credenciales', 'Credentials');
+    const generada = new Date().toLocaleString(locale());
     const actualizado = (() => {
         try {
-            return new Date(o.envelope.actualizado_en).toLocaleString('es-MX');
+            return new Date(o.envelope.actualizado_en).toLocaleString(locale());
         } catch {
             return o.envelope.actualizado_en;
         }
@@ -61,7 +62,7 @@ function buildHtml(o: SheetOpts): string {
     }
 
     return `<!doctype html>
-<html lang="es"><head><meta charset="utf-8">
+<html lang="${getLang()}"><head><meta charset="utf-8">
 <title>${esc(o.nombreActivo)}</title>
 <style>
   :root { color-scheme: light; }
@@ -98,20 +99,26 @@ function buildHtml(o: SheetOpts): string {
   <div class="bar"></div>
   <div class="pad">
     <h1>${esc(titulo)} · Kleimos Legacy</h1>
-    <p class="muted">Activo “<strong>${esc(o.nombreActivo)}</strong>” — bóveda “${esc(o.bovedaNombre)}”</p>
-    <p class="muted">Última edición: ${esc(actualizado)} · hoja generada el ${esc(generada)}</p>
+    <p class="muted">${t('Activo', 'Asset')} “<strong>${esc(o.nombreActivo)}</strong>” — ${t('bóveda', 'vault')} “${esc(o.bovedaNombre)}”</p>
+    <p class="muted">${t('Última edición', 'Last edited')}: ${esc(actualizado)} · ${t('hoja generada el', 'sheet generated on')} ${esc(generada)}</p>
 
     <div class="warn">
-      <strong>⚠ Documento altamente sensible</strong>
-      Contiene credenciales en claro. Imprímelo o guárdalo como PDF y ponlo en un lugar físico
-      seguro. <b>No lo dejes en la nube, no le tomes foto, no lo envíes por mensaje o correo.</b>
+      <strong>⚠ ${t('Documento altamente sensible', 'Highly sensitive document')}</strong>
+      ${t(
+          'Contiene credenciales en claro. Imprímelo o guárdalo como PDF y ponlo en un lugar físico seguro.',
+          'It contains credentials in plain text. Print it or save it as PDF and keep it in a secure physical place.',
+      )}
+      <b>${t(
+          'No lo dejes en la nube, no le tomes foto, no lo envíes por mensaje o correo.',
+          "Don't leave it in the cloud, don't photograph it, don't send it by message or email.",
+      )}</b>
     </div>
 
-    ${filas.join('\n    ') || '<p class="muted">Esta plantilla no tiene campos con valor.</p>'}
+    ${filas.join('\n    ') || `<p class="muted">${t('Esta plantilla no tiene campos con valor.', "This template doesn't have any filled-in fields.")}</p>`}
 
-    <button class="btn noprint" onclick="window.print()">Imprimir / Guardar como PDF</button>
+    <button class="btn noprint" onclick="window.print()">${t('Imprimir / Guardar como PDF', 'Print / Save as PDF')}</button>
   </div>
-  <div class="foot">Kleimos Legacy · ESCOM-IPN · Este archivo no se sincroniza con ningún servidor.</div>
+  <div class="foot">Kleimos Legacy · ESCOM-IPN · ${t('Este archivo no se sincroniza con ningún servidor.', "This file isn't synced with any server.")}</div>
 </div>
 </body></html>`;
 }

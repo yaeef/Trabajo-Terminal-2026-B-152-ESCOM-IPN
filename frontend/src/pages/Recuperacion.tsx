@@ -11,7 +11,10 @@ import { deriveBpKeypair, bpKdfEnvelope, randomSaltHex, cifrarFragmento } from '
 import { suggestPassphrase, passphraseBits, passphraseMeter, MIN_PASSPHRASE_BITS } from '../crypto/vaultCrypto';
 import { useRecuperacionSession } from '../store/RecuperacionSessionContext';
 import { recordarNombre, nombreRecordado } from '../utils/recuperacionIdentidad';
-import { PARENTESCO_OPCIONES } from '../types/custodios.types';
+import { PARENTESCO_OPCIONES, parentescoLabel } from '../types/custodios.types';
+import { categoriaLabel } from '../types/bovedas.types';
+import LanguageToggle from '../components/common/LanguageToggle';
+import { getLang, t } from '../i18n';
 import VistaPreviaSesion, { restanteDeSesion, useReloj } from './recuperacion/VistaPreviaSesion';
 import type { BovedaRecuperacionResponse, SesionEstadoResponse } from '../types/recuperacion.types';
 import './Recuperacion.css';
@@ -83,7 +86,7 @@ export default function Recuperacion() {
             if (status === 404) {
                 setNotFound(true);
             } else {
-                notifyError(getApiErrorMessage(e, 'No se pudo buscar la bóveda.'));
+                notifyError(getApiErrorMessage(e, t('No se pudo buscar la bóveda.', "Couldn't look up the vault.")));
             }
         } finally {
             setBuscando(false);
@@ -130,16 +133,16 @@ export default function Recuperacion() {
             const text = await file.text();
             const s = await decodeShareFile(text);
             if (!boveda.commitments_hex) {
-                throw new Error('Esta bóveda no tiene compromisos públicos registrados.');
+                throw new Error(t('Esta bóveda todavía no está lista para recuperarse.', "This vault isn't ready to be recovered yet."));
             }
             const ok = await verifyShare(s, boveda.commitments_hex);
             if (!ok) {
                 wipe(s.y);
-                throw new Error('El fragmento no corresponde a esta bóveda (falló la validación Feldman VSS).');
+                throw new Error(t('El fragmento no corresponde a esta bóveda. Revisa que sea el archivo correcto.', "The share doesn't match this vault. Make sure it's the right file."));
             }
             validado = s;
         } catch (e) {
-            notifyError(e instanceof Error ? e.message : 'No se pudo leer/validar el fragmento.');
+            notifyError(e instanceof Error ? e.message : t('No se pudo leer/validar el fragmento.', "Couldn't read/validate the share."));
             setValidando(false);
             return;
         }
@@ -156,7 +159,7 @@ export default function Recuperacion() {
             notifyError(
                 getApiErrorMessage(
                     e,
-                    'Tu fragmento es válido, pero no se pudo conectar con el servidor para revisar la sesión. Verifica tu conexión e inténtalo de nuevo.',
+                    t('Tu fragmento es válido, pero no se pudo conectar con el servidor para revisar la sesión. Verifica tu conexión e inténtalo de nuevo.', "Your share is valid, but we couldn't reach the server to check the session. Check your connection and try again."),
                 ),
             );
         } finally {
@@ -180,7 +183,7 @@ export default function Recuperacion() {
         try {
             setSesion(await recuperacionService.getSesion(boveda.pid));
         } catch (e) {
-            notifyError(getApiErrorMessage(e, 'No se pudo volver a cargar la sesión.'));
+            notifyError(getApiErrorMessage(e, t('No se pudo volver a cargar la sesión.', "Couldn't reload the session.")));
         }
     };
 
@@ -189,7 +192,7 @@ export default function Recuperacion() {
         wipe(share?.y);
         setShare(null);
         setSesion(null);
-        setAviso('No te uniste a la sesión: tu fragmento no se aportó ni salió de tu navegador. Puedes volver a subirlo cuando quieras.');
+        setAviso(t('No te uniste a la sesión: tu fragmento no se aportó ni salió de tu navegador. Puedes volver a subirlo cuando quieras.', "You didn't join the session: your share wasn't contributed and never left your browser. You can upload it again whenever you want."));
     };
 
     const entrarComoBP = async () => {
@@ -204,13 +207,13 @@ export default function Recuperacion() {
             const { privateKey, publicKeyHex } = await deriveBpKeypair(passphrase, env);
             if (publicKeyHex !== sesion.bp_public_key) {
                 wipe(privateKey);
-                throw new Error('Pass-phrase de sesión incorrecta.');
+                throw new Error(t('Clave de la sesión incorrecta.', 'Incorrect session key.'));
             }
             wipe(share.y);
             setBp({ pid: boveda.pid, privateKey, dek: null, nombreDeclarado: nombreRecordado(boveda.pid) });
             navigate(`/recuperacion/${boveda.pid}/bp`);
         } catch (e) {
-            notifyError(e instanceof Error ? e.message : 'No se pudo entrar a la sesión.');
+            notifyError(e instanceof Error ? e.message : t('No se pudo entrar a la sesión.', "Couldn't enter the session."));
         } finally {
             setEnviando(false);
         }
@@ -276,7 +279,7 @@ export default function Recuperacion() {
                 navigate(`/recuperacion/${boveda.pid}/bp`);
             }
         } catch (e) {
-            notifyError(getApiErrorMessage(e, 'No se pudo continuar.'));
+            notifyError(getApiErrorMessage(e, t('No se pudo continuar.', "Couldn't continue.")));
             const status = (e as { response?: { status?: number } })?.response?.status;
             // La sesión cambió, expiró o ya tenía este fragmento: se muestra
             // su estado actual para que el custodio vuelva a decidir.
@@ -298,15 +301,18 @@ export default function Recuperacion() {
 
     return (
         <div className="recuperacion-page">
-            <button
-                type="button"
-                className="theme-toggle auth-theme-toggle"
-                onClick={() => setTheme(toggleTheme())}
-                title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
-                aria-label="Cambiar tema"
-            >
-                <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`}></i>
-            </button>
+            <div className="auth-theme-toggle">
+                <LanguageToggle />
+                <button
+                    type="button"
+                    className="theme-toggle"
+                    onClick={() => setTheme(toggleTheme())}
+                    title={theme === 'dark' ? t('Modo claro', 'Light mode') : t('Modo oscuro', 'Dark mode')}
+                    aria-label={t('Cambiar tema', 'Toggle theme')}
+                >
+                    <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`}></i>
+                </button>
+            </div>
 
             <div className="card card-recuperacion animate__animated animate__zoomIn">
                 <div className="top-gradient"></div>
@@ -323,12 +329,12 @@ export default function Recuperacion() {
                             ></i>
                         </div>
                         <h3 className="fw-bold mb-1" style={{ color: 'var(--escom-blue)' }}>
-                            {boveda ? 'Validación de Identidad' : 'Localizar Patrimonio'}
+                            {boveda ? t('Validación de Identidad', 'Identity Validation') : t('Localizar Patrimonio', 'Locate Estate')}
                         </h3>
                         <p className="text-muted small">
                             {boveda
-                                ? 'Sube tu fragmento para continuar el protocolo de recuperación.'
-                                : 'Ingresa el PID para iniciar el protocolo de recuperación.'}
+                                ? t('Sube tu fragmento para continuar el protocolo de recuperación.', 'Upload your share to continue the recovery protocol.')
+                                : t('Escribe el código de la bóveda para empezar la recuperación.', 'Enter the vault code to start the recovery.')}
                         </p>
                     </div>
 
@@ -336,7 +342,7 @@ export default function Recuperacion() {
                         <>
                             <div className="mb-4">
                                 <label className="form-label small fw-bold text-muted">
-                                    ID Público de Bóveda (PID)
+                                    {t('Código de la bóveda', 'Vault code')}
                                 </label>
                                 <div className="input-group">
                                     <span className="input-group-text">
@@ -345,7 +351,7 @@ export default function Recuperacion() {
                                     <input
                                         type="text"
                                         className="form-control shadow-none"
-                                        placeholder="Ej. V1StGXR8_Z5jdHi6B-myT"
+                                        placeholder={t('Ej. V1StGXR8_Z5jdHi6B-myT', 'e.g. V1StGXR8_Z5jdHi6B-myT')}
                                         value={pidInput}
                                         onChange={(e) => setPidInput(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && buscar(pidInput)}
@@ -362,10 +368,10 @@ export default function Recuperacion() {
                                 disabled={buscando || !pidInput.trim()}
                             >
                                 {buscando ? (
-                                    'Localizando...'
+                                    t('Localizando...', 'Locating...')
                                 ) : (
                                     <>
-                                        Rastrear Bóveda <i className="fas fa-search ms-2"></i>
+                                        {t('Rastrear Bóveda', 'Find Vault')} <i className="fas fa-search ms-2"></i>
                                     </>
                                 )}
                             </button>
@@ -376,9 +382,9 @@ export default function Recuperacion() {
                         <div className="animate__animated animate__fadeIn">
                             <div className="mb-4 text-center">
                                 <p className="m-0 fw-bold fs-5">{boveda.nombre}</p>
-                                <p className="m-0 text-muted small">{boveda.categoria || 'Sin categoría'}</p>
+                                <p className="m-0 text-muted small">{boveda.categoria ? categoriaLabel(boveda.categoria) : t('Sin categoría', 'No category')}</p>
                                 <p className="m-0 text-muted small">
-                                    Umbral: {boveda.umbral_k ?? '—'} de {boveda.total_fragmentos_n ?? '—'} fragmentos
+                                    {t('Umbral', 'Threshold')}: {boveda.umbral_k ?? '—'} {t('de', 'of')} {boveda.total_fragmentos_n ?? '—'} {t('fragmentos', 'shares')}
                                 </p>
                             </div>
 
@@ -386,7 +392,7 @@ export default function Recuperacion() {
 
                             {!share && (
                                 <>
-                                    <label className="recuperacion-label d-block mb-1">Tu fragmento (.sss)</label>
+                                    <label className="recuperacion-label d-block mb-1">{t('Tu fragmento (.sss)', 'Your share (.sss)')}</label>
                                     <label
                                         className={`recuperacion-dropzone d-block mb-3 ${validando ? 'is-busy' : ''}`}
                                     >
@@ -400,15 +406,14 @@ export default function Recuperacion() {
                                         {validando ? (
                                             <>
                                                 <i className="fas fa-sync fa-spin mb-2" />
-                                                <p className="m-0 small fw-bold">Validando fragmento…</p>
+                                                <p className="m-0 small fw-bold">{t('Validando fragmento…', 'Validating share…')}</p>
                                             </>
                                         ) : (
                                             <>
                                                 <i className="fas fa-key mb-2" />
-                                                <p className="m-0 small fw-bold">Selecciona tu fragmento</p>
+                                                <p className="m-0 small fw-bold">{t('Selecciona tu fragmento', 'Select your share')}</p>
                                                 <p className="m-0 small text-muted">
-                                                    Validación local mediante Feldman VSS — nunca sale de tu
-                                                    navegador.
+                                                    {t('Se revisa aquí mismo y nunca sale de tu navegador.', 'It is checked right here and never leaves your browser.')}
                                                 </p>
                                             </>
                                         )}
@@ -420,11 +425,14 @@ export default function Recuperacion() {
                                 <div className="animate__animated animate__fadeIn">
                                     <div className="recuperacion-status mb-3">
                                         <small className="fw-bold text-success">
-                                            <i className="fas fa-crown me-1" /> Fragmento reconocido — eres el
-                                            Beneficiario Principal de esta sesión.
+                                            <i className="fas fa-crown me-1" />{' '}
+                                            {t(
+                                                'Fragmento reconocido — eres el Beneficiario Principal de esta sesión.',
+                                                'Share recognized — you are the Primary Beneficiary of this session.',
+                                            )}
                                         </small>
                                     </div>
-                                    <label className="recuperacion-label d-block mb-1">Pass-phrase de sesión</label>
+                                    <label className="recuperacion-label d-block mb-1">{t('Clave de la sesión', 'Session key')}</label>
                                     <input
                                         type="password"
                                         className="form-control shadow-none mb-3"
@@ -440,7 +448,7 @@ export default function Recuperacion() {
                                         onClick={entrarComoBP}
                                         disabled={enviando || !passphrase}
                                     >
-                                        {enviando ? 'Entrando…' : 'Entrar como Beneficiario Principal'}
+                                        {enviando ? t('Entrando…', 'Entering…') : t('Entrar como Beneficiario Principal', 'Enter as Primary Beneficiary')}
                                     </button>
                                 </div>
                             )}
@@ -449,8 +457,8 @@ export default function Recuperacion() {
                                 <div className="animate__animated animate__fadeIn">
                                     <div className="recuperacion-status mb-3">
                                         <small className="fw-bold text-success">
-                                            <i className="fas fa-check-circle me-1" /> Ya depositaste este fragmento
-                                            anteriormente.
+                                            <i className="fas fa-check-circle me-1" />{' '}
+                                            {t('Ya depositaste este fragmento anteriormente.', 'You already deposited this share earlier.')}
                                         </small>
                                     </div>
                                     <button
@@ -458,7 +466,7 @@ export default function Recuperacion() {
                                         className="btn btn-ipn w-100 py-3 shadow-sm"
                                         onClick={entrarComoCustodio}
                                     >
-                                        Entrar a la sesión <i className="fas fa-arrow-right ms-2" />
+                                        {t('Entrar a la sesión', 'Enter the session')} <i className="fas fa-arrow-right ms-2" />
                                     </button>
                                 </div>
                             )}
@@ -467,17 +475,14 @@ export default function Recuperacion() {
                                 <div className="animate__animated animate__fadeIn">
                                     <div className="recuperacion-status mb-3">
                                         <small className="fw-bold text-success">
-                                            <i className="fas fa-check-circle me-1" /> Fragmento válido (x={share!.id}
-                                            )
+                                            <i className="fas fa-check-circle me-1" /> {t('Fragmento válido', 'Valid share')}
                                         </small>
                                     </div>
 
                                     {sesion?.existe && (
                                         <>
                                             <p className="small text-muted text-start mb-2">
-                                                Ya hay una sesión de recuperación para esta bóveda. Revísala antes de
-                                                unirte: tu fragmento se cifrará para su Beneficiario Principal y solo
-                                                él podrá usarlo. Si no te unes, tu fragmento no sale de tu navegador.
+                                                {t('Ya hay una sesión de recuperación para esta bóveda. Revísala antes de unirte: tu fragmento se cifrará para su Beneficiario Principal y solo él podrá usarlo. Si no te unes, tu fragmento no sale de tu navegador.', "There's already a recovery session for this vault. Review it before joining: your share will be encrypted for its Primary Beneficiary and only they can use it. If you don't join, your share never leaves your browser.")}
                                             </p>
                                             <VistaPreviaSesion sesion={sesion} restanteMs={restanteMs} />
                                         </>
@@ -486,12 +491,12 @@ export default function Recuperacion() {
                                     <div className="row g-3 mb-3">
                                         <div className={sesion?.existe ? 'col-md-6' : 'col-12'}>
                                             <label className="recuperacion-label d-block mb-1">
-                                                Nombre o alias público
+                                                {t('Nombre o alias público', 'Public name or alias')}
                                             </label>
                                             <input
                                                 type="text"
                                                 className="form-control shadow-none"
-                                                placeholder="Ej. Lucía Pérez"
+                                                placeholder={t('Ej. Lucía Pérez', 'e.g. Lucy Smith')}
                                                 value={nombreDeclarado}
                                                 onChange={(e) => setNombreDeclarado(e.target.value)}
                                                 autoFocus={!sesion?.existe}
@@ -500,7 +505,7 @@ export default function Recuperacion() {
                                         {sesion?.existe && (
                                             <div className="col-md-6">
                                                 <label className="recuperacion-label d-block mb-1">
-                                                    Vínculo declarado
+                                                    {t('Vínculo declarado', 'Declared relationship')}
                                                 </label>
                                                 <select
                                                     className="form-select shadow-none"
@@ -509,7 +514,7 @@ export default function Recuperacion() {
                                                 >
                                                     {PARENTESCO_OPCIONES.map((v) => (
                                                         <option key={v} value={v}>
-                                                            {v}
+                                                            {parentescoLabel(v)}
                                                         </option>
                                                     ))}
                                                 </select>
@@ -520,17 +525,27 @@ export default function Recuperacion() {
                                     {!sesion?.existe && (
                                         <>
                                             <div className="bg-light p-3 rounded-3 mb-3 text-start small">
-                                                <p className="m-0">
-                                                    No hay ninguna sesión de recuperación activa para esta bóveda.
-                                                    Al continuar te vuelves el <strong>Beneficiario Principal</strong>{' '}
-                                                    — define una pass-phrase de sesión para poder reingresar después
-                                                    (no es la pass-phrase de la bóveda; esta es solo tuya, solo para
-                                                    esta sesión).
-                                                </p>
+                                                {getLang() === 'es' ? (
+                                                    <p className="m-0">
+                                                        No hay ninguna sesión de recuperación activa para esta bóveda.
+                                                        Al continuar te vuelves el <strong>Beneficiario Principal</strong>{' '}
+                                                        — crea una clave de la sesión para poder volver a entrar después
+                                                        (no es la llave maestra de la bóveda; esta clave es solo tuya y solo
+                                                        para esta recuperación).
+                                                    </p>
+                                                ) : (
+                                                    <p className="m-0">
+                                                        There's no active recovery session for this vault. If you continue
+                                                        you become the <strong>Primary Beneficiary</strong>{' '}
+                                                        — create a session key so you can get back in later (it isn't the
+                                                        vault's master key; this key is yours alone and only for this
+                                                        recovery).
+                                                    </p>
+                                                )}
                                             </div>
                                             <div className="d-flex justify-content-between align-items-center mb-1">
                                                 <label className="recuperacion-label m-0">
-                                                    Nueva pass-phrase de sesión
+                                                    {t('Nueva clave de la sesión', 'New session key')}
                                                 </label>
                                                 <button
                                                     type="button"
@@ -540,7 +555,7 @@ export default function Recuperacion() {
                                                         setShowNuevaPass(true);
                                                     }}
                                                 >
-                                                    <i className="fas fa-dice me-1" /> Sugerir
+                                                    <i className="fas fa-dice me-1" /> {t('Sugerir', 'Suggest')}
                                                 </button>
                                             </div>
                                             <div className="input-group">
@@ -548,7 +563,7 @@ export default function Recuperacion() {
                                                     type={showNuevaPass ? 'text' : 'password'}
                                                     className="form-control shadow-none"
                                                     style={{ fontFamily: "'JetBrains Mono', monospace" }}
-                                                    placeholder="ocho-palabras-al-azar-separadas-por-guion"
+                                                    placeholder={t('ocho-palabras-al-azar-separadas-por-guion', 'eight-random-words-separated-by-hyphens')}
                                                     value={passphrase}
                                                     onChange={(e) => setPassphrase(e.target.value)}
                                                 />
@@ -557,7 +572,7 @@ export default function Recuperacion() {
                                                     type="button"
                                                     onClick={() => setShowNuevaPass((s) => !s)}
                                                 >
-                                                    {showNuevaPass ? 'Ocultar' : 'Mostrar'}
+                                                    {showNuevaPass ? t('Ocultar', 'Hide') : t('Mostrar', 'Show')}
                                                 </button>
                                             </div>
                                             <div className="recuperacion-strength-meter">
@@ -571,25 +586,35 @@ export default function Recuperacion() {
                                                     <span style={{ color: nuevaPassMeter.color, fontWeight: 700 }}>
                                                         {nuevaPassMeter.label}
                                                     </span>
-                                                    {nuevaPassMeter.label === 'Débil' && (
-                                                        <span className="text-muted">usa «Sugerir» para una frase segura</span>
+                                                    {nuevaPassMeter.debil && (
+                                                        <span className="text-muted">{t('usa «Sugerir» para una frase segura', 'use “Suggest” for a secure phrase')}</span>
                                                     )}
                                                 </div>
                                             )}
                                             <p className="m-0 mb-3 mt-2 text-muted small">
-                                                <i className="fas fa-file-arrow-down me-1" /> Al fundar la sesión se
-                                                descargará una <strong>hoja de emergencia</strong> con esta pass-phrase
-                                                (obligatoria): la necesitarás, junto con tu fragmento, para volver a
-                                                esta sesión desde cualquier dispositivo. Guárdala en físico.
+                                                <i className="fas fa-file-arrow-down me-1" />{' '}
+                                                {getLang() === 'es' ? (
+                                                    <>
+                                                        Al fundar la sesión se descargará una <strong>hoja de emergencia</strong>{' '}
+                                                        con esta clave: la necesitarás, junto con tu fragmento, para volver a esta
+                                                        sesión desde cualquier dispositivo. Guárdala en físico.
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        When you start the session an <strong>emergency sheet</strong> with this
+                                                        key will download: you'll need it, along with your share, to return to this
+                                                        session from any device. Keep it on paper.
+                                                    </>
+                                                )}
                                             </p>
                                         </>
                                     )}
 
                                     {sesionExpirada && (
                                         <div className="alert alert-warning py-2 small d-flex justify-content-between align-items-center gap-2">
-                                            <span>Esta sesión ya expiró; ya no acepta fragmentos.</span>
+                                            <span>{t('Esta sesión ya expiró; ya no acepta fragmentos.', 'This session has expired; it no longer accepts shares.')}</span>
                                             <button type="button" className="btn btn-sm btn-light" onClick={refrescarSesion}>
-                                                Volver a revisar
+                                                {t('Volver a revisar', 'Check again')}
                                             </button>
                                         </div>
                                     )}
@@ -602,7 +627,7 @@ export default function Recuperacion() {
                                                 onClick={noUnirme}
                                                 disabled={enviando}
                                             >
-                                                No unirme
+                                                {t('No unirme', "Don't join")}
                                             </button>
                                             <button
                                                 type="button"
@@ -610,7 +635,7 @@ export default function Recuperacion() {
                                                 onClick={confirmarNuevo}
                                                 disabled={!puedeConfirmarNuevo}
                                             >
-                                                {enviando ? 'Enviando…' : 'Unirme y aportar mi fragmento'}
+                                                {enviando ? t('Enviando…', 'Sending…') : t('Unirme y aportar mi fragmento', 'Join and contribute my share')}
                                             </button>
                                         </div>
                                     ) : (
@@ -620,7 +645,7 @@ export default function Recuperacion() {
                                             onClick={confirmarNuevo}
                                             disabled={!puedeConfirmarNuevo}
                                         >
-                                            {enviando ? 'Enviando…' : 'Fundar sesión y descargar hoja'}
+                                            {enviando ? t('Enviando…', 'Sending…') : t('Fundar sesión y descargar hoja', 'Start session and download sheet')}
                                         </button>
                                     )}
                                 </div>
@@ -631,7 +656,7 @@ export default function Recuperacion() {
                                 className="btn btn-light w-100 rounded-pill mt-3"
                                 onClick={buscarOtra}
                             >
-                                Buscar otra bóveda
+                                {t('Buscar otra bóveda', 'Look up another vault')}
                             </button>
                         </div>
                     )}
@@ -639,7 +664,7 @@ export default function Recuperacion() {
 
                 <div className="bg-light p-3 text-center border-top">
                     <Link to="/" className="text-decoration-none small fw-bold" style={{ color: 'var(--ipn-maroon)' }}>
-                        <i className="fas fa-arrow-left me-1"></i> Regresar
+                        <i className="fas fa-arrow-left me-1"></i> {t('Regresar', 'Back')}
                     </Link>
                 </div>
             </div>
@@ -653,12 +678,12 @@ export default function Recuperacion() {
                                 <div className="mb-4 text-danger animate__animated animate__shakeX">
                                     <i className="fas fa-search-minus fa-4x" />
                                 </div>
-                                <h4 className="fw-bold">Sin resultados</h4>
+                                <h4 className="fw-bold">{t('Sin resultados', 'No results')}</h4>
                                 <p className="text-muted small">
-                                    Ese identificador no corresponde a ninguna bóveda en recuperación.
+                                    {t('Ese identificador no corresponde a ninguna bóveda en recuperación.', "That identifier doesn't match any vault in recovery.")}
                                 </p>
                                 <button className="btn btn-secondary rounded-pill px-4 mt-3" onClick={reintentar}>
-                                    Entendido
+                                    {t('Entendido', 'Got it')}
                                 </button>
                             </div>
                         </div>

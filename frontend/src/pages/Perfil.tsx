@@ -8,6 +8,7 @@ import { getApiErrorMessage } from '../utils/errors';
 import './Perfil.css';
 import RequisitosContrasena from '../components/common/RequisitosContrasena';
 import { requisitoFaltante } from '../utils/password';
+import { t } from '../i18n';
 
 // Tiempo antes de redirigir a /configuracion tras un guardado exitoso,
 // igual que el boceto aprobado (3s).
@@ -49,7 +50,7 @@ export default function Perfil() {
 
         if (quierecambiarPassword) {
             if (!passwordActual || !nuevaPassword || !confirmarPassword) {
-                notifyError('Completa los 3 campos de contraseña, o déjalos todos en blanco si no deseas cambiarla.');
+                notifyError(t('Completa los 3 campos de contraseña, o déjalos todos en blanco si no deseas cambiarla.', "Fill in all 3 password fields, or leave them all blank if you don't want to change it."));
                 return;
             }
             const falta = requisitoFaltante(nuevaPassword);
@@ -58,7 +59,7 @@ export default function Perfil() {
                 return;
             }
             if (nuevaPassword !== confirmarPassword) {
-                notifyError('La confirmación no coincide con la nueva contraseña.');
+                notifyError(t('La confirmación no coincide con la nueva contraseña.', "The confirmation doesn't match the new password."));
                 return;
             }
         }
@@ -85,7 +86,7 @@ export default function Perfil() {
             setConfirmarPassword('');
             setShowSuccessModal(true);
         } catch (err) {
-            notifyError(getApiErrorMessage(err, 'No se pudieron guardar los cambios.'));
+            notifyError(getApiErrorMessage(err, t('No se pudieron guardar los cambios.', "Couldn't save the changes.")));
         } finally {
             setIsSubmitting(false);
         }
@@ -103,10 +104,10 @@ export default function Perfil() {
     }, [showSuccessModal, navigate]);
 
     return (
-        <DashboardLayout activeItem="configuracion" topBarLabel="Gestión de Identidad" backTo="/configuracion">
+        <DashboardLayout activeItem="configuracion" topBarLabel={t('Gestión de Identidad', 'Identity Management')} backTo="/configuracion">
             <div className="mb-5">
-                <h2 className="fw-bold mb-1">Editar Perfil</h2>
-                <p className="text-muted">Actualiza tu información personal y credenciales de acceso.</p>
+                <h2 className="fw-bold mb-1">{t('Editar Perfil', 'Edit Profile')}</h2>
+                <p className="text-muted">{t('Actualiza tu información personal y credenciales de acceso.', 'Update your personal information and sign-in credentials.')}</p>
             </div>
 
             <div className="edit-card">
@@ -114,7 +115,7 @@ export default function Perfil() {
                     <div className="text-center profile-avatar-display">
                         <img
                             src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                                nombre || user?.username || 'Usuario'
+                                nombre || user?.username || t('Usuario', 'User')
                             )}&background=003366&color=fff`}
                             alt="Avatar"
                             className="mb-4"
@@ -122,11 +123,11 @@ export default function Perfil() {
                     </div>
 
                     <h5 className="fw-bold mb-4" style={{ color: 'var(--escom-blue)' }}>
-                        Datos Personales
+                        {t('Datos Personales', 'Personal Details')}
                     </h5>
                     <div className="row g-4 mb-5">
                         <div className="col-md-6">
-                            <label className="form-label">Nombre(s)</label>
+                            <label className="form-label">{t('Nombre(s)', 'First name(s)')}</label>
                             <input
                                 type="text"
                                 className="form-control shadow-none"
@@ -136,7 +137,7 @@ export default function Perfil() {
                             />
                         </div>
                         <div className="col-md-6">
-                            <label className="form-label">Apellido Paterno</label>
+                            <label className="form-label">{t('Apellido Paterno', 'Paternal Surname')}</label>
                             <input
                                 type="text"
                                 className="form-control shadow-none"
@@ -145,7 +146,7 @@ export default function Perfil() {
                             />
                         </div>
                         <div className="col-md-6">
-                            <label className="form-label">Apellido Materno</label>
+                            <label className="form-label">{t('Apellido Materno', 'Maternal Surname')}</label>
                             <input
                                 type="text"
                                 className="form-control shadow-none"
@@ -156,11 +157,11 @@ export default function Perfil() {
                     </div>
 
                     <h5 className="fw-bold mb-4" style={{ color: 'var(--escom-blue)' }}>
-                        Seguridad de la Cuenta
+                        {t('Seguridad de la Cuenta', 'Account Security')}
                     </h5>
                     <div className="row g-4 mb-5">
                         <div className="col-md-6">
-                            <label className="form-label">Contraseña Actual</label>
+                            <label className="form-label">{t('Contraseña Actual', 'Current Password')}</label>
                             <div className="input-group">
                                 <input
                                     type={showPasswordActual ? 'text' : 'password'}
@@ -174,8 +175,8 @@ export default function Perfil() {
                                     type="button"
                                     className="input-group-text"
                                     onClick={() => setShowPasswordActual((prev) => !prev)}
-                                    aria-label={showPasswordActual ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                                    title={showPasswordActual ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                    aria-label={showPasswordActual ? t('Ocultar contraseña', 'Hide password') : t('Mostrar contraseña', 'Show password')}
+                                    title={showPasswordActual ? t('Ocultar contraseña', 'Hide password') : t('Mostrar contraseña', 'Show password')}
                                     style={{ cursor: 'pointer' }}
                                 >
                                     <i className={showPasswordActual ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
@@ -183,12 +184,12 @@ export default function Perfil() {
                             </div>
                         </div>
                         <div className="col-md-6">
-                            <label className="form-label">Nueva Contraseña</label>
+                            <label className="form-label">{t('Nueva Contraseña', 'New Password')}</label>
                             <div className="input-group">
                                 <input
                                     type={showNuevaPassword ? 'text' : 'password'}
                                     className="form-control shadow-none"
-                                    placeholder="Mínimo 12 caracteres"
+                                    placeholder={t('Mínimo 12 caracteres', 'At least 12 characters')}
                                     value={nuevaPassword}
                                     onChange={(e) => setNuevaPassword(e.target.value)}
                                     autoComplete="new-password"
@@ -197,8 +198,8 @@ export default function Perfil() {
                                     type="button"
                                     className="input-group-text"
                                     onClick={() => setShowNuevaPassword((prev) => !prev)}
-                                    aria-label={showNuevaPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                                    title={showNuevaPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                    aria-label={showNuevaPassword ? t('Ocultar contraseña', 'Hide password') : t('Mostrar contraseña', 'Show password')}
+                                    title={showNuevaPassword ? t('Ocultar contraseña', 'Hide password') : t('Mostrar contraseña', 'Show password')}
                                     style={{ cursor: 'pointer' }}
                                 >
                                     <i className={showNuevaPassword ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
@@ -206,7 +207,7 @@ export default function Perfil() {
                             </div>
                         </div>
                         <div className="col-md-6">
-                            <label className="form-label">Confirmar Nueva Contraseña</label>
+                            <label className="form-label">{t('Confirmar Nueva Contraseña', 'Confirm New Password')}</label>
                             <div className="input-group">
                                 <input
                                     type={showConfirmarPassword ? 'text' : 'password'}
@@ -220,8 +221,8 @@ export default function Perfil() {
                                     type="button"
                                     className="input-group-text"
                                     onClick={() => setShowConfirmarPassword((prev) => !prev)}
-                                    aria-label={showConfirmarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                                    title={showConfirmarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                    aria-label={showConfirmarPassword ? t('Ocultar contraseña', 'Hide password') : t('Mostrar contraseña', 'Show password')}
+                                    title={showConfirmarPassword ? t('Ocultar contraseña', 'Hide password') : t('Mostrar contraseña', 'Show password')}
                                     style={{ cursor: 'pointer' }}
                                 >
                                     <i className={showConfirmarPassword ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
@@ -236,7 +237,7 @@ export default function Perfil() {
                         <div className="col-12">
                             <div className="p-3 rounded-4 bg-light small text-muted">
                                 <i className="fas fa-info-circle me-1 text-primary"></i>
-                                Deja los campos de contraseña en blanco si no deseas cambiarla.
+                                {t('Deja los campos de contraseña en blanco si no deseas cambiarla.', "Leave the password fields blank if you don't want to change it.")}
                             </div>
                         </div>
                     </div>
@@ -248,10 +249,10 @@ export default function Perfil() {
                             onClick={() => navigate('/configuracion')}
                             disabled={isSubmitting}
                         >
-                            Cancelar
+                            {t('Cancelar', 'Cancel')}
                         </button>
                         <button type="submit" className="btn btn-ipn" disabled={isSubmitting}>
-                            {isSubmitting ? 'Guardando...' : 'Guardar Cambios'}
+                            {isSubmitting ? t('Guardando...', 'Saving...') : t('Guardar Cambios', 'Save Changes')}
                         </button>
                     </div>
                 </form>
@@ -268,10 +269,10 @@ export default function Perfil() {
                                     <i className="fas fa-check-double fa-3x"></i>
                                 </div>
                                 <h3 className="fw-bold" style={{ color: 'var(--escom-blue)' }}>
-                                    ¡Perfil Actualizado!
+                                    {t('¡Perfil Actualizado!', 'Profile Updated!')}
                                 </h3>
                                 <p className="text-muted">
-                                    Los cambios se han guardado correctamente. Redirigiendo a configuración...
+                                    {t('Los cambios se han guardado correctamente. Redirigiendo a configuración...', 'Your changes were saved. Redirecting to settings...')}
                                 </p>
                             </div>
                             <div className="progress-timer" style={{ width: barCollapsed ? '0%' : '100%' }}></div>

@@ -11,15 +11,18 @@ import { custodiosService } from '../services/custodios.service';
 import PrimerPasoCustodios from '../components/PrimerPasoCustodios';
 import { custodioNotificable, MIN_CUSTODIOS_BOVEDA, type CustodioResponse } from '../types/custodios.types';
 import './Dashboard.css';
+import { t } from '../i18n';
+import { categoriaLabel } from '../types/bovedas.types';
 
 const DEFAULT_PERIODICIDAD_DIAS = 60;
 const CHECKIN_MODAL_DURATION_MS = 10000;
 
-const BADGE = {
-    protegida: { label: 'Protegida', icon: 'fa-check-circle', cls: 'text-success border-success' },
-    incompleta: { label: 'Incompleta', icon: 'fa-exclamation-triangle', cls: 'text-warning border-warning' },
-    borrador: { label: 'Borrador', icon: 'fa-pen-ruler', cls: 'text-secondary border-secondary' },
-} as const;
+const badge = (b: 'protegida' | 'incompleta' | 'borrador') =>
+    ({
+        protegida: { label: t('Protegida', 'Protected'), icon: 'fa-check-circle', cls: 'text-success border-success' },
+        incompleta: { label: t('Incompleta', 'Incomplete'), icon: 'fa-exclamation-triangle', cls: 'text-warning border-warning' },
+        borrador: { label: t('Borrador', 'Draft'), icon: 'fa-pen-ruler', cls: 'text-secondary border-secondary' },
+    })[b];
 
 export default function Dashboard() {
     const { user } = useAuth();
@@ -86,11 +89,11 @@ export default function Dashboard() {
     const diasProximoCheckin = protocoloVida?.periodicidad_prueba ?? DEFAULT_PERIODICIDAD_DIAS;
 
     return (
-        <DashboardLayout activeItem="dashboard" topBarLabel="Área de trabajo">
+        <DashboardLayout activeItem="dashboard" topBarLabel={t('Área de trabajo', 'Workspace')}>
             <div className="d-flex justify-content-between align-items-end mb-5 flex-wrap gap-3">
                 <div>
-                    <h2 className="fw-bold mb-1">Bienvenido, {user?.nombre ?? user?.username}.</h2>
-                    <p className="text-muted m-0">Gestiona tus activos y configura tus Bóvedas.</p>
+                    <h2 className="fw-bold mb-1">{t('Bienvenido', 'Welcome')}, {user?.nombre ?? user?.username}.</h2>
+                    <p className="text-muted m-0">{t('Gestiona tus activos y configura tus Bóvedas.', 'Manage your assets and set up your Vaults.')}</p>
                 </div>
                 <VerificationStatusWidget protocoloVida={protocoloVida} loading={loading} />
             </div>
@@ -101,11 +104,11 @@ export default function Dashboard() {
                     <div className="stat-card h-100">
                         <div className="d-flex justify-content-between align-items-start h-100">
                             <div>
-                                <p className="verif-label mb-2">Bóvedas Totales</p>
+                                <p className="verif-label mb-2">{t('Bóvedas Totales', 'Total Vaults')}</p>
                                 <h3 className="fw-bold m-0">{loading ? '—' : data?.bovedas_total ?? 0}</h3>
                                 {!loading && data && (
                                     <p className="m-0 text-muted" style={{ fontSize: '0.75rem' }}>
-                                        {data.bovedas_protegidas} protegida{data.bovedas_protegidas === 1 ? '' : 's'}
+                                        {data.bovedas_protegidas} {t('protegida', 'protected')}{data.bovedas_protegidas === 1 ? '' : t('s', '')}
                                     </p>
                                 )}
                             </div>
@@ -120,7 +123,7 @@ export default function Dashboard() {
                     <div className="stat-card h-100">
                         <div className="d-flex justify-content-between align-items-start h-100">
                             <div>
-                                <p className="verif-label mb-2">Custodios Registrados</p>
+                                <p className="verif-label mb-2">{t('Custodios Registrados', 'Registered Custodians')}</p>
                                 <h3 className="fw-bold m-0">{loading ? '—' : data?.custodios_total ?? 0}</h3>
                             </div>
                             <div className="p-2 bg-light rounded-3" style={{ color: 'var(--ipn-maroon)' }}>
@@ -133,10 +136,10 @@ export default function Dashboard() {
                 <div className="col-md-4">
                     <div className="stat-card h-100 d-flex flex-column justify-content-center">
                         <StorageMeter
-                            label="Espacio Usado"
+                            label={t('Espacio Usado', 'Storage Used')}
                             usado={data?.usado_bytes ?? 0}
                             cuota={data?.cuota_bytes ?? 0}
-                            note={loading ? 'Cargando…' : undefined}
+                            note={loading ? t('Cargando…', 'Loading…') : undefined}
                         />
                     </div>
                 </div>
@@ -145,22 +148,22 @@ export default function Dashboard() {
             {/* Inventario de Bóvedas */}
             <div className="vault-card p-4">
                 <div className="d-flex justify-content-between align-items-center mb-4 px-2">
-                    <h5 className="fw-bold m-0">Inventario de Bóvedas Digitales</h5>
+                    <h5 className="fw-bold m-0">{t('Inventario de Bóvedas Digitales', 'Digital Vault Inventory')}</h5>
                     <button className="btn btn-ipn btn-sm" onClick={() => navigate('/bovedas/nueva')}>
-                        <i className="fas fa-plus-circle me-2"></i> Nueva
+                        <i className="fas fa-plus-circle me-2"></i> {t('Nueva', 'New')}
                     </button>
                 </div>
 
                 {loading ? (
-                    <p className="text-muted px-2">Cargando…</p>
+                    <p className="text-muted px-2">{t('Cargando…', 'Loading…')}</p>
                 ) : (!data || data.bovedas.length === 0) && faltanCustodios && custodios ? (
                     <PrimerPasoCustodios custodios={custodios} />
                 ) : !data || data.bovedas.length === 0 ? (
                     <div className="text-center text-muted py-5">
                         <i className="fas fa-vault fa-2x mb-3 d-block" style={{ color: '#cbd5e1' }}></i>
-                        Aún no tienes bóvedas.{' '}
+                        {t('Aún no tienes bóvedas.', "You don't have any vaults yet.")}{' '}
                         <button className="btn btn-link p-0 align-baseline" onClick={() => navigate('/bovedas/nueva')}>
-                            Crea la primera
+                            {t('Crea la primera', 'Create the first one')}
                         </button>
                         .
                     </div>
@@ -169,16 +172,16 @@ export default function Dashboard() {
                         <table className="table table-hover align-middle">
                             <thead className="text-muted small">
                                 <tr>
-                                    <th className="border-0 ps-3">NOMBRE</th>
-                                    <th className="border-0">UMBRAL (k/n)</th>
-                                    <th className="border-0 text-center">ESTADO</th>
-                                    <th className="border-0">CUSTODIOS</th>
-                                    <th className="border-0 text-end pe-3">ACCIONES</th>
+                                    <th className="border-0 ps-3">{t('NOMBRE', 'NAME')}</th>
+                                    <th className="border-0">{t('UMBRAL (k/n)', 'THRESHOLD (k/n)')}</th>
+                                    <th className="border-0 text-center">{t('ESTADO', 'STATUS')}</th>
+                                    <th className="border-0">{t('CUSTODIOS', 'CUSTODIANS')}</th>
+                                    <th className="border-0 text-end pe-3">{t('ACCIONES', 'ACTIONS')}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {data.bovedas.map((b) => {
-                                    const meta = BADGE[b.badge];
+                                    const meta = badge(b.badge);
                                     return (
                                         <tr key={b.id}>
                                             <td className="ps-3">
@@ -188,7 +191,7 @@ export default function Dashboard() {
                                                     </div>
                                                     <div>
                                                         <p className="m-0 fw-bold">{b.nombre}</p>
-                                                        <small className="text-muted">{b.categoria || 'Sin categoría'}</small>
+                                                        <small className="text-muted">{b.categoria ? categoriaLabel(b.categoria) : t('Sin categoría', 'No category')}</small>
                                                     </div>
                                                 </div>
                                             </td>
@@ -221,7 +224,7 @@ export default function Dashboard() {
                                                         )
                                                     }
                                                 >
-                                                    {b.badge === 'protegida' ? 'Gestionar' : 'Configurar'}{' '}
+                                                    {b.badge === 'protegida' ? t('Gestionar', 'Manage') : t('Configurar', 'Set up')}{' '}
                                                     <i className="fas fa-arrow-right ms-1"></i>
                                                 </button>
                                             </td>
@@ -242,7 +245,7 @@ export default function Dashboard() {
                             <button
                                 type="button"
                                 className="btn-close-checkin"
-                                aria-label="Cerrar"
+                                aria-label={t('Cerrar', 'Close')}
                                 onClick={() => setShowCheckinModal(false)}
                             >
                                 <i className="fas fa-times"></i>
@@ -252,16 +255,15 @@ export default function Dashboard() {
                                     <i className="fas fa-check fa-3x"></i>
                                 </div>
                                 <h3 className="fw-bold" style={{ color: 'var(--escom-blue)' }}>
-                                    Check-in Realizado
+                                    {t('Check-in Realizado', 'Check-in Complete')}
                                 </h3>
                                 <p className="text-muted">
-                                    Tu presencia ha sido validada en el sistema. El protocolo de recuperación se ha
-                                    postergado exitosamente.
+                                    {t('Tu presencia ha sido validada en el sistema. El protocolo de recuperación se ha postergado exitosamente.', 'Your presence has been validated. The recovery protocol has been successfully postponed.')}
                                 </p>
                                 <div className="bg-light p-3 rounded-4 mt-4">
-                                    <p className="m-0 small fw-bold text-dark">Próximo Check-in obligatorio en:</p>
+                                    <p className="m-0 small fw-bold text-dark">{t('Próximo Check-in obligatorio en:', 'Next mandatory check-in in:')}</p>
                                     <p className="m-0 h4 fw-bold" style={{ color: 'var(--ipn-maroon)' }}>
-                                        +{diasProximoCheckin} días
+                                        +{diasProximoCheckin} {t('días', 'days')}
                                     </p>
                                 </div>
                             </div>

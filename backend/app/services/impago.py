@@ -192,7 +192,7 @@ def recortar(db: Session, usuario: Usuario, elegida: int | None = None) -> dict[
         boveda_service.purgar_boveda(db, boveda)
     db.flush()
 
-    cuota_bytes = gratis.max_almacenamiento * cuota.GB
+    cuota_bytes = gratis.max_almacenamiento_mb * cuota.MB
     activos = list(
         db.scalars(
             select(ActivoDigital)
@@ -206,7 +206,7 @@ def recortar(db: Session, usuario: Usuario, elegida: int | None = None) -> dict[
     # Primero lo que nunca cabría (un solo archivo mayor que la cuota) y
     # después los más recientes, hasta quedar dentro.
     total = sum(a.tamano_cifrado for a in activos)
-    for activo in [a for a in activos if a.tamano_cifrado > cuota_bytes] + [
+    for activo in [a for a in list(activos) if a.tamano_cifrado > cuota_bytes] + [
         a for a in activos if a.tamano_cifrado <= cuota_bytes
     ]:
         if total <= cuota_bytes:
@@ -214,6 +214,15 @@ def recortar(db: Session, usuario: Usuario, elegida: int | None = None) -> dict[
         total -= activo.tamano_cifrado
         borrado["archivos"].append(activo.nombre_original)
         _borrar_activo(db, activo)
+        activos.remove(activo)
+
+    # Límite de archivos del Gratuito: se quitan los más recientes (las
+    # plantillas de credenciales no cuentan ni se borran por esto).
+    if gratis.max_archivos is not None:
+        subidos = [a for a in activos if a.plantilla is None]  # ya en orden reciente -> antiguo
+        for activo in subidos[: max(len(subidos) - gratis.max_archivos, 0)]:
+            borrado["archivos"].append(activo.nombre_original)
+            _borrar_activo(db, activo)
     db.flush()
     return borrado
 

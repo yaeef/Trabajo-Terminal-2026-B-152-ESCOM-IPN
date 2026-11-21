@@ -175,14 +175,14 @@ class CompromisosVssRequest(BaseModel):
     @classmethod
     def _n_en_rango(cls, v: int) -> int:
         if not (MIN_N <= v <= MAX_N):
-            raise ValueError(f"n (total de fragmentos) debe estar entre {MIN_N} y {MAX_N}.")
+            raise ValueError(f"Elige entre {MIN_N} y {MAX_N} fragmentos.")
         return v
 
     @field_validator("k")
     @classmethod
     def _k_minimo(cls, v: int) -> int:
         if v < MIN_K:
-            raise ValueError("El umbral k no puede ser menor que 2 (RN-005).")
+            raise ValueError("Deben juntarse al menos 2 custodios para abrir la bóveda.")
         return v
 
     @field_validator("commitments_hex")
@@ -215,11 +215,13 @@ class CompromisosVssRequest(BaseModel):
     def _coherencia_n_k(self) -> Self:
         # RN-005: k < n; RN-006: k representa mayoría simple.
         if self.k >= self.n:
-            raise ValueError("El umbral k debe ser menor que n (RN-005).")
+            raise ValueError(
+                "Los custodios necesarios para abrir la bóveda deben ser menos que el total."
+            )
         minimo = min_k_mayoria_simple(self.n)
         if self.k < minimo:
             raise ValueError(
-                f"El umbral k debe representar mayoría simple: para n={self.n}, k debe ser al menos {minimo} (RN-006)."
+                f"Con {self.n} custodios, al menos {minimo} deben juntarse para abrir la bóveda (más de la mitad)."
             )
         puntos = len(self.commitments_hex) // LONGITUD_HEX_PUNTO
         if puntos != self.k:

@@ -18,12 +18,13 @@ import { encryptFile } from '../crypto/assetCrypto';
 import { withMinDelay } from '../utils/progress';
 import { getApiErrorMessage } from '../utils/errors';
 import CredentialForm from './CredentialForm';
+import { t, useLang } from '../i18n';
 import {
     CRED_MIME,
-    PLANTILLAS,
     construirEnvelope,
     nombrePorDefecto,
     plantillaById,
+    plantillas,
     type CredentialEnvelope,
 } from './templates';
 
@@ -55,7 +56,10 @@ export default function CredentialEditorModal({
     const [plantillaId, setPlantillaId] = useState<string | null>(
         modo === 'editar' ? envelopeInicial?.b152_plantilla ?? activo?.plantilla ?? null : null,
     );
-    const plantilla = useMemo(() => plantillaById(plantillaId), [plantillaId]);
+    // lang en las dependencias: las etiquetas de la plantilla cambian con el idioma.
+    const lang = useLang();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const plantilla = useMemo(() => plantillaById(plantillaId), [plantillaId, lang]);
 
     const [campos, setCampos] = useState<Record<string, string>>(
         () => ({ ...(envelopeInicial?.campos ?? {}) }),
@@ -67,7 +71,8 @@ export default function CredentialEditorModal({
 
     // progreso de cifrado/subida (mismo patrón que "Agregar activos")
     const [running, setRunning] = useState(false);
-    const [prog, setProg] = useState({ pct: 0, text: '', done: false });
+    // cifrando: la fase de cifrado local (ícono de candado) frente a las de red.
+    const [prog, setProg] = useState({ pct: 0, text: '', done: false, cifrando: false });
 
     // nombre duplicado detectado, pendiente de confirmación del usuario
     const [dupPendiente, setDupPendiente] = useState<string | null>(null);
@@ -89,7 +94,7 @@ export default function CredentialEditorModal({
         setBusy(true);
         setRunning(true);
         setErr('');
-        setProg({ pct: 5, text: 'Cifrando datos localmente…', done: false });
+        setProg({ pct: 5, text: t('Cifrando datos localmente…', 'Encrypting data locally…'), done: false, cifrando: true });
         let dek: Uint8Array | null = null;
         try {
             const envelope = construirEnvelope(plantilla.id, campos, envelopeInicial);
@@ -100,7 +105,7 @@ export default function CredentialEditorModal({
             dek = der.dek;
             const enc = await withMinDelay(encryptFile(dek, file));
 
-            setProg({ pct: 35, text: 'Reservando espacio…', done: false });
+            setProg({ pct: 35, text: t('Reservando espacio…', 'Reserving space…'), done: false, cifrando: false });
             const ini = await withMinDelay(
                 activosService.iniciar(boveda.id, {
                     passphrase_verifier: verifier,
@@ -114,24 +119,24 @@ export default function CredentialEditorModal({
                 }),
             );
 
-            setProg({ pct: 65, text: 'Subiendo…', done: false });
+            setProg({ pct: 65, text: t('Subiendo…', 'Uploading…'), done: false, cifrando: false });
             await withMinDelay(activosService.putBlob(ini.sas_url, enc.ciphertext));
 
-            setProg({ pct: 85, text: 'Confirmando…', done: false });
+            setProg({ pct: 85, text: t('Confirmando…', 'Confirming…'), done: false, cifrando: false });
             await withMinDelay(activosService.confirmar(boveda.id, ini.activo_id, verifier));
 
             // el nuevo ya está confirmado: recién ahora se borra el anterior
             if (modo === 'editar' && activo) {
-                setProg({ pct: 95, text: 'Eliminando versión anterior…', done: false });
+                setProg({ pct: 95, text: t('Eliminando versión anterior…', 'Deleting previous version…'), done: false, cifrando: false });
                 await withMinDelay(activosService.remove(boveda.id, activo.id, verifier));
             }
             wipe(dek);
-            setProg({ pct: 100, text: 'Plantilla guardada.', done: true });
+            setProg({ pct: 100, text: t('Plantilla guardada.', 'Template saved.'), done: true, cifrando: false });
             setTimeout(() => onSaved(), 900);
         } catch (e) {
             wipe(dek);
             setRunning(false);
-            setErr(getApiErrorMessage(e, 'No se pudo guardar la plantilla.'));
+            setErr(getApiErrorMessage(e, t('No se pudo guardar la plantilla.', "Couldn't save the template.")));
         } finally {
             setBusy(false);
         }
@@ -141,7 +146,7 @@ export default function CredentialEditorModal({
         if (!plantilla) return;
         const nombreFinal = (nombreEfectivo || plantilla.label).trim().slice(0, 255);
         if (!Object.values(campos).some((v) => (v ?? '').trim())) {
-            setErr('Llena al menos un campo antes de guardar.');
+            setErr(t('Llena al menos un campo antes de guardar.', 'Fill in at least one field before saving.'));
             return;
         }
         const duplicado = activosExistentes.some(
@@ -161,9 +166,9 @@ export default function CredentialEditorModal({
                 <div className="modal-content shadow-lg">
                     <div className="modal-header">
                         <h5 className="modal-title fw-bold m-0">
-                            {modo === 'editar' ? 'Editar plantilla' : 'Nueva plantilla de credenciales'}
+                            {modo === 'editar' ? t('Editar plantilla', 'Edit template') : t('Nueva plantilla de credenciales', 'New credential template')}
                         </h5>
-                        <button type="button" className="btn-close" onClick={onClose} disabled={busy} />
+                        <button type="button" className="btn-close" onClick={onClose} disabled={busy} aria-label={t('Cerrar', 'Close')} />
                     </div>
 
                     <div className="modal-body">
@@ -172,11 +177,10 @@ export default function CredentialEditorModal({
                         {!plantilla ? (
                             <>
                                 <p className="text-muted small">
-                                    Elige una plantilla. Los campos se cifran en tu navegador y se guardan como un
-                                    activo más de la bóveda.
+                                    {t('Elige una plantilla. Los campos se cifran en tu navegador y se guardan como un activo más de la bóveda.', 'Choose a template. The fields are encrypted in your browser and saved as another asset in the vault.')}
                                 </p>
                                 <div className="row g-2">
-                                    {PLANTILLAS.map((p) => (
+                                    {plantillas().map((p) => (
                                         <div className="col-md-6" key={p.id}>
                                             <button
                                                 type="button"
@@ -208,13 +212,13 @@ export default function CredentialEditorModal({
                                             onClick={() => setPlantillaId(null)}
                                             disabled={busy}
                                         >
-                                            Cambiar plantilla
+                                            {t('Cambiar plantilla', 'Change template')}
                                         </button>
                                     )}
                                 </div>
 
                                 <div className="mb-3">
-                                    <label className="form-label-b d-block">Nombre del activo</label>
+                                    <label className="form-label-b d-block">{t('Nombre del activo', 'Asset name')}</label>
                                     <input
                                         className="form-control shadow-none"
                                         value={nombreEfectivo}
@@ -227,7 +231,7 @@ export default function CredentialEditorModal({
 
                                 <div className="alert alert-warning py-2 small mt-3 mb-0">
                                     <i className="fas fa-shield-halved me-1" />
-                                    Se cifra con AES-256-GCM en el navegador. Kleimos nunca ve estos datos.
+                                    {t('Se protege antes de guardarse: Kleimos nunca ve estos datos.', 'Protected before it is saved: Kleimos never sees this data.')}
                                 </div>
                             </>
                         )}
@@ -235,12 +239,12 @@ export default function CredentialEditorModal({
 
                     <div className="modal-footer">
                         <button className="btn btn-light rounded-pill" onClick={onClose} disabled={busy}>
-                            Cancelar
+                            {t('Cancelar', 'Cancel')}
                         </button>
                         {plantilla && (
                             <button className="btn btn-ipn rounded-pill px-4" onClick={guardar} disabled={busy}>
-                                {busy ? 'Guardando…' : (
-                                    <><i className="fas fa-lock me-1" /> Cifrar y guardar</>
+                                {busy ? t('Guardando…', 'Saving…') : (
+                                    <><i className="fas fa-lock me-1" /> {t('Cifrar y guardar', 'Encrypt and save')}</>
                                 )}
                             </button>
                         )}
@@ -258,12 +262,12 @@ export default function CredentialEditorModal({
                             <div className="mb-3" style={{ color: 'var(--warning-amber)' }}>
                                 <i className="fas fa-triangle-exclamation fa-3x animate__animated animate__headShake" />
                             </div>
-                            <h4 className="fw-bold">Nombre duplicado</h4>
+                            <h4 className="fw-bold">{t('Nombre duplicado', 'Duplicate name')}</h4>
                             <p className="text-muted small mb-1">
-                                Ya existe un activo con este nombre en la bóveda:
+                                {t('Ya existe un activo con este nombre en la bóveda:', 'An asset with this name already exists in the vault:')}
                             </p>
                             <p className="fw-bold mb-3">{dupPendiente}</p>
-                            <p className="text-muted small">¿Qué quieres hacer antes de continuar?</p>
+                            <p className="text-muted small">{t('¿Qué quieres hacer antes de continuar?', 'What do you want to do before continuing?')}</p>
                             <div className="d-flex flex-column gap-2 mt-3">
                                 <button
                                     className="btn w-100 rounded-pill text-white"
@@ -274,10 +278,10 @@ export default function CredentialEditorModal({
                                         if (n) ejecutarGuardado(n);
                                     }}
                                 >
-                                    Guardar de todos modos (como copia)
+                                    {t('Guardar de todos modos (como copia)', 'Save anyway (as a copy)')}
                                 </button>
                                 <button className="btn btn-light w-100 rounded-pill" onClick={() => setDupPendiente(null)}>
-                                    Cancelar y cambiar el nombre
+                                    {t('Cancelar y cambiar el nombre', 'Cancel and change the name')}
                                 </button>
                             </div>
                         </div>
@@ -295,7 +299,7 @@ export default function CredentialEditorModal({
                             <div className="mb-3">
                                 {prog.done ? (
                                     <i className="fas fa-check-circle fa-3x animate__animated animate__bounceIn" style={{ color: 'var(--escom-blue)' }} />
-                                ) : prog.text.startsWith('Cifrando') ? (
+                                ) : prog.cifrando ? (
                                     <i className="fas fa-lock fa-beat fa-3x" style={{ color: 'var(--ipn-maroon)' }} />
                                 ) : (
                                     <i className="fas fa-sync fa-spin fa-3x text-primary" />
@@ -303,10 +307,10 @@ export default function CredentialEditorModal({
                             </div>
                             <h4 className="fw-bold">
                                 {prog.done
-                                    ? 'Plantilla guardada'
-                                    : prog.text.startsWith('Cifrando')
-                                      ? 'Cifrando localmente (AES-256-GCM)'
-                                      : 'Guardando plantilla'}
+                                    ? t('Plantilla guardada', 'Template saved')
+                                    : prog.cifrando
+                                      ? t('Protegiendo la plantilla', 'Protecting the template')
+                                      : t('Guardando plantilla', 'Saving template')}
                             </h4>
                             <p className="text-muted small">{prog.text}</p>
                             <div className="wizard-progress mt-3">
@@ -315,7 +319,7 @@ export default function CredentialEditorModal({
                             {!prog.done && (
                                 <p className="text-muted mt-3 mb-0" style={{ fontSize: '0.72rem' }}>
                                     <i className="fas fa-triangle-exclamation me-1" />
-                                    No cierres ni recargues esta pestaña hasta que termine.
+                                    {t('No cierres ni recargues esta pestaña hasta que termine.', "Don't close or reload this tab until it finishes.")}
                                 </p>
                             )}
                         </div>

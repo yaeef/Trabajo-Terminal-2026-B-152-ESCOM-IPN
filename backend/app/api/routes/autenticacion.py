@@ -69,7 +69,7 @@ def _autenticar(request: Request, db: Session, identificador: str, password: str
         _login_fallidos.registrar(clave)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales incorrectas.",
+            detail="Usuario o contraseña incorrectos.",
             headers={"WWW-Authenticate": "Bearer"},
         )
     _login_fallidos.reiniciar(clave)
@@ -212,7 +212,7 @@ def restablecer_contrasena(datos: RestablecerContrasenaRequest, db: SesionBD) ->
     if token is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Token inválido, expirado o ya utilizado.",
+            detail="El enlace no es válido, ya expiró o ya se usó.",
         )
 
     hash_nuevo = seguridad.hash_contrasena(datos.nueva_password)

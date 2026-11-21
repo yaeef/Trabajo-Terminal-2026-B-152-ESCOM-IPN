@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { parseBackendDate } from '../../utils/dates';
+import { getLang, locale, t } from '../../i18n';
+import { parentescoLabel } from '../../types/custodios.types';
 import type { FragmentoDepositadoResponse, SesionEstadoResponse } from '../../types/recuperacion.types';
 
 /** Marca de tiempo que se refresca cada segundo mientras `activo` sea true. */
@@ -8,8 +10,8 @@ export function useReloj(activo: boolean): number {
     useEffect(() => {
         if (!activo) return;
         setAhora(Date.now());
-        const t = window.setInterval(() => setAhora(Date.now()), 1000);
-        return () => window.clearInterval(t);
+        const id = window.setInterval(() => setAhora(Date.now()), 1000);
+        return () => window.clearInterval(id);
     }, [activo]);
     return ahora;
 }
@@ -30,29 +32,29 @@ function formatoRestante(ms: number): string {
 }
 
 const fmtFecha = (iso: string) =>
-    parseBackendDate(iso).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    parseBackendDate(iso).toLocaleString(locale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
 function FilaDeposito({ d, esBp }: { d: FragmentoDepositadoResponse; esBp?: boolean }) {
     return (
         <div className="sesion-preview-fila">
             <div className="flex-grow-1">
                 <div className="small">
-                    <span className="text-muted">Se registró como </span>
+                    <span className="text-muted">{t('Se registró como ', 'Registered as ')}</span>
                     <strong>{d.nombre_declarado}</strong>
-                    {!esBp && <span className="text-muted"> · {d.vinculo_declarado}</span>}
+                    {!esBp && <span className="text-muted"> · {parentescoLabel(d.vinculo_declarado)}</span>}
                 </div>
                 <div className="sesion-preview-detalle">
-                    Fragmento <code>x={d.x_fragmento}</code> ·{' '}
+                    {t('Fragmento', 'Share')} ·{' '}
                     {d.custodio_asignado ? (
                         <>
-                            pertenece a <strong>{d.custodio_asignado}</strong>
+                            {t('pertenece a', 'belongs to')} <strong>{d.custodio_asignado}</strong>
                         </>
                     ) : (
-                        <span className="text-danger">no está asignado a ningún custodio</span>
+                        <span className="text-danger">{t('no está asignado a ningún custodio', "isn't assigned to any custodian")}</span>
                     )}
                 </div>
             </div>
-            <div className="sesion-preview-hora" title="Se unió">
+            <div className="sesion-preview-hora" title={t('Se unió', 'Joined')}>
                 {fmtFecha(d.depositado_en)}
             </div>
         </div>
@@ -82,36 +84,48 @@ export default function VistaPreviaSesion({
     return (
         <div className="sesion-preview mb-3">
             <div className="d-flex justify-content-between align-items-center mb-1 gap-2 flex-wrap">
-                <span className="recuperacion-label">Sesión de recuperación en curso</span>
+                <span className="recuperacion-label">{t('Sesión de recuperación en curso', 'Recovery session in progress')}</span>
                 <span className={`sesion-reloj ${expirada ? 'is-expirada' : urgente ? 'is-urgente' : ''}`}>
                     <i className="fas fa-hourglass-half me-1" />
-                    {expirada ? 'Expirada' : Number.isFinite(restanteMs) ? `Quedan ${formatoRestante(restanteMs)}` : 'Vigente'}
+                    {expirada
+                        ? t('Expirada', 'Expired')
+                        : Number.isFinite(restanteMs)
+                          ? t(`Quedan ${formatoRestante(restanteMs)}`, `${formatoRestante(restanteMs)} left`)
+                          : t('Vigente', 'Active')}
                 </span>
             </div>
             <p className="small text-muted mb-3">
-                {sesion.expira_en && <>Expira el {fmtFecha(sesion.expira_en)} · </>}
+                {sesion.expira_en && <>{t('Expira el', 'Expires on')} {fmtFecha(sesion.expira_en)} · </>}
                 {k > 0 && sesion.depositos.length >= k ? (
-                    <>Ya se reunieron los <strong>{k}</strong> fragmentos necesarios.</>
-                ) : (
+                    getLang() === 'es' ? (
+                        <>Ya se reunieron los <strong>{k}</strong> fragmentos necesarios.</>
+                    ) : (
+                        <>All <strong>{k}</strong> required shares have been gathered.</>
+                    )
+                ) : getLang() === 'es' ? (
                     <>
                         Llevan <strong>{sesion.depositos.length}</strong> de <strong>{k}</strong> fragmentos
                         necesarios.
+                    </>
+                ) : (
+                    <>
+                        <strong>{sesion.depositos.length}</strong> of <strong>{k}</strong> required shares so far.
                     </>
                 )}
             </p>
 
             <div className="recuperacion-label mb-1">
-                <i className="fas fa-crown me-1" /> Beneficiario Principal
+                <i className="fas fa-crown me-1" /> {t('Beneficiario Principal', 'Primary Beneficiary')}
             </div>
             {fundador ? (
                 <FilaDeposito d={fundador} esBp />
             ) : (
-                <p className="small text-muted">No se encontró el fragmento del fundador.</p>
+                <p className="small text-muted">{t('No se encontró el fragmento del fundador.', "The founder's share wasn't found.")}</p>
             )}
 
-            <div className="recuperacion-label mt-3 mb-1">Custodios que ya se unieron ({otros.length})</div>
+            <div className="recuperacion-label mt-3 mb-1">{t('Custodios que ya se unieron', 'Custodians who already joined')} ({otros.length})</div>
             {otros.length === 0 ? (
-                <p className="small text-muted m-0">Nadie más se ha unido todavía.</p>
+                <p className="small text-muted m-0">{t('Nadie más se ha unido todavía.', 'Nobody else has joined yet.')}</p>
             ) : (
                 otros.map((d) => <FilaDeposito key={d.x_fragmento} d={d} />)
             )}

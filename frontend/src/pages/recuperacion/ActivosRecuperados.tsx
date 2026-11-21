@@ -11,6 +11,8 @@ import { plantillaById, parseEnvelope, type CredentialEnvelope } from '../../cre
 import CredentialViewModal from '../../credentials/CredentialViewModal';
 import type { BovedaRecuperacionResponse, SesionEstadoResponse } from '../../types/recuperacion.types';
 import type { ActivoResponse } from '../../types/activos.types';
+import './ActivosRecuperados.css';
+import { t } from '../../i18n';
 
 /**
  * boveda_desbloqueada.html — una vez reconstruida la DEK en SesionBP, este
@@ -44,7 +46,7 @@ export default function ActivosRecuperados() {
         recuperacionService
             .listarActivos(pid)
             .then(setActivos)
-            .catch((e) => notifyError(getApiErrorMessage(e, 'No se pudo listar los activos.')));
+            .catch((e) => notifyError(getApiErrorMessage(e, t('No se pudo listar los activos.', "Couldn't list the assets."))));
     }, [pid]);
 
     const descargar = async (a: ActivoResponse) => {
@@ -56,7 +58,7 @@ export default function ActivosRecuperados() {
             const blob = await decryptToBlob(bp.dek, dl.iv_hex, ct, dl.mime);
             saveBlob(dl.nombre_original, blob);
         } catch (e) {
-            notifyError(getApiErrorMessage(e, `No se pudo descargar "${a.nombre_original}".`));
+            notifyError(getApiErrorMessage(e, t(`No se pudo descargar "${a.nombre_original}".`, `Couldn't download "${a.nombre_original}".`)));
         } finally {
             setDescargandoId(null);
         }
@@ -74,7 +76,7 @@ export default function ActivosRecuperados() {
             const blob = await decryptToBlob(bp.dek, dl.iv_hex, ct, dl.mime);
             setViewer({ activo: a, envelope: parseEnvelope(await blob.text()) });
         } catch (e) {
-            notifyError(getApiErrorMessage(e, `No se pudo abrir "${a.nombre_original}".`));
+            notifyError(getApiErrorMessage(e, t(`No se pudo abrir "${a.nombre_original}".`, `Couldn't open "${a.nombre_original}".`)));
         } finally {
             setDescargandoId(null);
         }
@@ -93,20 +95,40 @@ export default function ActivosRecuperados() {
         >
             <div className="mb-4">
                 <div className="d-flex align-items-center gap-3 flex-wrap">
-                    <h2 className="fw-bold m-0">Patrimonio Recuperado</h2>
+                    <h2 className="fw-bold m-0">{t('Patrimonio Recuperado', 'Recovered Estate')}</h2>
                     <span className="badge bg-success-subtle text-success border border-success rounded-pill px-3">
-                        Llave reconstruida
+                        {t('Llave reconstruida', 'Key rebuilt')}
                     </span>
                 </div>
                 <p className="text-muted mt-2">
-                    Los activos siguen cifrados en el servidor; se descifran en tu navegador al descargarlos.
+                    {t('Los activos siguen cifrados en el servidor; se descifran en tu navegador al descargarlos.', 'The assets remain encrypted on the server; they are decrypted in your browser when you download them.')}
                 </p>
             </div>
+
+            {boveda?.mensaje_custodios?.trim() && (
+                <section className="mensaje-propietario mb-4" aria-labelledby="mensaje-propietario-titulo">
+                    <div className="mensaje-propietario-icono" aria-hidden="true">
+                        <i className="fas fa-comment-dots" />
+                    </div>
+                    <div className="mensaje-propietario-cuerpo">
+                        <h3 id="mensaje-propietario-titulo" className="fw-bold m-0">
+                            {boveda.propietario_nombre
+                                ? t(`Mensaje de ${boveda.propietario_nombre}`, `Message from ${boveda.propietario_nombre}`)
+                                : t('Mensaje del propietario', "Owner's message")}
+                        </h3>
+                        <p className="mensaje-propietario-texto">{boveda.mensaje_custodios.trim()}</p>
+                        <p className="text-muted small m-0">
+                            {boveda.propietario_nombre ?? t('El propietario', 'The owner')}{' '}
+                            {t('dejó este mensaje para sus custodios cuando creó la bóveda.', 'left this message for their custodians when creating the vault.')}
+                        </p>
+                    </div>
+                </section>
+            )}
 
             {activos.length === 0 ? (
                 <div className="text-center text-muted py-5">
                     <i className="fas fa-box-open fa-2x mb-3 d-block" style={{ color: '#cbd5e1' }} />
-                    Esta bóveda no tiene activos.
+                    {t('Esta bóveda no tiene activos.', "This vault doesn't have any assets.")}
                 </div>
             ) : (
                 <div className="row g-4">
@@ -134,14 +156,14 @@ export default function ActivosRecuperados() {
                                         onClick={() => (tpl ? verCredencial(a) : descargar(a))}
                                     >
                                         {descargandoId === a.id ? (
-                                            'Descifrando…'
+                                            t('Descifrando…', 'Decrypting…')
                                         ) : tpl ? (
                                             <>
-                                                <i className="fas fa-eye me-2" /> Ver
+                                                <i className="fas fa-eye me-2" /> {t('Ver', 'View')}
                                             </>
                                         ) : (
                                             <>
-                                                <i className="fas fa-download me-2" /> Descargar
+                                                <i className="fas fa-download me-2" /> {t('Descargar', 'Download')}
                                             </>
                                         )}
                                     </button>
@@ -165,11 +187,9 @@ export default function ActivosRecuperados() {
                 <div className="d-flex gap-3 align-items-center">
                     <i className="fas fa-exclamation-triangle fa-2x" />
                     <div>
-                        <h6 className="fw-bold mb-0">La llave de descifrado es volátil</h6>
+                        <h6 className="fw-bold mb-0">{t('La bóveda solo queda abierta en esta pestaña', 'The vault stays open only in this tab')}</h6>
                         <p className="small mb-0">
-                            Vive solo en la memoria de esta pestaña. Descarga lo que necesites antes de cerrarla —
-                            para volver a descifrar tendrás que reingresar con la pass-phrase de sesión y esperar a
-                            que se junten los fragmentos otra vez.
+                            {t('Descarga lo que necesites antes de cerrarla: para volver a abrirla tendrás que entrar de nuevo con la clave de la sesión y esperar a que se junten los fragmentos otra vez.', "Download what you need before closing it: to open it again you'll have to re-enter with the session key and wait for the shares to be gathered again.")}
                         </p>
                     </div>
                 </div>

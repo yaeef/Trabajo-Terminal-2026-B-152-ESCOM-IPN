@@ -23,13 +23,68 @@
     border-radius: 10px;
     margin-bottom: 6px;
     border: 1px solid #f1f5f9;
-    max-width: 340px;
+    width: 100%;
+    max-width: 420px;
+    min-height: 38px;
 }
 .channel-row:last-child {
     margin-bottom: 0;
 }
+/* Izquierda: ícono + texto en una sola línea (el correo largo se corta con …). */
+.channel-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    font-size: 0.875rem;
+}
+.channel-label > i {
+    width: 1.1em;
+    text-align: center;
+    flex-shrink: 0;
+}
+.channel-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* Derecha: botón de reenviar (si aplica) + estado, siempre en una línea. */
+.channel-estado {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.channel-accion {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    background: transparent;
+    color: var(--escom-blue);
+    border: 1px solid currentColor;
+    line-height: 1.5;
+    cursor: pointer;
+}
+.channel-accion:hover:not(:disabled) {
+    background: var(--escom-blue);
+    color: #fff;
+}
+.channel-accion:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
 
 .verif-tag {
+    display: inline-block;
+    min-width: 96px;
+    text-align: center;
     font-size: 0.6rem;
     font-weight: 800;
     text-transform: uppercase;
@@ -76,4 +131,19 @@
     border-radius: 24px;
     border: none;
     overflow: hidden;
+}
+
+/* Aviso del custodio de reemplazo (plan + 1). */
+.cust-reserva {
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    color: #1e3a8a;
+    border-radius: 14px;
+    padding: 0.85rem 1.1rem;
+    font-size: 0.92rem;
+}
+[data-theme='dark'] .cust-reserva {
+    background: var(--surface-2);
+    border-color: var(--border);
+    color: inherit;
 }

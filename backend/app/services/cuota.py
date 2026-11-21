@@ -13,18 +13,26 @@ from sqlalchemy.orm import Session
 
 from app.core.tiempo import hoy
 from app.models.activo import ActivoDigital, EstadoActivo
-from app.models.boveda import Boveda
+from app.models.boveda import Boveda, CustodioBoveda
 from app.models.custodio import Custodio
 from app.models.suscripcion import PropietarioSuscripcion, Suscripcion
 from app.models.usuario import Usuario
 from app.services.errores import Conflicto
 
+MB = 1024**2
 GB = 1024**3
 ID_PLAN_GRATUITO = 1  # alta de cuenta y destino al terminar la cobertura de pago
 
 
 class PlanConflicto(Conflicto):
     """La operación no cabe en el plan (límite alcanzado, ya lo tienes, etc.)."""
+
+
+class LimiteArchivos(PlanConflicto):
+    """Ya tiene todos los archivos que su plan permite (el frontend lo muestra
+    en una ventana propia por su `codigo`)."""
+
+    codigo = "limite_archivos"
 
 
 def suscripcion_activa(db: Session, usuario: Usuario) -> PropietarioSuscripcion:
@@ -75,7 +83,30 @@ def uso_bytes(db: Session, usuario: Usuario) -> int:
 
 
 def cuota_bytes(db: Session, usuario: Usuario) -> int:
-    return int(plan_vigente(db, usuario).max_almacenamiento) * GB
+    return int(plan_vigente(db, usuario).max_almacenamiento_mb) * MB
+
+
+def tamano_legible(num_bytes: float) -> str:
+    """512 MB, 1.5 GB, 50 GB… (para mensajes al usuario, nunca bytes sueltos)."""
+    if num_bytes >= GB:
+        texto = f"{num_bytes / GB:.1f}".removesuffix(".0")
+        return f"{texto} GB"
+    return f"{max(num_bytes, 0) / MB:.0f} MB"
+
+
+def num_archivos(db: Session, usuario: Usuario) -> int:
+    """Archivos subidos y confirmados en sus bóvedas. Las plantillas de
+    credenciales no cuentan para el límite de archivos del plan."""
+    total = db.scalar(
+        select(func.count(ActivoDigital.id))
+        .join(Boveda, Boveda.id == ActivoDigital.id_boveda)
+        .where(
+            Boveda.id_propietario == usuario.id,
+            ActivoDigital.estado == EstadoActivo.activo,
+            ActivoDigital.plantilla.is_(None),
+        )
+    )
+    return int(total or 0)
 
 
 def uso_y_cuota(db: Session, usuario: Usuario) -> tuple[int, int]:
@@ -86,6 +117,15 @@ def uso_y_cuota(db: Session, usuario: Usuario) -> tuple[int, int]:
 def num_bovedas(db: Session, usuario: Usuario) -> int:
     total = db.scalar(select(func.count(Boveda.id)).where(Boveda.id_propietario == usuario.id))
     return int(total or 0)
+
+
+# Custodio de reemplazo: se puede registrar 1 más que el plan para sustituir a
+# otro sin borrar la bóveda; en las bóvedas solo se usan los del plan.
+RESERVA_CUSTODIOS = 1
+
+
+def limite_registro_custodios(plan: Suscripcion) -> int:
+    return plan.max_custodios + RESERVA_CUSTODIOS
 
 
 def num_custodios(db: Session, usuario: Usuario) -> int:
@@ -99,6 +139,7 @@ def uso_actual(db: Session, usuario: Usuario) -> dict[str, int]:
         "bovedas": num_bovedas(db, usuario),
         "custodios": num_custodios(db, usuario),
         "almacenamiento_bytes": uso_bytes(db, usuario),
+        "archivos": num_archivos(db, usuario),
     }
 
 
@@ -109,13 +150,18 @@ def excesos(uso: dict[str, Any], plan: Suscripcion, *, custodios: bool = True) -
     problemas = []
     if uso["bovedas"] > plan.max_bovedas:
         problemas.append(f"{uso['bovedas']} bóvedas (el plan permite {plan.max_bovedas})")
-    if custodios and uso["custodios"] > plan.max_custodios:
-        problemas.append(f"{uso['custodios']} custodios (el plan permite {plan.max_custodios})")
-    if uso["almacenamiento_bytes"] > plan.max_almacenamiento * GB:
-        usados_gb = uso["almacenamiento_bytes"] / GB
+    if custodios and uso["custodios"] > limite_registro_custodios(plan):
         problemas.append(
-            f"{usados_gb:.2f} GB usados (el plan permite {plan.max_almacenamiento} GB)"
+            f"{uso['custodios']} custodios (el plan permite {plan.max_custodios} "
+            f"y {RESERVA_CUSTODIOS} de reemplazo)"
         )
+    if uso["almacenamiento_bytes"] > plan.max_almacenamiento_mb * MB:
+        problemas.append(
+            f"{tamano_legible(uso['almacenamiento_bytes'])} usados "
+            f"(el plan permite {tamano_legible(plan.max_almacenamiento_mb * MB)})"
+        )
+    if plan.max_archivos is not None and uso.get("archivos", 0) > plan.max_archivos:
+        problemas.append(f"{uso['archivos']} archivos (el plan permite {plan.max_archivos})")
     return problemas
 
 
@@ -135,8 +181,41 @@ def exigir_cupo_boveda(db: Session, usuario: Usuario) -> None:
 def exigir_cupo_custodio(db: Session, usuario: Usuario) -> None:
     """409 si registrar otro custodio excede el plan vigente."""
     plan = plan_vigente(db, usuario)
-    if num_custodios(db, usuario) >= plan.max_custodios:
+    if num_custodios(db, usuario) >= limite_registro_custodios(plan):
         raise PlanConflicto(
-            f"Alcanzaste el límite de {plan.max_custodios} custodio(s) de tu plan «{plan.nombre}». "
-            "Sube de plan para registrar más."
+            f"Ya tienes {limite_registro_custodios(plan)} custodios: los {plan.max_custodios} de tu "
+            f"plan «{plan.nombre}» y {RESERVA_CUSTODIOS} de reemplazo. Elimina uno o sube de plan "
+            "para registrar más."
+        )
+
+
+def exigir_custodios_habilitados(
+    db: Session, usuario: Usuario, id_boveda: int, ids_nuevos: set[int]
+) -> None:
+    """409 si, con la nueva asignación de `id_boveda`, el propietario usaría
+    en sus bóvedas más custodios distintos de los que permite el plan (el de
+    reemplazo solo entra quitando a otro)."""
+    plan = plan_vigente(db, usuario)
+    en_otras = db.scalars(
+        select(CustodioBoveda.id_custodio)
+        .join(Boveda, Boveda.id == CustodioBoveda.id_boveda)
+        .where(Boveda.id_propietario == usuario.id, Boveda.id != id_boveda)
+    ).all()
+    usados = set(en_otras) | ids_nuevos
+    if len(usados) > plan.max_custodios:
+        raise PlanConflicto(
+            f"Tu plan «{plan.nombre}» permite usar {plan.max_custodios} custodios en tus "
+            f"bóvedas y con este cambio serían {len(usados)}. El custodio de reemplazo "
+            "sirve para tomar el lugar de otro: quita a alguien para hacerle espacio."
+        )
+
+
+def exigir_cupo_archivo(db: Session, usuario: Usuario) -> None:
+    """409 si subir otro archivo excede el límite de archivos del plan vigente
+    (solo archivos subidos; las plantillas de credenciales no cuentan)."""
+    plan = plan_vigente(db, usuario)
+    if plan.max_archivos is not None and num_archivos(db, usuario) >= plan.max_archivos:
+        raise LimiteArchivos(
+            f"Tu plan «{plan.nombre}» permite {plan.max_archivos} archivos y ya los tienes. "
+            "Borra uno o cámbiate a Premium para subir más. Las plantillas no tienen límite."
         )

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { authService } from '../../services/auth.service';
 import './AuthTheme.css';
 import KleimosLogo from '../../components/brand/KleimosLogo';
+import LanguageToggle from '../../components/common/LanguageToggle';
+import { t } from '../../i18n';
 
 /**
  * CU-005 (paso 1): solicitar el enlace de recuperación de contraseña.
@@ -35,6 +37,9 @@ export default function ForgotPassword() {
     if (submitted) {
         return (
             <div className="auth-page">
+                <div className="auth-theme-toggle">
+                    <LanguageToggle />
+                </div>
                 <div className="card-auth animate__animated animate__fadeInUp">
                     <div className="top-gradient"></div>
                     <div className="card-body p-4 p-md-5 text-center">
@@ -44,14 +49,16 @@ export default function ForgotPassword() {
                         <div className="success-icon-circle animate__animated animate__bounceIn">
                             <i className="fas fa-envelope-open-text fa-3x"></i>
                         </div>
-                        <h3 className="fw-bold" style={{ color: 'var(--escom-blue)' }}>Revisa tu correo</h3>
+                        <h3 className="fw-bold" style={{ color: 'var(--escom-blue)' }}>{t('Revisa tu correo', 'Check your email')}</h3>
                         <p className="text-muted">
-                            Si el correo existe en nuestro sistema, se enviaron instrucciones de
-                            recuperación por correo y Telegram (si tienes uno vinculado).
+                            {t(
+                                'Si el correo existe en nuestro sistema, se enviaron instrucciones de recuperación por correo y Telegram (si tienes uno vinculado).',
+                                'If the email exists in our system, recovery instructions were sent by email and Telegram (if you have one linked).',
+                            )}
                         </p>
-                        <p className="small text-muted">El enlace expira en 30 minutos.</p>
+                        <p className="small text-muted">{t('El enlace expira en 30 minutos.', 'The link expires in 30 minutes.')}</p>
                         <Link to="/login" className="btn btn-ipn w-100 mt-3 py-3 shadow-sm">
-                            Volver al login <i className="fas fa-arrow-right ms-2"></i>
+                            {t('Volver al login', 'Back to sign in')} <i className="fas fa-arrow-right ms-2"></i>
                         </Link>
                     </div>
                 </div>
@@ -61,6 +68,9 @@ export default function ForgotPassword() {
 
     return (
         <div className="auth-page">
+            <div className="auth-theme-toggle">
+                <LanguageToggle />
+            </div>
             <div className="card-auth animate__animated animate__fadeInUp">
                 <div className="top-gradient"></div>
                 <div className="card-body p-4 p-md-5">
@@ -72,22 +82,22 @@ export default function ForgotPassword() {
                             <i className="fas fa-key fa-3x" style={{ color: 'var(--escom-blue)' }}></i>
                         </div>
                         <h3 className="fw-bold mb-1 mt-3" style={{ color: 'var(--escom-blue)' }}>
-                            Recuperar contraseña
+                            {t('Recuperar contraseña', 'Reset password')}
                         </h3>
                         <p className="text-muted small">
-                            Ingresa tu correo y te enviaremos un enlace para restablecerla.
+                            {t('Ingresa tu correo y te enviaremos un enlace para restablecerla.', "Enter your email and we'll send you a link to reset it.")}
                         </p>
                     </div>
 
                     <form onSubmit={handleSubmit}>
                         <div className="mb-4">
-                            <label className="form-label small fw-bold text-muted">Correo electrónico</label>
+                            <label className="form-label small fw-bold text-muted">{t('Correo electrónico', 'Email address')}</label>
                             <div className="input-group">
                                 <span className="input-group-text"><i className="fas fa-envelope"></i></span>
                                 <input
                                     type="email"
                                     className="form-control shadow-none"
-                                    placeholder="usuario@correo.com"
+                                    placeholder={t('usuario@correo.com', 'user@email.com')}
                                     value={correo}
                                     onChange={(e) => setCorreo(e.target.value)}
                                     required
@@ -97,16 +107,16 @@ export default function ForgotPassword() {
 
                         <button type="submit" className="btn btn-ipn w-100 py-3 mb-3 shadow-sm" disabled={isSubmitting}>
                             {isSubmitting ? (
-                                'Enviando...'
+                                t('Enviando...', 'Sending...')
                             ) : (
-                                <>Enviar enlace <i className="fas fa-paper-plane ms-2"></i></>
+                                <>{t('Enviar enlace', 'Send link')} <i className="fas fa-paper-plane ms-2"></i></>
                             )}
                         </button>
                     </form>
 
                     <div className="text-center">
                         <Link to="/login" className="text-decoration-none fw-bold small" style={{ color: 'var(--escom-blue)' }}>
-                            <i className="fas fa-arrow-left me-1"></i> Volver al login
+                            <i className="fas fa-arrow-left me-1"></i> {t('Volver al login', 'Back to sign in')}
                         </Link>
                     </div>
                 </div>

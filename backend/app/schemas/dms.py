@@ -40,7 +40,7 @@ class AtestacionRequest(BaseModel):
     # El voto solo es válido si viene acompañado de un fragmento verificado
     # localmente (Feldman VSS) cuya x coincida con la asignada al custodio.
     pid_boveda: Annotated[
-        TextoRecortado, AfterValidator(lambda v: texto_acotado(v, "pid_boveda", 1, 22))
+        TextoRecortado, AfterValidator(lambda v: texto_acotado(v, "El código de la bóveda", 1, 22))
     ]
     x_fragmento: CoordenadaX
 

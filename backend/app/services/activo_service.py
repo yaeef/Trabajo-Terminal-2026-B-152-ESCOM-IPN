@@ -4,7 +4,8 @@ Activos digitales de una bóveda (CU-024 a CU-026).
 
 Zero-knowledge: el navegador cifra el archivo (AES-256-GCM con la DEK de la
 bóveda) y lo sube DIRECTO a Blob Storage con un SAS de vida corta. Este
-servicio solo emite SAS, valida cuota y pass-phrase, y persiste metadatos.
+servicio solo emite SAS, valida cuota, límite de archivos y llave maestra, y
+persiste metadatos.
 """
 
 import uuid
@@ -19,8 +20,37 @@ from app.models.boveda import Boveda
 from app.models.usuario import Usuario
 from app.schemas.activo import IniciarSubidaRequest
 from app.services import almacenamiento_service, boveda_service, cuota
+from app.services.errores import DatoInvalido
 
 VIGENCIA_PENDIENTE_HORAS = 2  # filas 'pendiente' sin confirmar que se pueden purgar
+
+# Archivos comprimidos: no se aceptan (se pide subir los archivos que contienen).
+EXTENSIONES_COMPRIMIDAS = (".zip", ".rar", ".7z", ".tar", ".gz", ".tgz", ".bz2", ".xz")
+MIMES_COMPRIMIDOS = frozenset(
+    {
+        "application/zip",
+        "application/x-zip-compressed",
+        "application/vnd.rar",
+        "application/x-rar-compressed",
+        "application/x-7z-compressed",
+        "application/x-tar",
+        "application/gzip",
+        "application/x-gzip",
+        "application/x-bzip2",
+        "application/x-xz",
+    }
+)
+
+
+class ArchivoComprimido(DatoInvalido):
+    codigo = "archivo_comprimido"
+
+
+def es_comprimido(nombre: str, mime: str | None) -> bool:
+    return (
+        nombre.lower().endswith(EXTENSIONES_COMPRIMIDAS)
+        or (mime or "").lower() in MIMES_COMPRIMIDOS
+    )
 
 
 # --------------------------------------------------------------------------
@@ -84,12 +114,20 @@ def iniciar_subida(
     boveda = boveda_service.verificar_passphrase(db, usuario, id_boveda, datos.passphrase_verifier)
     _purgar_pendientes(db, boveda.id)
 
+    if datos.plantilla is None:
+        if es_comprimido(datos.nombre, datos.mime):
+            raise ArchivoComprimido(
+                "No se pueden subir archivos comprimidos (.zip, .rar, .7z…). "
+                "Descomprímelo y sube los archivos que contiene."
+            )
+        cuota.exigir_cupo_archivo(db, usuario)
+
     usado, limite = cuota.uso_y_cuota(db, usuario)
     if usado + datos.tamano_cifrado > limite:
-        libre = max(limite - usado, 0)
         raise boveda_service.BovedaConflicto(
-            f"No hay espacio suficiente: quedan {libre} bytes de tu cuota "
-            f"({limite} bytes) y este archivo cifrado ocupa {datos.tamano_cifrado}."
+            f"No hay espacio suficiente: te quedan {cuota.tamano_legible(limite - usado)} "
+            f"de {cuota.tamano_legible(limite)} y este archivo ocupa "
+            f"{cuota.tamano_legible(datos.tamano_cifrado)}."
         )
 
     nombre_blob = f"{boveda.pid}/{uuid.uuid4().hex}"
@@ -133,7 +171,16 @@ def confirmar_subida(
         raise boveda_service.BovedaConflicto("El archivo no se encuentra en el almacenamiento.")
     # El SAS de escritura no limita el tamaño: el cliente pudo declarar poco en
     # `iniciar_subida` y subir mucho más. La cuota se re-verifica con el tamaño
-    # REAL (el pendiente aún no cuenta en el uso) antes de aceptarlo.
+    # REAL (el pendiente aún no cuenta en el uso) antes de aceptarlo. El
+    # límite de archivos también: dos subidas en paralelo pasan el paso 1.
+    if activo.plantilla is None:
+        try:
+            cuota.exigir_cupo_archivo(db, usuario)
+        except cuota.LimiteArchivos:
+            almacenamiento_service.borrar_blob(activo.blob_name)
+            db.delete(activo)
+            db.commit()
+            raise
     usado, limite = cuota.uso_y_cuota(db, usuario)
     if usado + tamano > limite:
         almacenamiento_service.borrar_blob(activo.blob_name)

@@ -1,4 +1,5 @@
 import './NoticeModal.css';
+import { t } from '../../i18n';
 
 export type NoticeType = 'error' | 'warning' | 'success';
 
@@ -30,7 +31,7 @@ export default function NoticeModal({ type, title, message, onClose }: NoticeMod
                         <h4 className="fw-bold">{title}</h4>
                         <p className="text-muted mb-0">{message}</p>
                         <button type="button" className="btn w-100 mt-4 py-3 shadow-sm text-white" style={{ background: color }} onClick={onClose}>
-                            Entendido
+                            {t('Entendido', 'Got it')}
                         </button>
                     </div>
                 </div>

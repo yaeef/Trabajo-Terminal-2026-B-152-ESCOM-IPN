@@ -3,9 +3,11 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { adminService } from '../../services/admin.service';
 import { useNotice } from '../../store/NoticeContext';
-import { ESTADO_BADGE_DEFAULT, ESTADO_DMS_LABELS, type PropietarioListaItem } from '../../types/admin.types';
+import { estadoDmsBadge, type PropietarioListaItem } from '../../types/admin.types';
+import { nombrePlan } from '../../types/subscription.types';
 import { getApiErrorMessage } from '../../utils/errors';
 import './admin.css';
+import { locale, t } from '../../i18n';
 
 const TAM_PAGINA = 20;
 
@@ -31,7 +33,7 @@ export default function AdminPropietarios() {
                 setTotal(r.total);
                 setPagina(r.pagina);
             })
-            .catch((e) => notifyError(getApiErrorMessage(e, 'No se pudo cargar la lista de propietarios.')))
+            .catch((e) => notifyError(getApiErrorMessage(e, t('No se pudo cargar la lista de propietarios.', "Couldn't load the owner list."))))
             .finally(() => setLoading(false));
     };
 
@@ -49,12 +51,12 @@ export default function AdminPropietarios() {
     };
 
     return (
-        <DashboardLayout activeItem="admin-propietarios" topBarLabel="Panel Admin" variant="admin">
+        <DashboardLayout activeItem="admin-propietarios" topBarLabel={t('Panel Admin', 'Admin Panel')} variant="admin">
             <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
                 <div>
-                    <h2 className="fw-bold mb-1">Propietarios</h2>
+                    <h2 className="fw-bold mb-1">{t('Propietarios', 'Owners')}</h2>
                     <p className="text-muted m-0">
-                        Busca una cuenta para ver su Interruptor de Hombre Muerto, custodios, bóvedas y suscripción.
+                        {t('Busca una cuenta para ver su Interruptor de Hombre Muerto, custodios, bóvedas y suscripción.', "Search an account to see its Dead Man's Switch, custodians, vaults and subscription.")}
                     </p>
                 </div>
             </div>
@@ -63,12 +65,12 @@ export default function AdminPropietarios() {
                 <input
                     className="form-control shadow-none"
                     style={{ maxWidth: 420 }}
-                    placeholder="Nombre, username o correo…"
+                    placeholder={t('Nombre, username o correo…', 'Name, username or email…')}
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                 />
                 <button className="btn btn-ipn" type="submit" disabled={loading}>
-                    <i className="fas fa-magnifying-glass me-2" /> Buscar
+                    <i className="fas fa-magnifying-glass me-2" /> {t('Buscar', 'Search')}
                 </button>
             </form>
 
@@ -77,17 +79,17 @@ export default function AdminPropietarios() {
                     <table className="table table-hover align-middle mb-0">
                         <thead style={{ background: '#f8fafc' }}>
                             <tr>
-                                <th className="border-0 ps-4 py-3 small text-muted text-uppercase fw-bold">Propietario</th>
+                                <th className="border-0 ps-4 py-3 small text-muted text-uppercase fw-bold">{t('Propietario', 'Owner')}</th>
                                 <th className="border-0 py-3 small text-muted text-uppercase fw-bold">Plan</th>
-                                <th className="border-0 py-3 small text-muted text-uppercase fw-bold">Estado DMS</th>
-                                <th className="border-0 pe-4 py-3 small text-muted text-uppercase fw-bold text-end">Alta</th>
+                                <th className="border-0 py-3 small text-muted text-uppercase fw-bold">{t('Estado DMS', 'DMS Status')}</th>
+                                <th className="border-0 pe-4 py-3 small text-muted text-uppercase fw-bold text-end">{t('Alta', 'Joined')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading && (
                                 <tr>
                                     <td colSpan={4} className="text-center text-muted py-5">
-                                        Cargando…
+                                        {t('Cargando…', 'Loading…')}
                                     </td>
                                 </tr>
                             )}
@@ -95,13 +97,13 @@ export default function AdminPropietarios() {
                                 <tr>
                                     <td colSpan={4} className="text-center text-muted py-5">
                                         <i className="fas fa-user-slash fa-2x mb-3 d-block" style={{ color: '#cbd5e1' }} />
-                                        No se encontraron propietarios.
+                                        {t('No se encontraron propietarios.', 'No owners found.')}
                                     </td>
                                 </tr>
                             )}
                             {!loading &&
                                 resultados.map((p) => {
-                                    const estado = ESTADO_DMS_LABELS[p.status_dms ?? ''] ?? ESTADO_BADGE_DEFAULT;
+                                    const estado = estadoDmsBadge(p.status_dms);
                                     return (
                                         <tr
                                             key={p.id}
@@ -115,18 +117,18 @@ export default function AdminPropietarios() {
                                                 </div>
                                                 {p.eliminacion_solicitada_en && (
                                                     <span className="admin-badge mt-1 d-inline-block" style={{ background: '#fee2e2', color: '#b91c1c' }}>
-                                                        Eliminación pendiente
+                                                        {t('Eliminación pendiente', 'Deletion pending')}
                                                     </span>
                                                 )}
                                             </td>
-                                            <td>{p.plan_nombre}</td>
+                                            <td>{p.plan_nombre ? nombrePlan(p.plan_nombre) : p.plan_nombre}</td>
                                             <td>
                                                 <span className="admin-badge" style={{ background: estado.bg, color: estado.color }}>
                                                     {estado.label}
                                                 </span>
                                             </td>
                                             <td className="pe-4 text-end small text-muted">
-                                                {p.created_at ? new Date(p.created_at).toLocaleDateString('es-MX') : '—'}
+                                                {p.created_at ? new Date(p.created_at).toLocaleDateString(locale()) : '—'}
                                             </td>
                                         </tr>
                                     );
@@ -138,7 +140,7 @@ export default function AdminPropietarios() {
                 {!loading && total > TAM_PAGINA && (
                     <div className="d-flex justify-content-between align-items-center px-4 py-3 border-top">
                         <span className="small text-muted">
-                            Mostrando {(pagina - 1) * TAM_PAGINA + 1}–{Math.min(pagina * TAM_PAGINA, total)} de {total}
+                            {t('Mostrando', 'Showing')} {(pagina - 1) * TAM_PAGINA + 1}–{Math.min(pagina * TAM_PAGINA, total)} {t('de', 'of')} {total}
                         </span>
                         <div className="d-flex gap-2">
                             <button
@@ -147,10 +149,10 @@ export default function AdminPropietarios() {
                                 onClick={() => load(pagina - 1)}
                                 disabled={pagina <= 1}
                             >
-                                <i className="fas fa-chevron-left me-1" /> Anterior
+                                <i className="fas fa-chevron-left me-1" /> {t('Anterior', 'Previous')}
                             </button>
                             <span className="small text-muted align-self-center px-2">
-                                Página {pagina} de {totalPages}
+                                {t('Página', 'Page')} {pagina} {t('de', 'of')} {totalPages}
                             </span>
                             <button
                                 type="button"
@@ -158,7 +160,7 @@ export default function AdminPropietarios() {
                                 onClick={() => load(pagina + 1)}
                                 disabled={pagina >= totalPages}
                             >
-                                Siguiente <i className="fas fa-chevron-right ms-1" />
+                                {t('Siguiente', 'Next')} <i className="fas fa-chevron-right ms-1" />
                             </button>
                         </div>
                     </div>

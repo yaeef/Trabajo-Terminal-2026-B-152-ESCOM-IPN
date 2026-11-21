@@ -1,3 +1,5 @@
+import { t } from '../i18n';
+
 // 1:1 con backend/app/schemas/admin.py (rutas /api/v1/admin)
 
 export interface PropietarioListaItem {
@@ -139,15 +141,20 @@ export interface PurgarCuentaPayload extends AccionAdminPayload {
     contrasena_admin: string;
 }
 
-export const ACCION_LABELS: Record<string, string> = {
-    cancelar_eliminacion: 'Canceló una eliminación',
-    purgar_cuenta: 'Purgó una cuenta',
-    extender_plazo_dms: 'Extendió un plazo del DMS',
-    reenviar_aviso_dms: 'Reenvió un aviso del DMS',
-    forzar_barrido_dms: 'Forzó el barrido del DMS',
-    reenviar_verificacion_custodio: 'Reenvió la verificación de un custodio',
-    cambiar_plan: 'Cambió un plan',
-    reintentar_notificaciones: 'Reintentó notificaciones pendientes',
+const ACCION_LABELS: Record<string, [string, string]> = {
+    cancelar_eliminacion: ['Canceló una eliminación', 'Cancelled a deletion'],
+    purgar_cuenta: ['Purgó una cuenta', 'Purged an account'],
+    extender_plazo_dms: ['Extendió un plazo del DMS', 'Extended a DMS deadline'],
+    reenviar_aviso_dms: ['Reenvió un aviso del DMS', 'Resent a DMS notice'],
+    forzar_barrido_dms: ['Forzó el barrido del DMS', 'Forced the DMS sweep'],
+    reenviar_verificacion_custodio: ['Reenvió la verificación de un custodio', 'Resent a custodian verification'],
+    cambiar_plan: ['Cambió un plan', 'Changed a plan'],
+    reintentar_notificaciones: ['Reintentó notificaciones pendientes', 'Retried pending notifications'],
+};
+
+export const accionLabel = (accion: string): string => {
+    const l = ACCION_LABELS[accion];
+    return l ? t(...l) : accion;
 };
 
 export interface EstadoBadgeInfo {
@@ -156,14 +163,18 @@ export interface EstadoBadgeInfo {
     bg: string;
 }
 
-export const ESTADO_DMS_LABELS: Record<string, EstadoBadgeInfo> = {
-    activo: { label: 'Activo', color: '#15803d', bg: '#dcfce7' },
-    alerta: { label: 'Alerta', color: '#b45309', bg: '#fef3c7' },
-    gracia: { label: 'Gracia', color: '#b45309', bg: '#fef3c7' },
-    gracia_reduccion: { label: 'Gracia (reducción)', color: '#b91c1c', bg: '#fee2e2' },
-    liberado: { label: 'Liberado', color: '#b91c1c', bg: '#fee2e2' },
-    pausado_eliminacion: { label: 'En baja', color: '#475569', bg: '#e2e8f0' },
-    eliminado: { label: 'Eliminado', color: '#475569', bg: '#e2e8f0' },
-};
+const ESTADO_BADGE_DEFAULT: EstadoBadgeInfo = { label: '—', color: '#475569', bg: '#e2e8f0' };
 
-export const ESTADO_BADGE_DEFAULT: EstadoBadgeInfo = { label: '—', color: '#475569', bg: '#e2e8f0' };
+/** Badge del estado DMS de un propietario, con la etiqueta en el idioma activo. */
+export function estadoDmsBadge(status: string | null | undefined): EstadoBadgeInfo {
+    const badges: Record<string, EstadoBadgeInfo> = {
+        activo: { label: t('Activo', 'Active'), color: '#15803d', bg: '#dcfce7' },
+        alerta: { label: t('Alerta', 'Alert'), color: '#b45309', bg: '#fef3c7' },
+        gracia: { label: t('Gracia', 'Grace'), color: '#b45309', bg: '#fef3c7' },
+        gracia_reduccion: { label: t('Gracia (reducción)', 'Grace (downgrade)'), color: '#b91c1c', bg: '#fee2e2' },
+        liberado: { label: t('Liberado', 'Released'), color: '#b91c1c', bg: '#fee2e2' },
+        pausado_eliminacion: { label: t('En baja', 'Closing'), color: '#475569', bg: '#e2e8f0' },
+        eliminado: { label: t('Eliminado', 'Deleted'), color: '#475569', bg: '#e2e8f0' },
+    };
+    return badges[status ?? ''] ?? ESTADO_BADGE_DEFAULT;
+}

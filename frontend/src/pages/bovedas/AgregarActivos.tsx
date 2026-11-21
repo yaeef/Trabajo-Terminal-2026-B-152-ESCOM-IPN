@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { bovedasService } from '../../services/bovedas.service';
 import { activosService } from '../../services/activos.service';
+import { subscriptionService } from '../../services/subscription.service';
 import type { BovedaResponse } from '../../types/bovedas.types';
 import { useNotice } from '../../store/NoticeContext';
 import { getApiErrorMessage } from '../../utils/errors';
@@ -12,8 +13,28 @@ import { encryptFile, humanBytes, MAX_FILE_BYTES } from '../../crypto/assetCrypt
 import { withMinDelay } from '../../utils/progress';
 import StorageMeter from '../../components/StorageMeter';
 import './bovedas.css';
+import { getLang, t } from '../../i18n';
 
 const GCM_OVERHEAD = 16; // bytes de tag por archivo
+
+// Comprimidos: no se aceptan (el backend también los rechaza).
+const EXT_COMPRIMIDAS = ['.zip', '.rar', '.7z', '.tar', '.gz', '.tgz', '.bz2', '.xz'];
+const MIME_COMPRIMIDOS = new Set([
+    'application/zip',
+    'application/x-zip-compressed',
+    'application/vnd.rar',
+    'application/x-rar-compressed',
+    'application/x-7z-compressed',
+    'application/x-tar',
+    'application/gzip',
+    'application/x-gzip',
+    'application/x-bzip2',
+    'application/x-xz',
+]);
+const esComprimido = (f: File) =>
+    EXT_COMPRIMIDAS.some((ext) => f.name.toLowerCase().endsWith(ext)) || MIME_COMPRIMIDOS.has(f.type);
+
+type Aviso = { tipo: 'comprimido' | 'limite'; nombres: string[] } | null;
 
 export default function AgregarActivos() {
     const { id } = useParams();
@@ -26,7 +47,7 @@ export default function AgregarActivos() {
     // determina si el botón de salida dice "Cancelar" o "Finalizar".
     const [subidos, setSubidos] = useState(0);
 
-    // gate de pass-phrase → DEK en memoria para el lote
+    // gate de llave maestra → DEK en memoria para el lote
     const [passphrase, setPassphrase] = useState('');
     const [dek, setDek] = useState<Uint8Array | null>(null);
     const [verifier, setVerifier] = useState('');
@@ -40,10 +61,16 @@ export default function AgregarActivos() {
     // si no es null, hay duplicados sin resolver: el modal bloquea hasta que
     // el usuario elija "omitir" o "cancelar".
     const [dupModal, setDupModal] = useState<string[] | null>(null);
+    // ventana de aviso: archivo comprimido o límite de archivos del plan
+    const [aviso, setAviso] = useState<Aviso>(null);
+    // límite de archivos del plan (null = sin límite) y cuántos tiene ya
+    const [maxArchivos, setMaxArchivos] = useState<number | null>(null);
+    const [archivosUsados, setArchivosUsados] = useState(0);
 
     // progreso
     const [running, setRunning] = useState(false);
-    const [prog, setProg] = useState({ pct: 0, text: '', done: false });
+    // cifrando: la fase de cifrado local (ícono de candado) frente a las de red.
+    const [prog, setProg] = useState({ pct: 0, text: '', done: false, cifrando: false });
 
     // refs para el guard de navegación:
     //  - mientras `running`, un beforeunload frena cerrar/recargar la pestaña.
@@ -75,8 +102,15 @@ export default function AgregarActivos() {
         bovedasService
             .get(bid)
             .then(setBoveda)
-            .catch((e) => notifyError(getApiErrorMessage(e, 'No se pudo cargar la bóveda.')));
-        // solo metadatos (nombres); no requiere pass-phrase
+            .catch((e) => notifyError(getApiErrorMessage(e, t('No se pudo cargar la bóveda.', "Couldn't load the vault."))));
+        subscriptionService
+            .getActual()
+            .then((a) => {
+                setMaxArchivos(a.plan.max_archivos);
+                setArchivosUsados(a.uso.archivos);
+            })
+            .catch(() => undefined); // si falla, el backend sigue validando el límite
+        // solo metadatos (nombres); no requiere la llave maestra
         activosService
             .list(bid)
             .then((lista) => setNombresExistentes(new Set(lista.map((a) => a.nombre_original.toLowerCase()))))
@@ -95,14 +129,26 @@ export default function AgregarActivos() {
             setVerifier(v);
         } catch (e) {
             wipe(dekRef.current);
-            notifyError(getApiErrorMessage(e, 'Pass-phrase incorrecta.'));
+            notifyError(getApiErrorMessage(e, t('Llave maestra incorrecta.', 'Incorrect master key.')));
         } finally {
             setUnlocking(false);
         }
     };
 
     const addFiles = (list: FileList | File[]) => {
-        const nuevos = Array.from(list).filter((f) => f.size > 0);
+        const elegidos = Array.from(list).filter((f) => f.size > 0);
+        const comprimidos = elegidos.filter(esComprimido);
+        let nuevos = elegidos.filter((f) => !esComprimido(f));
+        // Límite de archivos del plan (Gratuito): solo entran los que caben.
+        let sinLugar: File[] = [];
+        if (maxArchivos !== null) {
+            const libres = Math.max(maxArchivos - archivosUsados - files.length, 0);
+            sinLugar = nuevos.slice(libres);
+            nuevos = nuevos.slice(0, libres);
+        }
+        if (comprimidos.length > 0) setAviso({ tipo: 'comprimido', nombres: comprimidos.map((f) => f.name) });
+        else if (sinLugar.length > 0) setAviso({ tipo: 'limite', nombres: sinLugar.map((f) => f.name) });
+        if (nuevos.length === 0) return;
         const yaEnCola = new Set(files.map((f) => f.name.toLowerCase()));
         const duplicados = nuevos.filter(
             (f) => nombresExistentes.has(f.name.toLowerCase()) || yaEnCola.has(f.name.toLowerCase()),
@@ -138,26 +184,29 @@ export default function AgregarActivos() {
     const subir = async () => {
         if (!dek || files.length === 0 || demasiadoGrandes.length > 0) return;
         setRunning(true);
-        setProg({ pct: 0, text: 'Preparando…', done: false });
+        setProg({ pct: 0, text: t('Preparando…', 'Preparing…'), done: false, cifrando: false });
         const lote = files; // snapshot: se limpia `files` en cuanto termina el lote
         let cifradoSubido = 0;
         try {
             for (let i = 0; i < lote.length; i++) {
                 const f = lote[i];
                 const base = Math.round((i / lote.length) * 100);
-                setProg({ pct: base + 5, text: `Cifrando ${f.name}…`, done: false });
+                setProg({ pct: base + 5, text: t(`Protegiendo ${f.name}…`, `Protecting ${f.name}…`), done: false, cifrando: true });
                 let enc;
                 try {
                     enc = await withMinDelay(encryptFile(dek, f));
-                } catch (encErr) {
-                    // Errores de cifrado (p. ej. límites del navegador) no son
-                    // AxiosError: getApiErrorMessage siempre caería al mensaje
-                    // genérico. Se antepone el nombre del archivo y el motivo real.
-                    const motivo = encErr instanceof Error ? encErr.message : String(encErr);
-                    throw new Error(`No se pudo cifrar "${f.name}" en el navegador: ${motivo}`);
+                } catch {
+                    // Errores del navegador (memoria, límites) no son AxiosError:
+                    // se explica en palabras simples qué archivo falló.
+                    throw new Error(
+                        t(
+                            `No se pudo preparar "${f.name}". Intenta con un archivo más pequeño o con otro navegador.`,
+                            `Couldn't prepare "${f.name}". Try a smaller file or another browser.`,
+                        ),
+                    );
                 }
 
-                setProg({ pct: base + 15, text: `Reservando espacio para ${f.name}…`, done: false });
+                setProg({ pct: base + 15, text: t(`Reservando espacio para ${f.name}…`, `Reserving space for ${f.name}…`), done: false, cifrando: false });
                 const ini = await withMinDelay(
                     activosService.iniciar(bid, {
                         passphrase_verifier: verifier,
@@ -170,16 +219,17 @@ export default function AgregarActivos() {
                     }),
                 );
 
-                setProg({ pct: base + 25, text: `Subiendo ${f.name}…`, done: false });
+                setProg({ pct: base + 25, text: t(`Subiendo ${f.name}…`, `Uploading ${f.name}…`), done: false, cifrando: false });
                 await withMinDelay(activosService.putBlob(ini.sas_url, enc.ciphertext));
 
-                setProg({ pct: base + 32, text: `Confirmando ${f.name}…`, done: false });
+                setProg({ pct: base + 32, text: t(`Confirmando ${f.name}…`, `Confirming ${f.name}…`), done: false, cifrando: false });
                 await withMinDelay(activosService.confirmar(bid, ini.activo_id, verifier));
                 cifradoSubido += enc.tamanoCifrado;
+                setArchivosUsados((u) => u + 1);
             }
             // lote terminado: la DEK se conserva — el usuario puede seguir
-            // subiendo más activos sin volver a escribir la pass-phrase.
-            setProg({ pct: 100, text: 'Activos agregados.', done: true });
+            // subiendo más activos sin volver a escribir la llave maestra.
+            setProg({ pct: 100, text: t('Activos agregados.', 'Assets added.'), done: true, cifrando: false });
             setTimeout(() => {
                 if (!mountedRef.current) return;
                 setRunning(false);
@@ -195,8 +245,11 @@ export default function AgregarActivos() {
                 setSubidos((n) => n + lote.length);
                 notifySuccess(
                     lote.length === 1
-                        ? '1 activo agregado correctamente. Puedes seguir subiendo más.'
-                        : `${lote.length} activos agregados correctamente. Puedes seguir subiendo más.`,
+                        ? t('1 activo agregado correctamente. Puedes seguir subiendo más.', '1 asset added successfully. You can keep uploading more.')
+                        : t(
+                              `${lote.length} activos agregados correctamente. Puedes seguir subiendo más.`,
+                              `${lote.length} assets added successfully. You can keep uploading more.`,
+                          ),
                 );
             }, 1200);
         } catch (e) {
@@ -206,10 +259,17 @@ export default function AgregarActivos() {
             // e.response: getApiErrorMessage lo detecta y usa su propio
             // mensaje en vez de caer siempre al genérico.
             const esErrorLocal = e instanceof Error && !(e as { response?: unknown }).response;
+            // Límite de archivos o comprimido detectados por el servidor: misma
+            // ventana que cuando se detectan al elegir los archivos.
+            const codigo = (e as { response?: { data?: { codigo?: string } } }).response?.data?.codigo;
+            if (codigo === 'limite_archivos' || codigo === 'archivo_comprimido') {
+                setAviso({ tipo: codigo === 'limite_archivos' ? 'limite' : 'comprimido', nombres: [] });
+                return;
+            }
             notifyError(
                 esErrorLocal
                     ? e.message
-                    : getApiErrorMessage(e, 'No se pudieron agregar los activos.'),
+                    : getApiErrorMessage(e, t('No se pudieron agregar los activos.', "Couldn't add the assets.")),
             );
         }
     };
@@ -217,21 +277,21 @@ export default function AgregarActivos() {
     // ---------------------------------------------------------------
     if (!dek) {
         return (
-            <DashboardLayout activeItem="bovedas" topBarLabel="Agregar activos" backTo={`/bovedas/${bid}`}>
+            <DashboardLayout activeItem="bovedas" topBarLabel={t('Agregar activos', 'Add assets')} backTo={`/bovedas/${bid}`}>
                 <div className="config-card" style={{ maxWidth: 560 }}>
-                    <h3 className="fw-bold mb-1">Confirmar llave maestra</h3>
+                    <h3 className="fw-bold mb-1">{t('Confirmar llave maestra', 'Confirm master key')}</h3>
                     <p className="text-muted small">
-                        Los archivos se cifran localmente con la pass-phrase de la bóveda antes de subirse.
+                        {t('Escribe la llave maestra de la bóveda: con ella se protegen tus archivos antes de subirse.', "Enter the vault's master key: it protects your files before they're uploaded.")}
                     </p>
                     <input
                         type="password"
                         className="form-control shadow-none mb-3"
-                        placeholder="pass-phrase de la bóveda"
+                        placeholder={t('Llave maestra de la bóveda', 'Vault master key')}
                         value={passphrase}
                         onChange={(e) => setPassphrase(e.target.value)}
                     />
                     <button className="btn btn-ipn" onClick={unlock} disabled={unlocking || !passphrase}>
-                        {unlocking ? 'Verificando…' : 'Desbloquear'}
+                        {unlocking ? t('Verificando…', 'Verifying…') : t('Desbloquear', 'Unlock')}
                     </button>
                 </div>
             </DashboardLayout>
@@ -239,13 +299,12 @@ export default function AgregarActivos() {
     }
 
     return (
-        <DashboardLayout activeItem="bovedas" topBarLabel="Agregar activos" backTo={`/bovedas/${bid}`}>
+        <DashboardLayout activeItem="bovedas" topBarLabel={t('Agregar activos', 'Add assets')} backTo={`/bovedas/${bid}`}>
             <div className="config-card">
                 <div className="mb-4 text-center">
-                    <h3 className="fw-bold mb-1">Agregar nuevos activos</h3>
+                    <h3 className="fw-bold mb-1">{t('Agregar nuevos activos', 'Add new assets')}</h3>
                     <p className="text-muted">
-                        Se cifran localmente con AES-256-GCM y se suben directo al almacenamiento. Kleimos nunca ve el
-                        contenido.
+                        {t('Tus archivos se protegen antes de subirse: solo tú y tus custodios podrán abrirlos.', "Your files are protected before they're uploaded: only you and your custodians can open them.")}
                     </p>
                 </div>
 
@@ -256,12 +315,20 @@ export default function AgregarActivos() {
                         note={
                             files.length > 0 ? (
                                 <span className={excede ? 'text-danger fw-bold' : undefined}>
-                                    + {humanBytes(nuevoTotal)} en {files.length} archivo(s)
-                                    {excede ? ' — excede tu cuota' : ''}
+                                    + {humanBytes(nuevoTotal)} {t('en', 'in')} {files.length} {t('archivo(s)', 'file(s)')}
+                                    {excede ? t(' — excede tu cuota', ' — exceeds your quota') : ''}
                                 </span>
                             ) : undefined
                         }
                     />
+                    {maxArchivos !== null && (
+                        <div className="small mt-2 d-flex justify-content-between flex-wrap gap-2">
+                            <span>
+                                <strong>{t('Archivos:', 'Files:')}</strong> {archivosUsados + files.length} {t('de', 'of')} {maxArchivos}
+                            </span>
+                            <span className="text-muted">{t('Plan Gratuito · Las plantillas no cuentan', "Free plan · Templates don't count")}</span>
+                        </div>
+                    )}
                 </div>
 
                 <div
@@ -273,28 +340,41 @@ export default function AgregarActivos() {
                 >
                     <input id="activoInput" type="file" multiple hidden onChange={(e) => e.target.files && addFiles(e.target.files)} />
                     <i className="fas fa-cloud-arrow-up upload-icon" />
-                    <h5 className="fw-bold m-0">Arrastra tus archivos aquí</h5>
-                    <p className="text-muted small m-0">o haz clic para elegirlos</p>
+                    <h5 className="fw-bold m-0">{t('Arrastra tus archivos aquí', 'Drag your files here')}</h5>
+                    <p className="text-muted small m-0">{t('o haz clic para elegirlos', 'or click to choose them')}</p>
                     <p className="m-0 mt-2 small fw-bold" style={{ color: 'var(--escom-blue)' }}>
-                        <i className="fas fa-shield-alt me-1" /> Cifrado AES-256-GCM en el navegador
+                        <i className="fas fa-shield-alt me-1" /> {t('Fotos, videos, audio y documentos', 'Photos, videos, audio and documents')}
                     </p>
+                    <p className="m-0 small text-muted">{t('No se permiten archivos comprimidos (.zip, .rar, .7z)', "Compressed files aren't allowed (.zip, .rar, .7z)")}</p>
                 </div>
 
                 {dupModal && (
                     <p className="text-danger small fw-bold mt-3 mb-0">
                         <i className="fas fa-triangle-exclamation me-1" />
-                        Resuelve los nombres duplicados para continuar.
+                        {t('Resuelve los nombres duplicados para continuar.', 'Resolve the duplicate names to continue.')}
                     </p>
                 )}
 
                 {demasiadoGrandes.length > 0 && (
                     <p className="text-danger small fw-bold mt-3 mb-0">
                         <i className="fas fa-triangle-exclamation me-1" />
-                        {demasiadoGrandes.length === 1
-                            ? '1 archivo supera'
-                            : `${demasiadoGrandes.length} archivos superan`}{' '}
-                        el máximo de {humanBytes(MAX_FILE_BYTES)} por archivo — el cifrado en el navegador no
-                        soporta archivos más grandes. Quítalo{demasiadoGrandes.length === 1 ? '' : 's'} para continuar.
+                        {getLang() === 'es' ? (
+                            <>
+                                {demasiadoGrandes.length === 1
+                                    ? '1 archivo supera'
+                                    : `${demasiadoGrandes.length} archivos superan`}{' '}
+                                el máximo de {humanBytes(MAX_FILE_BYTES)} por archivo. Quítalo
+                                {demasiadoGrandes.length === 1 ? '' : 's'} para continuar.
+                            </>
+                        ) : (
+                            <>
+                                {demasiadoGrandes.length === 1
+                                    ? '1 file exceeds'
+                                    : `${demasiadoGrandes.length} files exceed`}{' '}
+                                the maximum of {humanBytes(MAX_FILE_BYTES)} per file. Remove{' '}
+                                {demasiadoGrandes.length === 1 ? 'it' : 'them'} to continue.
+                            </>
+                        )}
                     </p>
                 )}
 
@@ -309,21 +389,21 @@ export default function AgregarActivos() {
                                 <div className="flex-grow-1">
                                     <p className="m-0 fw-bold small d-flex align-items-center gap-2">
                                         {f.name}
-                                        {esDuplicado && <span className="dup-chip">YA EXISTE</span>}
-                                        {esDemasiadoGrande && <span className="dup-chip">DEMASIADO GRANDE</span>}
+                                        {esDuplicado && <span className="dup-chip">{t('YA EXISTE', 'ALREADY EXISTS')}</span>}
+                                        {esDemasiadoGrande && <span className="dup-chip">{t('DEMASIADO GRANDE', 'TOO LARGE')}</span>}
                                     </p>
                                     <p
                                         className={esDemasiadoGrande ? 'm-0 text-danger fw-bold' : 'm-0 text-muted'}
                                         style={{ fontSize: '0.65rem' }}
                                     >
                                         {humanBytes(f.size)}
-                                        {esDemasiadoGrande ? ` — máx. ${humanBytes(MAX_FILE_BYTES)}` : ''}
+                                        {esDemasiadoGrande ? ` — ${t('máx.', 'max.')} ${humanBytes(MAX_FILE_BYTES)}` : ''}
                                     </p>
                                 </div>
                                 <button
                                     className="btn btn-sm btn-link text-muted"
                                     onClick={() => setFiles((p) => p.filter((x) => x !== f))}
-                                    aria-label="Quitar"
+                                    aria-label={t('Quitar', 'Remove')}
                                 >
                                     <i className="fas fa-times" />
                                 </button>
@@ -340,9 +420,9 @@ export default function AgregarActivos() {
                         disabled={running}
                     >
                         {subidos > 0 ? (
-                            <><i className="fas fa-check me-2" />Finalizar</>
+                            <><i className="fas fa-check me-2" />{t('Finalizar', 'Finish')}</>
                         ) : (
-                            'Cancelar'
+                            t('Cancelar', 'Cancel')
                         )}
                     </button>
                     <button
@@ -350,7 +430,7 @@ export default function AgregarActivos() {
                         onClick={subir}
                         disabled={running || files.length === 0 || excede || demasiadoGrandes.length > 0 || dupModal !== null}
                     >
-                        Cifrar y agregar <i className="fas fa-lock ms-2" />
+                        {t('Agregar a la bóveda', 'Add to vault')} <i className="fas fa-lock ms-2" />
                     </button>
                 </div>
             </div>
@@ -364,7 +444,7 @@ export default function AgregarActivos() {
                                 <div className="mb-3">
                                     {prog.done ? (
                                         <i className="fas fa-check-circle fa-3x animate__animated animate__bounceIn" style={{ color: 'var(--escom-blue)' }} />
-                                    ) : prog.text.startsWith('Cifrando') ? (
+                                    ) : prog.cifrando ? (
                                         <i className="fas fa-lock fa-beat fa-3x" style={{ color: 'var(--ipn-maroon)' }} />
                                     ) : (
                                         <i className="fas fa-sync fa-spin fa-3x text-primary" />
@@ -372,10 +452,10 @@ export default function AgregarActivos() {
                                 </div>
                                 <h4 className="fw-bold">
                                     {prog.done
-                                        ? 'Activos agregados'
-                                        : prog.text.startsWith('Cifrando')
-                                          ? 'Cifrando localmente (AES-256-GCM)'
-                                          : 'Cifrando y subiendo'}
+                                        ? t('Activos agregados', 'Assets added')
+                                        : prog.cifrando
+                                          ? t('Protegiendo tus archivos', 'Protecting your files')
+                                          : t('Subiendo a tu bóveda', 'Uploading to your vault')}
                                 </h4>
                                 <p className="text-muted small">{prog.text}</p>
                                 <div className="wizard-progress mt-3">
@@ -384,9 +464,70 @@ export default function AgregarActivos() {
                                 {!prog.done && (
                                     <p className="text-muted mt-3 mb-0" style={{ fontSize: '0.72rem' }}>
                                         <i className="fas fa-triangle-exclamation me-1" />
-                                        No cierres ni recargues esta pestaña hasta que termine.
+                                        {t('No cierres ni recargues esta pestaña hasta que termine.', "Don't close or reload this tab until it finishes.")}
                                     </p>
                                 )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {aviso && (
+                <div className="modal fade show d-block" tabIndex={-1} style={{ background: 'rgba(15,23,42,0.65)' }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content shadow-lg">
+                            <div
+                                className="modal-header-gradient"
+                                style={{ background: aviso.tipo === 'comprimido' ? 'var(--danger-red)' : 'var(--warning-amber)' }}
+                            />
+                            <div className="modal-body p-5 text-center">
+                                <div
+                                    className="mb-3"
+                                    style={{ color: aviso.tipo === 'comprimido' ? 'var(--danger-red)' : 'var(--warning-amber)' }}
+                                >
+                                    <i className={`fas ${aviso.tipo === 'comprimido' ? 'fa-file-zipper' : 'fa-triangle-exclamation'} fa-3x`} />
+                                </div>
+                                {aviso.tipo === 'comprimido' ? (
+                                    <>
+                                        <h4 className="fw-bold">{t('Este archivo no se puede subir', "This file can't be uploaded")}</h4>
+                                        <p className="text-muted small mb-2">
+                                            {t('No se permiten archivos comprimidos (.zip, .rar, .7z). Descomprímelo y sube los archivos que contiene.', "Compressed files aren't allowed (.zip, .rar, .7z). Extract it and upload the files inside.")}
+                                        </p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <h4 className="fw-bold">{t('Llegaste al límite de tu plan', "You've reached your plan's limit")}</h4>
+                                        <p className="text-muted small mb-2">
+                                            {t(`El plan Gratuito permite ${maxArchivos ?? 3} archivos.`, `The Free plan allows ${maxArchivos ?? 3} files.`)}{' '}
+                                            {aviso.nombres.length > 0 &&
+                                                (aviso.nombres.length === 1
+                                                    ? t('Este no se agregó:', "This one wasn't added:")
+                                                    : t('Estos no se agregaron:', "These weren't added:"))}
+                                        </p>
+                                    </>
+                                )}
+                                {aviso.nombres.length > 0 && (
+                                    <ul className="text-start small mx-auto mb-3" style={{ maxWidth: 320 }}>
+                                        {aviso.nombres.map((n) => (
+                                            <li key={n} className="fw-bold text-break">{n}</li>
+                                        ))}
+                                    </ul>
+                                )}
+                                {aviso.tipo === 'limite' && (
+                                    <p className="text-muted small">
+                                        {t('Puedes borrar un archivo para hacer espacio, seguir usando plantillas (no tienen límite) o cambiarte a Premium.', 'You can delete a file to make room, keep using templates (they have no limit) or switch to Premium.')}
+                                    </p>
+                                )}
+                                <div className="d-flex gap-2 mt-3">
+                                    <button className="btn btn-light w-100 rounded-pill" onClick={() => setAviso(null)}>
+                                        {t('Entendido', 'Got it')}
+                                    </button>
+                                    {aviso.tipo === 'limite' && (
+                                        <button className="btn btn-ipn w-100" onClick={() => navigate('/suscripcion')}>
+                                            {t('Ver Premium', 'See Premium')}
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -401,27 +542,30 @@ export default function AgregarActivos() {
                                 <div className="mb-3" style={{ color: 'var(--warning-amber)' }}>
                                     <i className="fas fa-triangle-exclamation fa-3x animate__animated animate__headShake" />
                                 </div>
-                                <h4 className="fw-bold">Nombre duplicado</h4>
+                                <h4 className="fw-bold">{t('Nombre duplicado', 'Duplicate name')}</h4>
                                 <p className="text-muted small mb-1">
                                     {dupModal.length === 1
-                                        ? 'Ya existe un archivo con este nombre en la bóveda:'
-                                        : `Ya existen ${dupModal.length} archivos con estos nombres en la bóveda:`}
+                                        ? t('Ya existe un archivo con este nombre en la bóveda:', 'A file with this name already exists in the vault:')
+                                        : t(
+                                              `Ya existen ${dupModal.length} archivos con estos nombres en la bóveda:`,
+                                              `${dupModal.length} files with these names already exist in the vault:`,
+                                          )}
                                 </p>
                                 <ul className="text-start small mx-auto mb-3" style={{ maxWidth: 320 }}>
                                     {dupModal.map((n) => (
                                         <li key={n} className="fw-bold">{n}</li>
                                     ))}
                                 </ul>
-                                <p className="text-muted small">¿Qué quieres hacer antes de continuar?</p>
+                                <p className="text-muted small">{t('¿Qué quieres hacer antes de continuar?', 'What do you want to do before continuing?')}</p>
                                 <div className="d-flex flex-column gap-2 mt-3">
                                     <button className="btn w-100 rounded-pill text-white" style={{ background: 'var(--warning-amber)' }} onClick={omitirDuplicados}>
-                                        Omitir duplicados y seguir con el resto
+                                        {t('Omitir duplicados y seguir con el resto', 'Skip duplicates and continue with the rest')}
                                     </button>
                                     <button className="btn btn-outline-secondary w-100 rounded-pill" onClick={() => setDupModal(null)}>
-                                        Subir de todos modos (como copia)
+                                        {t('Subir de todos modos (como copia)', 'Upload anyway (as a copy)')}
                                     </button>
                                     <button className="btn btn-light w-100 rounded-pill" onClick={cancelarSeleccion}>
-                                        Cancelar toda la selección
+                                        {t('Cancelar toda la selección', 'Cancel the whole selection')}
                                     </button>
                                 </div>
                             </div>

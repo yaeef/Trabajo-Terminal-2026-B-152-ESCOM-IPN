@@ -86,8 +86,7 @@ def _exigir_rn006(usuario: Usuario, correo: str) -> None:
     propios = {c.lower() for c in (usuario.correo, usuario.correo_sec) if c}
     if correo.lower() in propios:
         raise DatoInvalido(
-            "No puedes registrarte a ti mismo como custodio (RN-006). "
-            "Usa un correo distinto al de tu cuenta."
+            "No puedes ser tu propio custodio: usa un correo distinto al de tu cuenta."
         )
 
 
@@ -113,10 +112,7 @@ def _exigir_nombre_distinto(
     otro de sus custodios."""
     clave = _clave_nombre(nombre, paterno, materno)
     if clave == _clave_nombre(usuario.nombre, usuario.paterno, usuario.materno):
-        raise DatoInvalido(
-            "Un custodio no puede tener tu mismo nombre y apellidos (RN-006): "
-            "no puedes ser tu propio custodio."
-        )
+        raise DatoInvalido("El custodio no puede tener tu mismo nombre y apellidos.")
     otros = db.query(Custodio).filter(Custodio.id_propietario == usuario.id)
     if excluir_id is not None:
         otros = otros.filter(Custodio.id != excluir_id)

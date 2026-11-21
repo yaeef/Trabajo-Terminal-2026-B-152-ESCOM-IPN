@@ -7,10 +7,12 @@ import { getApiErrorMessage } from '../../utils/errors';
 import { nombreRecordado } from '../../utils/recuperacionIdentidad';
 import type { BovedaRecuperacionResponse, SesionEstadoResponse } from '../../types/recuperacion.types';
 
+import { getLang, locale, t } from '../../i18n';
+
 const POLL_MS = 8000;
 
 function fmtFechaHora(iso: string): string {
-    return new Date(iso).toLocaleString('es-MX', {
+    return new Date(iso).toLocaleString(locale(), {
         day: 'numeric',
         month: 'short',
         hour: '2-digit',
@@ -43,13 +45,13 @@ export default function SesionCustodio() {
             recuperacionService
                 .getSesion(pid)
                 .then((s) => !cancelled && setSesion(s))
-                .catch((e) => !cancelled && setErr(getApiErrorMessage(e, 'No se pudo cargar el estado de la sesión.')));
+                .catch((e) => !cancelled && setErr(getApiErrorMessage(e, t('No se pudo cargar el estado de la sesión.', "Couldn't load the session status."))));
         };
         cargar();
-        const t = setInterval(cargar, POLL_MS);
+        const id = setInterval(cargar, POLL_MS);
         return () => {
             cancelled = true;
-            clearInterval(t);
+            clearInterval(id);
         };
     }, [pid]);
 
@@ -80,39 +82,61 @@ export default function SesionCustodio() {
             {sesion?.reconstruido_en ? (
                 <div className="alert alert-success py-2 small d-flex align-items-center gap-2">
                     <i className="fas fa-check-circle" />
-                    <span>
-                        Ya se accedió al patrimonio, el {fmtFechaHora(sesion.reconstruido_en)}
-                        {fundador && (
-                            <>
-                                {' '}
-                                — Beneficiario Principal autodeclarado: <strong>"{fundador.nombre_declarado}"</strong>{' '}
-                                (nombre no verificado)
-                            </>
-                        )}
-                        .
-                    </span>
+                    {getLang() === 'es' ? (
+                        <span>
+                            Ya se accedió al patrimonio, el {fmtFechaHora(sesion.reconstruido_en)}
+                            {fundador && (
+                                <>
+                                    {' '}
+                                    — Beneficiario Principal autodeclarado: <strong>"{fundador.nombre_declarado}"</strong>{' '}
+                                    (nombre no verificado)
+                                </>
+                            )}
+                            .
+                        </span>
+                    ) : (
+                        <span>
+                            The estate was already accessed on {fmtFechaHora(sesion.reconstruido_en)}
+                            {fundador && (
+                                <>
+                                    {' '}
+                                    — self-declared Primary Beneficiary: <strong>"{fundador.nombre_declarado}"</strong>{' '}
+                                    (name not verified)
+                                </>
+                            )}
+                            .
+                        </span>
+                    )}
                 </div>
             ) : (
                 fundador && (
                     <div className="alert alert-info py-2 small">
                         <i className="fas fa-crown me-1" />
-                        Sesión fundada por <strong>"{fundador.nombre_declarado}"</strong> como Beneficiario Principal
-                        (nombre autodeclarado, no verificado) — aún no reconstruye la llave maestra.
+                        {getLang() === 'es' ? (
+                            <>
+                                Sesión fundada por <strong>"{fundador.nombre_declarado}"</strong> como Beneficiario Principal
+                                (nombre autodeclarado, no verificado) — aún no reconstruye la llave maestra.
+                            </>
+                        ) : (
+                            <>
+                                Session started by <strong>"{fundador.nombre_declarado}"</strong> as Primary Beneficiary
+                                (self-declared name, not verified) — the master key hasn't been rebuilt yet.
+                            </>
+                        )}
                     </div>
                 )
             )}
 
             <div className="stat-card mb-4">
-                <h2 className="fw-bold mb-1">Estado de la recuperación</h2>
+                <h2 className="fw-bold mb-1">{t('Estado de la recuperación', 'Recovery status')}</h2>
                 <p className="text-muted">
-                    Visualiza el progreso de recolección de fragmentos. Solo el Beneficiario Principal puede iniciar
-                    el descifrado.
+                    {t('Visualiza el progreso de recolección de fragmentos. Solo el Beneficiario Principal puede iniciar el descifrado.', 'See the progress of share collection. Only the Primary Beneficiary can start the decryption.')}
                 </p>
                 <div className="mt-4">
                     <div className="d-flex justify-content-between align-items-center mb-2">
-                        <span className="recuperacion-label">Progreso del quórum (k={k})</span>
+                        <span className="recuperacion-label">{t('Progreso del quórum', 'Quorum progress')} (k={k})</span>
                         <span className="fw-bold">
-                            {depositados} / {k || '—'} depositados
+                            {depositados} / {k || '—'} {t('depositados', 'deposited')}
                         </span>
                     </div>
                     <div className="progress" style={{ height: 12, borderRadius: 10, background: '#f1f5f9' }}>
@@ -123,7 +147,7 @@ export default function SesionCustodio() {
                     </div>
                     {n > 0 && (
                         <p className="text-muted small mt-2 mb-0">
-                            El esquema completo tiene {n} fragmentos posibles; solo hace falta que el BP recolecte {k}.
+                            {t(`El esquema completo tiene ${n} fragmentos posibles; solo hace falta que el BP recolecte ${k}.`, `The full scheme has ${n} possible shares; the PB only needs to collect ${k}.`)}
                         </p>
                     )}
                 </div>

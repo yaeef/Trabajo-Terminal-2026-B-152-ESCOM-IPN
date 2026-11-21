@@ -10,7 +10,12 @@ programación y termina en 500, no se disfraza de error del usuario.
 
 
 class ErrorDeDominio(Exception):
-    """Base de todos los errores esperables de un caso de uso."""
+    """Base de todos los errores esperables de un caso de uso.
+
+    `codigo` (opcional) viaja junto al mensaje para que el frontend reconozca
+    el caso y muestre su propia ventana (p. ej. "limite_archivos")."""
+
+    codigo: str | None = None
 
 
 class DatoInvalido(ErrorDeDominio):

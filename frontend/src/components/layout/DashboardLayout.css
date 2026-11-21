@@ -85,6 +85,16 @@
 
 .btn-ipn:hover { background: #4a0d26; color: white; transform: translateY(-2px); }
 
+/* Bootstrap pone fondo transparente a ".btn:disabled" y el botón deshabilitado
+   (texto blanco) quedaba invisible; se mantiene el color con menos opacidad. */
+.btn-ipn:disabled,
+.btn-ipn.disabled {
+    background: var(--ipn-maroon);
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+}
+
 /* El padding fijo de .btn-ipn le gana a .btn-sm (se carga después de Bootstrap),
    por eso un btn-ipn.btn-sm salía más alto/ancho que otros botones .btn-sm
    (p. ej. btn-blue-manage) que sí respetan el tamaño de Bootstrap. */

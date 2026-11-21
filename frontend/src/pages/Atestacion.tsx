@@ -9,6 +9,8 @@ import { getApiErrorMessage } from '../utils/errors';
 import './auth/AuthTheme.css';
 import './Recuperacion.css';
 import KleimosLogo from '../components/brand/KleimosLogo';
+import LanguageToggle from '../components/common/LanguageToggle';
+import { getLang, t } from '../i18n';
 
 /**
  * Página PÚBLICA (sin sesión). El custodio llega desde el enlace del correo del
@@ -44,7 +46,7 @@ export default function Atestacion() {
     useEffect(() => {
         if (!token) {
             setFase('error');
-            setMensaje('Este enlace no incluye un token válido.');
+            setMensaje(t('Este enlace no es válido. Ábrelo de nuevo desde tu correo.', 'This link is not valid. Open it again from your email.'));
             return;
         }
         atestacionService
@@ -55,7 +57,7 @@ export default function Atestacion() {
             })
             .catch((err) => {
                 setFase('error');
-                setMensaje(getApiErrorMessage(err, 'No se pudo abrir la atestación.'));
+                setMensaje(getApiErrorMessage(err, t('No se pudo abrir la atestación.', "Couldn't open the attestation.")));
             });
     }, [token]);
 
@@ -70,7 +72,7 @@ export default function Atestacion() {
             const text = await file.text();
             s = await decodeShareFile(text);
             if (!ctx.bovedas.length) {
-                throw new Error('No hay bóvedas activas asociadas a tu enlace en este momento.');
+                throw new Error(t('No hay bóvedas activas asociadas a tu enlace en este momento.', 'There are no active vaults linked to your link right now.'));
             }
             let encontrada: AtestacionBovedaCandidata | null = null;
             for (const cand of ctx.bovedas) {
@@ -82,13 +84,16 @@ export default function Atestacion() {
             }
             if (!encontrada) {
                 throw new Error(
-                    'El fragmento no corresponde a ninguna de tus bóvedas asignadas (falló la validación Feldman VSS).',
+                    t(
+                        'El fragmento no corresponde a ninguna de tus bóvedas. Revisa que sea el archivo correcto.',
+                        "The share doesn't match any of your vaults. Make sure it's the right file.",
+                    ),
                 );
             }
             setXValidado(s.id);
             setBovedaValidada(encontrada);
         } catch (e) {
-            notifyError(e instanceof Error ? e.message : 'No se pudo leer/validar el fragmento.');
+            notifyError(e instanceof Error ? e.message : t('No se pudo leer/validar el fragmento.', "Couldn't read/validate the share."));
         } finally {
             // El voto solo necesita la x (pública); el secreto ya cumplió su
             // propósito de validación local y no hace falta retenerlo más.
@@ -105,14 +110,17 @@ export default function Atestacion() {
             setFase('hecho');
         } catch (err) {
             setFase('error');
-            setMensaje(getApiErrorMessage(err, 'No se pudo registrar tu respuesta.'));
+            setMensaje(getApiErrorMessage(err, t('No se pudo registrar tu respuesta.', "Couldn't record your answer.")));
         }
     };
 
-    const titular = ctx?.propietario_nombre ?? 'el titular';
+    const titular = ctx?.propietario_nombre ?? t('el titular', 'the account holder');
 
     return (
         <div className="auth-page">
+            <div className="auth-theme-toggle">
+                <LanguageToggle />
+            </div>
             <div className="card-auth animate__animated animate__fadeInUp">
                 <div className="top-gradient" />
                 <div className="card-body p-4 p-md-5">
@@ -122,7 +130,7 @@ export default function Atestacion() {
                     {fase === 'cargando' && (
                         <div className="text-center">
                             <i className="fas fa-spinner fa-spin fa-2x text-muted" />
-                            <p className="text-muted mt-3 mb-0">Cargando…</p>
+                            <p className="text-muted mt-3 mb-0">{t('Cargando…', 'Loading…')}</p>
                         </div>
                     )}
 
@@ -132,11 +140,11 @@ export default function Atestacion() {
                                 <i className="fas fa-link-slash fa-3x" />
                             </div>
                             <h3 className="fw-bold" style={{ color: 'var(--escom-blue)' }}>
-                                No se pudo continuar
+                                {t('No se pudo continuar', "Couldn't continue")}
                             </h3>
                             <p className="text-muted">{mensaje}</p>
                             <Link to="/" className="btn btn-ipn w-100 mt-3 py-3 shadow-sm">
-                                Volver al inicio
+                                {t('Volver al inicio', 'Back to home')}
                             </Link>
                         </div>
                     )}
@@ -147,14 +155,21 @@ export default function Atestacion() {
                                 <i className="fas fa-check fa-3x" />
                             </div>
                             <h3 className="fw-bold" style={{ color: 'var(--escom-blue)' }}>
-                                Respuesta registrada
+                                {t('Respuesta registrada', 'Answer recorded')}
                             </h3>
-                            <p className="text-muted">
-                                Gracias. Tu testimonio sobre <strong>{titular}</strong> quedó registrado y se
-                                tomará en cuenta junto con el de los demás custodios.
-                            </p>
+                            {getLang() === 'es' ? (
+                                <p className="text-muted">
+                                    Gracias. Tu testimonio sobre <strong>{titular}</strong> quedó registrado y se
+                                    tomará en cuenta junto con el de los demás custodios.
+                                </p>
+                            ) : (
+                                <p className="text-muted">
+                                    Thank you. Your statement about <strong>{titular}</strong> was recorded and will be
+                                    taken into account along with the other custodians'.
+                                </p>
+                            )}
                             <Link to="/" className="btn btn-ipn w-100 mt-3 py-3 shadow-sm">
-                                Entendido
+                                {t('Entendido', 'Got it')}
                             </Link>
                         </div>
                     )}
@@ -165,15 +180,23 @@ export default function Atestacion() {
                                 <i className="fas fa-check fa-3x" />
                             </div>
                             <h3 className="fw-bold" style={{ color: 'var(--escom-blue)' }}>
-                                Ya respondiste
+                                {t('Ya respondiste', 'You already answered')}
                             </h3>
-                            <p className="text-muted">
-                                Registraste que <strong>{titular}</strong>{' '}
-                                {ctx.sentido === 'vida' ? 'sigue con vida' : 'ha fallecido'}. No necesitas
-                                hacer nada más.
-                            </p>
+                            {getLang() === 'es' ? (
+                                <p className="text-muted">
+                                    Registraste que <strong>{titular}</strong>{' '}
+                                    {ctx.sentido === 'vida' ? 'sigue con vida' : 'ha fallecido'}. No necesitas
+                                    hacer nada más.
+                                </p>
+                            ) : (
+                                <p className="text-muted">
+                                    You stated that <strong>{titular}</strong>{' '}
+                                    {ctx.sentido === 'vida' ? 'is still alive' : 'has passed away'}. You don't need
+                                    to do anything else.
+                                </p>
+                            )}
                             <Link to="/" className="btn btn-ipn w-100 mt-3 py-3 shadow-sm">
-                                Entendido
+                                {t('Entendido', 'Got it')}
                             </Link>
                         </div>
                     )}
@@ -184,15 +207,13 @@ export default function Atestacion() {
                                 <i className="fas fa-hourglass-end fa-3x" style={{ color: 'var(--escom-blue)' }} />
                             </div>
                             <h3 className="fw-bold mt-3" style={{ color: 'var(--escom-blue)' }}>
-                                La votación no está abierta
+                                {t('La votación no está abierta', 'Voting is not open')}
                             </h3>
                             <p className="text-muted">
-                                Este enlace ya no admite respuestas: el titular confirmó su actividad, el proceso
-                                avanzó, o se abrió una ronda nueva. Si aplica, recibirás un correo con un enlace
-                                vigente.
+                                {t('Este enlace ya no admite respuestas: el titular confirmó su actividad, el proceso avanzó, o se abrió una ronda nueva. Si aplica, recibirás un correo con un enlace vigente.', "This link no longer accepts answers: the account holder confirmed activity, the process moved forward, or a new round was opened. If applicable, you'll receive an email with a valid link.")}
                             </p>
                             <Link to="/" className="btn btn-ipn w-100 mt-3 py-3 shadow-sm">
-                                Volver al inicio
+                                {t('Volver al inicio', 'Back to home')}
                             </Link>
                         </div>
                     )}
@@ -210,19 +231,27 @@ export default function Atestacion() {
                                         />
                                     </div>
                                     <h3 className="fw-bold mt-3 mb-2" style={{ color: 'var(--escom-blue)' }}>
-                                        ¿{titular} sigue con vida?
+                                        {t(`¿${titular} sigue con vida?`, `Is ${titular} still alive?`)}
                                     </h3>
-                                    <p className="text-muted small mb-0">
-                                        Te designaron como custodio de <strong>{titular}</strong>. Hace tiempo que
-                                        no da señales de vida. Responde según lo que sepas; si no tienes
-                                        información, cierra esta página sin responder.
-                                    </p>
+                                    {getLang() === 'es' ? (
+                                        <p className="text-muted small mb-0">
+                                            Te designaron como custodio de <strong>{titular}</strong>. Hace tiempo que
+                                            no da señales de vida. Responde según lo que sepas; si no tienes
+                                            información, cierra esta página sin responder.
+                                        </p>
+                                    ) : (
+                                        <p className="text-muted small mb-0">
+                                            You were named a custodian of <strong>{titular}</strong>. They haven't shown
+                                            any sign of life for a while. Answer based on what you know; if you have no
+                                            information, close this page without answering.
+                                        </p>
+                                    )}
                                 </div>
 
                                 {!bovedaValidada && (
                                     <>
                                         <label className="recuperacion-label d-block mb-1">
-                                            Tu fragmento (.sss)
+                                            {t('Tu fragmento (.sss)', 'Your share (.sss)')}
                                         </label>
                                         <label
                                             className={`recuperacion-dropzone d-block mb-3 ${
@@ -239,16 +268,14 @@ export default function Atestacion() {
                                             {validandoFrag ? (
                                                 <>
                                                     <i className="fas fa-sync fa-spin mb-2" />
-                                                    <p className="m-0 small fw-bold">Validando fragmento…</p>
+                                                    <p className="m-0 small fw-bold">{t('Validando fragmento…', 'Validating share…')}</p>
                                                 </>
                                             ) : (
                                                 <>
                                                     <i className="fas fa-key mb-2" />
-                                                    <p className="m-0 small fw-bold">Selecciona tu fragmento</p>
+                                                    <p className="m-0 small fw-bold">{t('Selecciona tu fragmento', 'Select your share')}</p>
                                                     <p className="m-0 small text-muted">
-                                                        Para que tu voto sea válido debes aportar tu fragmento
-                                                        asignado. Validación local mediante Feldman VSS — nunca
-                                                        sale de tu navegador.
+                                                        {t('Para que tu voto sea válido debes aportar tu fragmento asignado. Se revisa aquí mismo y nunca sale de tu navegador.', 'For your vote to count you must provide your assigned share. It is checked right here and never leaves your browser.')}
                                                     </p>
                                                 </>
                                             )}
@@ -259,7 +286,7 @@ export default function Atestacion() {
                                 {bovedaValidada && (
                                     <div className="recuperacion-status mb-3">
                                         <small className="fw-bold text-success">
-                                            <i className="fas fa-check-circle me-1" /> Fragmento válido reconocido
+                                            <i className="fas fa-check-circle me-1" /> {t('Fragmento válido reconocido', 'Valid share recognized')}{' '}
                                             ({bovedaValidada.nombre}).
                                         </small>
                                     </div>
@@ -277,7 +304,7 @@ export default function Atestacion() {
                                         disabled={fase === 'enviando' || !bovedaValidada}
                                     >
                                         <i className="fas fa-heart-pulse me-2" />
-                                        Sé que sigue con vida
+                                        {t('Sé que sigue con vida', 'I know they are still alive')}
                                     </button>
                                     <button
                                         type="button"
@@ -290,14 +317,13 @@ export default function Atestacion() {
                                         disabled={fase === 'enviando' || !bovedaValidada}
                                     >
                                         <i className="fas fa-dove me-2" />
-                                        Me consta que ha fallecido
+                                        {t('Me consta que ha fallecido', 'I know for a fact they have passed away')}
                                     </button>
                                 </div>
 
                                 {seleccion === 'fallecimiento' && (
                                     <div className="alert alert-warning py-2 small" role="alert">
-                                        Confirmar el fallecimiento acelera el proceso de recuperación del
-                                        patrimonio. Hazlo solo si te consta.
+                                        {t('Confirmar el fallecimiento acelera el proceso de recuperación del patrimonio. Hazlo solo si te consta.', 'Confirming the death speeds up the estate recovery process. Only do it if you know for a fact.')}
                                     </div>
                                 )}
 
@@ -307,7 +333,7 @@ export default function Atestacion() {
                                     onClick={enviar}
                                     disabled={!seleccion || !bovedaValidada || fase === 'enviando'}
                                 >
-                                    {fase === 'enviando' ? 'Enviando…' : 'Enviar respuesta'}
+                                    {fase === 'enviando' ? t('Enviando…', 'Sending…') : t('Enviar respuesta', 'Send answer')}
                                 </button>
                             </>
                         )}

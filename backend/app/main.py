@@ -22,6 +22,7 @@ from app.api.routes import (
     suscripciones,
     telegram_webhook,
 )
+from app.core.concurrencia import LimiteConcurrencia
 from app.core.config import settings
 from app.services import tareas_periodicas
 
@@ -46,6 +47,8 @@ app = FastAPI(
 )
 
 errores.registrar_manejadores(app)
+
+app.add_middleware(LimiteConcurrencia, maximo=settings.MAX_PETICIONES_SIMULTANEAS)
 
 # La sesión viaja como `Authorization: Bearer`, nunca en cookies: no hace
 # falta allow_credentials (con "*" + credenciales, Starlette reflejaba

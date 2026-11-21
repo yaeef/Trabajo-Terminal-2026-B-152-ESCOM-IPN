@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { bovedasService } from '../../services/bovedas.service';
 import type { BovedaResponse, CustodioResponse, CustodioBovedaResponse, VssResponse } from '../../types/bovedas.types';
-import { bovedaBadge } from '../../types/bovedas.types';
+import { bovedaBadge, categoriaLabel, estadoBovedaLabel } from '../../types/bovedas.types';
 import { custodioNotificable } from '../../types/custodios.types';
 import { useNotice } from '../../store/NoticeContext';
 import { getApiErrorMessage } from '../../utils/errors';
@@ -19,6 +19,7 @@ import CredentialEditorModal from '../../credentials/CredentialEditorModal';
 import CredentialViewModal from '../../credentials/CredentialViewModal';
 import { parseEnvelope, plantillaById, type CredentialEnvelope } from '../../credentials/templates';
 import './bovedas.css';
+import { getLang, locale, t } from '../../i18n';
 
 const ASSETS_PER_PAGE = 6;
 
@@ -38,7 +39,7 @@ function extensionOf(nombre: string): string {
 /** Fecha corta + hora para la lista de activos (ej. "3 sep 2026, 14:22"). */
 function formatFechaActivo(iso: string | null): string {
     if (!iso) return '';
-    return parseBackendDate(iso).toLocaleString('es-MX', {
+    return parseBackendDate(iso).toLocaleString(locale(), {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
@@ -194,7 +195,7 @@ export default function GestionarBoveda() {
     useEffect(() => {
         reload().catch((e) => {
             setLoadFailed(true);
-            notifyError(getApiErrorMessage(e, 'No se pudo cargar la bóveda.'));
+            notifyError(getApiErrorMessage(e, t('No se pudo cargar la bóveda.', "Couldn't load the vault.")));
         });
     }, [bid]);
 
@@ -209,7 +210,7 @@ export default function GestionarBoveda() {
             setAsignacion(desdeVinculados(vinculados));
             setActivos(await activosService.list(bid));
         } catch (e) {
-            notifyError(getApiErrorMessage(e, 'Pass-phrase incorrecta.'));
+            notifyError(getApiErrorMessage(e, t('Llave maestra incorrecta.', 'Incorrect master key.')));
         } finally {
             setUnlocking(false);
         }
@@ -224,15 +225,17 @@ export default function GestionarBoveda() {
                 mensaje_custodios: mensaje || null,
             });
             setBoveda(b);
-            notifySuccess('Metadatos actualizados.');
+            notifySuccess(t('Metadatos actualizados.', 'Metadata updated.'));
         } catch (e) {
-            notifyError(getApiErrorMessage(e, 'No se pudo actualizar.'));
+            notifyError(getApiErrorMessage(e, t('No se pudo actualizar.', "Couldn't update.")));
         } finally {
             setSaving(false);
         }
     };
 
     const xCoords = vss?.x_coords ?? [];
+    // Número del fragmento para mostrar (1, 2, 3…) en lugar de su coordenada interna.
+    const numFrag = (x: number | undefined) => (x === undefined ? 0 : xCoords.indexOf(x) + 1);
     const n = boveda?.total_fragmentos_n ?? 0;
     const k = boveda?.umbral_k ?? 0;
 
@@ -279,7 +282,7 @@ export default function GestionarBoveda() {
             const share = fragmentosVerificados[item.id_custodio];
             if (!share) continue;
             downloadText(
-                `share_${slugNombreArchivo(boveda?.nombre ?? '')}_${slugNombreArchivo(nombreDe(item.id_custodio))}_x${item.nueva}.sss`,
+                `fragmento_${slugNombreArchivo(boveda?.nombre ?? '')}_${slugNombreArchivo(nombreDe(item.id_custodio))}_${numFrag(item.nueva)}.sss`,
                 await encodeShareFile(share.id, share.y),
             );
             wipe(share.y);
@@ -320,9 +323,9 @@ export default function GestionarBoveda() {
             setVinculados(rows);
             setAsignacion(desdeVinculados(rows));
             setBoveda(await bovedasService.get(bid));
-            notifySuccess('Vinculaciones actualizadas.');
+            notifySuccess(t('Vinculaciones actualizadas.', 'Links updated.'));
         } catch (e) {
-            notifyError(getApiErrorMessage(e, 'No se pudo re-vincular.'));
+            notifyError(getApiErrorMessage(e, t('No se pudo re-vincular.', "Couldn't re-link.")));
         } finally {
             setLinking(false);
         }
@@ -343,7 +346,7 @@ export default function GestionarBoveda() {
             // para que el archivo descargado se distinga del que ya tienes.
             saveBlob(displayNombreById.get(a.id) ?? dl.nombre_original, blob);
         } catch (e) {
-            notifyError(getApiErrorMessage(e, 'No se pudo descargar/descifrar el activo.'));
+            notifyError(getApiErrorMessage(e, t('No se pudo descargar/descifrar el activo.', "Couldn't download/decrypt the asset.")));
         } finally {
             wipe(dek);
             setBusyActivoId(null);
@@ -363,7 +366,7 @@ export default function GestionarBoveda() {
             const blob = await decryptToBlob(dek, dl.iv_hex, ct, dl.mime);
             setViewer({ activo: a, envelope: parseEnvelope(await blob.text()) });
         } catch (e) {
-            notifyError(getApiErrorMessage(e, 'No se pudo abrir la plantilla.'));
+            notifyError(getApiErrorMessage(e, t('No se pudo abrir la plantilla.', "Couldn't open the template.")));
         } finally {
             wipe(dek);
             setBusyActivoId(null);
@@ -381,9 +384,9 @@ export default function GestionarBoveda() {
             await activosService.remove(bid, a.id, verifier);
             setActivos((prev) => prev.filter((x) => x.id !== a.id));
             setBoveda(await bovedasService.get(bid)); // refresca uso de espacio
-            notifySuccess('Activo eliminado.');
+            notifySuccess(t('Activo eliminado.', 'Asset deleted.'));
         } catch (e) {
-            notifyError(getApiErrorMessage(e, 'No se pudo eliminar el activo.'));
+            notifyError(getApiErrorMessage(e, t('No se pudo eliminar el activo.', "Couldn't delete the asset.")));
         } finally {
             setBusyActivoId(null);
             setToDeleteActivo(null);
@@ -392,8 +395,8 @@ export default function GestionarBoveda() {
 
     if (!boveda) {
         return (
-            <DashboardLayout activeItem="bovedas" topBarLabel="Gestionar Bóveda" backTo="/bovedas">
-                {loadFailed ? null : <p className="text-muted">Cargando…</p>}
+            <DashboardLayout activeItem="bovedas" topBarLabel={t('Gestionar Bóveda', 'Manage Vault')} backTo="/bovedas">
+                {loadFailed ? null : <p className="text-muted">{t('Cargando…', 'Loading…')}</p>}
             </DashboardLayout>
         );
     }
@@ -401,13 +404,17 @@ export default function GestionarBoveda() {
     const badge = bovedaBadge(boveda);
 
     return (
-        <DashboardLayout activeItem="bovedas" topBarLabel="Gestionar Bóveda" backTo="/bovedas">
+        <DashboardLayout activeItem="bovedas" topBarLabel={t('Gestionar Bóveda', 'Manage Vault')} backTo="/bovedas">
             <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
                 <div>
                     <h2 className="fw-bold mb-1">{boveda.nombre}</h2>
                     <p className="text-muted m-0">
-                        {boveda.categoria || 'Sin categoría'} · estado <strong>{boveda.estado}</strong> ·{' '}
-                        <span className={`badge-estado ${badge}`}>{badge.toUpperCase()}</span> · PID{' '}
+                        {boveda.categoria ? categoriaLabel(boveda.categoria) : t('Sin categoría', 'No category')} · {t('estado', 'status')}{' '}
+                        <strong>{estadoBovedaLabel(boveda.estado)}</strong> ·{' '}
+                        <span className={`badge-estado ${badge}`}>
+                            {t(badge.toUpperCase(), { protegida: 'PROTECTED', incompleta: 'INCOMPLETE', borrador: 'DRAFT' }[badge])}
+                        </span>{' '}
+                        · {t('Código', 'Code')}{' '}
                         <code>{boveda.pid}</code>
                     </p>
                 </div>
@@ -416,20 +423,19 @@ export default function GestionarBoveda() {
 
             {!unlocked ? (
                 <div className="config-card" style={{ maxWidth: 560 }}>
-                    <h4 className="fw-bold mb-1">Confirmar llave maestra</h4>
+                    <h4 className="fw-bold mb-1">{t('Confirmar llave maestra', 'Confirm master key')}</h4>
                     <p className="text-muted small">
-                        Toda operación sobre la bóveda (salvo borrarla) exige su pass-phrase. Se deriva aquí y solo
-                        se envía el verificador.
+                        {t('Para ver o cambiar el contenido de la bóveda escribe su llave maestra. Kleimos no la guarda.', "To view or change the vault's contents enter its master key. Kleimos doesn't store it.")}
                     </p>
                     <input
                         type="password"
                         className="form-control shadow-none mb-3"
-                        placeholder="pass-phrase de la bóveda"
+                        placeholder={t('Llave maestra de la bóveda', 'Vault master key')}
                         value={passphrase}
                         onChange={(e) => setPassphrase(e.target.value)}
                     />
                     <button className="btn btn-ipn" onClick={unlock} disabled={unlocking || !passphrase}>
-                        {unlocking ? 'Verificando…' : 'Desbloquear'}
+                        {unlocking ? t('Verificando…', 'Verifying…') : t('Desbloquear', 'Unlock')}
                     </button>
                 </div>
             ) : (
@@ -437,19 +443,19 @@ export default function GestionarBoveda() {
                     {/* metadatos */}
                     <div className="col-12">
                         <div className="config-card">
-                            <h5 className="fw-bold mb-3">Metadatos</h5>
+                            <h5 className="fw-bold mb-3">{t('Metadatos', 'Metadata')}</h5>
                             <div className="row g-3">
                                 <div className="col-md-5">
-                                    <label className="form-label-b d-block">Nombre</label>
+                                    <label className="form-label-b d-block">{t('Nombre', 'Name')}</label>
                                     <input className="form-control shadow-none" value={nombre} onChange={(e) => setNombre(e.target.value)} />
                                 </div>
                                 <div className="col-md-7">
-                                    <label className="form-label-b d-block">Mensaje para custodios</label>
+                                    <label className="form-label-b d-block">{t('Mensaje para custodios', 'Message for custodians')}</label>
                                     <textarea className="form-control shadow-none" rows={2} value={mensaje} onChange={(e) => setMensaje(e.target.value)} />
                                 </div>
                             </div>
                             <button className="btn btn-ipn mt-3" onClick={saveMeta} disabled={saving}>
-                                {saving ? 'Guardando…' : 'Guardar cambios'}
+                                {saving ? t('Guardando…', 'Saving…') : t('Guardar cambios', 'Save changes')}
                             </button>
                         </div>
                     </div>
@@ -457,12 +463,12 @@ export default function GestionarBoveda() {
                     {/* re-vinculación */}
                     <div className="col-12">
                         <div className="config-card">
-                            <h5 className="fw-bold mb-1">Custodios vinculados</h5>
+                            <h5 className="fw-bold mb-1">{t('Custodios vinculados', 'Linked custodians')}</h5>
                             <p className="text-muted small mb-1">
-                                Haz clic en un custodio para seleccionarlo; haz clic otra vez para quitarlo.
+                                {t('Haz clic en un custodio para seleccionarlo; haz clic otra vez para quitarlo.', 'Click a custodian to select them; click again to remove them.')}
                             </p>
                             <p className="text-muted small mb-3">
-                                Fragmento {asignacion.length} de {n} seleccionados.
+                                {t(`Fragmento ${asignacion.length} de ${n} seleccionados.`, `${asignacion.length} of ${n} shares selected.`)}
                             </p>
                             <div className="row g-3 mb-3">
                                 {directorio.map((c) => {
@@ -474,7 +480,7 @@ export default function GestionarBoveda() {
                                             <div
                                                 className={`custodian-selector-card ${isSel ? 'selected' : ''} ${notificable ? '' : 'is-disabled'}`}
                                                 onClick={() => toggle(c.id)}
-                                                title={notificable ? '' : 'Sin canal verificado'}
+                                                title={notificable ? '' : t('Sin canal verificado', 'No verified channel')}
                                             >
                                                 <div className="d-flex align-items-center gap-2">
                                                     <div className="custodian-avatar">{c.nombre.slice(0, 2).toUpperCase()}</div>
@@ -482,8 +488,9 @@ export default function GestionarBoveda() {
                                                         <p className="m-0 fw-bold small">{c.nombre}</p>
                                                         <p className="m-0 text-muted" style={{ fontSize: '0.65rem' }}>{c.correo}</p>
                                                     </div>
-                                                    {isSel && <span className="x-chip">x={x}</span>}
-                                                    {!notificable && <span className="no-verif-chip">sin verificar</span>}
+                                                    {isSel && <span className="frag-chip">{t('Fragmento', 'Share')} {numFrag(x)}</span>}
+                                                    {isSel && <i className="fas fa-check-circle sel-check" aria-hidden="true" />}
+                                                    {!notificable && <span className="no-verif-chip">{t('sin verificar', 'unverified')}</span>}
                                                 </div>
                                             </div>
                                         </div>
@@ -493,14 +500,23 @@ export default function GestionarBoveda() {
                             {cambios.length > 0 && (
                                 <div className="logic-hint mb-3">
                                     <i className="fas fa-triangle-exclamation me-2" />
-                                    Cambios por guardar:
+                                    {t('Cambios por guardar:', 'Unsaved changes:')}
                                     <ul className="mb-0 mt-1 small">
                                         {cambios.map((cb) => (
                                             <li key={`${cb.tipo}-${cb.id_custodio}`}>
                                                 <strong>{nombreDe(cb.id_custodio)}</strong>{' '}
-                                                {cb.tipo === 'nuevo' && <>se vincula con x={cb.nueva}</>}
-                                                {cb.tipo === 'cambio' && <>pasa de x={cb.anterior} a x={cb.nueva}</>}
-                                                {cb.tipo === 'baja' && <>se desvincula (tenía x={cb.anterior})</>}
+                                                {cb.tipo === 'nuevo' &&
+                                                    t(`recibe el fragmento ${numFrag(cb.nueva)}`, `receives share ${numFrag(cb.nueva)}`)}
+                                                {cb.tipo === 'cambio' &&
+                                                    t(
+                                                        `pasa del fragmento ${numFrag(cb.anterior)} al ${numFrag(cb.nueva)}`,
+                                                        `moves from share ${numFrag(cb.anterior)} to ${numFrag(cb.nueva)}`,
+                                                    )}
+                                                {cb.tipo === 'baja' &&
+                                                    t(
+                                                        `se desvincula (tenía el fragmento ${numFrag(cb.anterior)})`,
+                                                        `is unlinked (had share ${numFrag(cb.anterior)})`,
+                                                    )}
                                             </li>
                                         ))}
                                     </ul>
@@ -511,7 +527,7 @@ export default function GestionarBoveda() {
                                 onClick={onClickGuardarVinculacion}
                                 disabled={linking || asignacion.length !== n || cambios.length === 0}
                             >
-                                {linking ? 'Guardando…' : 'Guardar vinculación'}
+                                {linking ? t('Guardando…', 'Saving…') : t('Guardar vinculación', 'Save linking')}
                             </button>
                         </div>
                     </div>
@@ -520,19 +536,19 @@ export default function GestionarBoveda() {
                     <div className="col-12">
                         <div className="config-card">
                             <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                                <h5 className="fw-bold m-0">Activos digitales</h5>
+                                <h5 className="fw-bold m-0">{t('Activos digitales', 'Digital assets')}</h5>
                                 <div className="d-flex gap-2">
                                     <button
                                         className="btn btn-sm btn-ipn"
                                         onClick={() => setEditor({ modo: 'crear' })}
                                     >
-                                        <i className="fas fa-list-check me-1" /> Nueva plantilla
+                                        <i className="fas fa-list-check me-1" /> {t('Nueva plantilla', 'New template')}
                                     </button>
                                     <button
                                         className="btn btn-sm btn-ipn"
                                         onClick={() => navigate(`/bovedas/${bid}/activos/nuevo`)}
                                     >
-                                        <i className="fas fa-plus me-1" /> Subir archivos
+                                        <i className="fas fa-plus me-1" /> {t('Subir archivos', 'Upload files')}
                                     </button>
                                 </div>
                             </div>
@@ -550,7 +566,7 @@ export default function GestionarBoveda() {
                                         <input
                                             type="text"
                                             className="form-control border-start-0 shadow-none"
-                                            placeholder="Buscar por nombre de archivo…"
+                                            placeholder={t('Buscar por nombre de archivo…', 'Search by file name…')}
                                             value={assetSearch}
                                             onChange={(e) => {
                                                 setAssetSearch(e.target.value);
@@ -562,10 +578,10 @@ export default function GestionarBoveda() {
                             )}
 
                             {activos.length === 0 ? (
-                                <p className="text-muted small m-0">Esta bóveda aún no tiene activos.</p>
+                                <p className="text-muted small m-0">{t('Esta bóveda aún no tiene activos.', "This vault doesn't have any assets yet.")}</p>
                             ) : filteredActivos.length === 0 ? (
                                 <p className="text-muted small m-0">
-                                    Sin resultados para «{assetSearch}».
+                                    {t('Sin resultados para', 'No results for')} «{assetSearch}».
                                 </p>
                             ) : (
                                 <>
@@ -585,7 +601,7 @@ export default function GestionarBoveda() {
                                             </p>
                                             <p className="m-0 text-muted" style={{ fontSize: '0.65rem' }}>
                                                 {tpl
-                                                    ? `Plantilla · ${tpl.label}`
+                                                    ? `${t('Plantilla', 'Template')} · ${tpl.label}`
                                                     : `${humanBytes(a.tamano_bytes)} · AES-256-GCM`}
                                                 {a.created_at && ` · ${formatFechaActivo(a.created_at)}`}
                                             </p>
@@ -596,7 +612,7 @@ export default function GestionarBoveda() {
                                                 onClick={() => verCredencial(a)}
                                                 disabled={busyActivoId === a.id}
                                             >
-                                                {busyActivoId === a.id ? '…' : <><i className="fas fa-eye me-1" />Ver</>}
+                                                {busyActivoId === a.id ? '…' : <><i className="fas fa-eye me-1" />{t('Ver', 'View')}</>}
                                             </button>
                                         ) : (
                                             <button
@@ -604,14 +620,14 @@ export default function GestionarBoveda() {
                                                 onClick={() => descargarActivo(a)}
                                                 disabled={busyActivoId === a.id}
                                             >
-                                                {busyActivoId === a.id ? '…' : <><i className="fas fa-download me-1" />Descargar</>}
+                                                {busyActivoId === a.id ? '…' : <><i className="fas fa-download me-1" />{t('Descargar', 'Download')}</>}
                                             </button>
                                         )}
                                         <button
                                             className="btn btn-sm btn-outline-danger rounded-pill"
                                             onClick={() => setToDeleteActivo(a)}
                                             disabled={busyActivoId === a.id}
-                                            title="Eliminar"
+                                            title={t('Eliminar', 'Delete')}
                                         >
                                             <i className="fas fa-trash" />
                                         </button>
@@ -622,7 +638,7 @@ export default function GestionarBoveda() {
                                     {totalAssetPages > 1 && (
                                         <div className="d-flex justify-content-between align-items-center mt-3">
                                             <span className="text-muted" style={{ fontSize: '0.72rem' }}>
-                                                Página {currentAssetPage} de {totalAssetPages} · {filteredActivos.length} archivo(s)
+                                                {t(`Página ${currentAssetPage} de ${totalAssetPages} · ${filteredActivos.length} archivo(s)`, `Page ${currentAssetPage} of ${totalAssetPages} · ${filteredActivos.length} file(s)`)}
                                             </span>
                                             <div className="d-flex gap-2">
                                                 <button
@@ -651,7 +667,7 @@ export default function GestionarBoveda() {
 
             <div className="mt-4">
                 <button className="btn btn-light rounded-pill" onClick={() => navigate('/bovedas')}>
-                    <i className="fas fa-arrow-left me-2" /> Volver
+                    <i className="fas fa-arrow-left me-2" /> {t('Volver', 'Back')}
                 </button>
             </div>
 
@@ -664,18 +680,26 @@ export default function GestionarBoveda() {
                                 <div className="mb-3 text-danger">
                                     <i className="fas fa-trash-alt fa-3x" />
                                 </div>
-                                <h4 className="fw-bold">Eliminar activo</h4>
-                                <p className="text-muted small">
-                                    Vas a eliminar <strong>{displayNombreById.get(toDeleteActivo.id) ?? toDeleteActivo.nombre_original}</strong> de forma
-                                    permanente. Esta acción no se puede deshacer.
-                                </p>
+                                <h4 className="fw-bold">{t('Eliminar activo', 'Delete asset')}</h4>
+                                {getLang() === 'es' ? (
+                                    <p className="text-muted small">
+                                        Vas a eliminar <strong>{displayNombreById.get(toDeleteActivo.id) ?? toDeleteActivo.nombre_original}</strong> de forma
+                                        permanente. Esta acción no se puede deshacer.
+                                    </p>
+                                ) : (
+                                    <p className="text-muted small">
+                                        You're about to permanently delete{' '}
+                                        <strong>{displayNombreById.get(toDeleteActivo.id) ?? toDeleteActivo.nombre_original}</strong>. This
+                                        can't be undone.
+                                    </p>
+                                )}
                                 <div className="d-flex gap-3 mt-4">
                                     <button
                                         className="btn btn-light w-100 rounded-pill"
                                         onClick={() => setToDeleteActivo(null)}
                                         disabled={busyActivoId === toDeleteActivo.id}
                                     >
-                                        Cancelar
+                                        {t('Cancelar', 'Cancel')}
                                     </button>
                                     <button
                                         className="btn w-100 rounded-pill text-white"
@@ -683,7 +707,7 @@ export default function GestionarBoveda() {
                                         onClick={() => eliminarActivo(toDeleteActivo)}
                                         disabled={busyActivoId === toDeleteActivo.id}
                                     >
-                                        {busyActivoId === toDeleteActivo.id ? 'Eliminando…' : 'Eliminar permanentemente'}
+                                        {busyActivoId === toDeleteActivo.id ? t('Eliminando…', 'Deleting…') : t('Eliminar permanentemente', 'Delete permanently')}
                                     </button>
                                 </div>
                             </div>
@@ -698,12 +722,20 @@ export default function GestionarBoveda() {
                         <div className="modal-content shadow-lg">
                             <div className="modal-header-gradient" />
                             <div className="modal-body p-5">
-                                <h4 className="fw-bold mb-1">Verificar fragmentos antes de guardar</h4>
-                                <p className="text-muted small mb-4">
-                                    Sube el archivo <code>.sss</code> que ya tienes para cada custodio nuevo o
-                                    reasignado. Se valida contra los compromisos de esta bóveda y, si es correcto,
-                                    se descarga de inmediato ya renombrado con el custodio correcto.
-                                </p>
+                                <h4 className="fw-bold mb-1">{t('Verificar fragmentos antes de guardar', 'Verify shares before saving')}</h4>
+                                {getLang() === 'es' ? (
+                                    <p className="text-muted small mb-4">
+                                        Sube el archivo <code>.sss</code> que ya tienes para cada custodio nuevo o
+                                        reasignado. Se valida contra los compromisos de esta bóveda y, si es correcto,
+                                        se descarga de inmediato ya renombrado con el custodio correcto.
+                                    </p>
+                                ) : (
+                                    <p className="text-muted small mb-4">
+                                        Upload the <code>.sss</code> file you already have for each new or reassigned
+                                        custodian. It's checked against this vault's commitments and, if correct, it's
+                                        downloaded right away renamed for the right custodian.
+                                    </p>
+                                )}
                                 {pendientesRenombrar.map((item) => {
                                     const estado = subidas[item.id_custodio] ?? 'pendiente';
                                     return (
@@ -714,18 +746,18 @@ export default function GestionarBoveda() {
                                             <div className="flex-grow-1">
                                                 <p className="m-0 fw-bold small">{nombreDe(item.id_custodio)}</p>
                                                 <p className="m-0 text-muted" style={{ fontSize: '0.7rem' }}>
-                                                    Fragmento x={item.nueva}
+                                                    {t('Fragmento', 'Share')} {numFrag(item.nueva)}
                                                 </p>
                                                 {estado === 'error' && (
                                                     <p className="m-0 small" style={{ color: 'var(--danger-red)' }}>
                                                         <i className="fas fa-circle-xmark me-1" />
-                                                        Ese archivo no es el fragmento x={item.nueva} de esta bóveda.
+                                                        {t(`Ese archivo no es el fragmento ${numFrag(item.nueva)} de esta bóveda.`, `That file isn't share ${numFrag(item.nueva)} of this vault.`)}
                                                     </p>
                                                 )}
                                             </div>
                                             {estado === 'ok' ? (
                                                 <span className="small fw-bold" style={{ color: 'var(--escom-blue)' }}>
-                                                    <i className="fas fa-circle-check me-1" /> Verificado
+                                                    <i className="fas fa-circle-check me-1" /> {t('Verificado', 'Verified')}
                                                 </span>
                                             ) : (
                                                 <input
@@ -749,7 +781,7 @@ export default function GestionarBoveda() {
                                         onClick={cerrarModalRenombrar}
                                         disabled={linking}
                                     >
-                                        Cancelar
+                                        {t('Cancelar', 'Cancel')}
                                     </button>
                                     <button
                                         className="btn btn-ipn w-100"
@@ -759,7 +791,7 @@ export default function GestionarBoveda() {
                                         }
                                         onClick={confirmarRenombradoYGuardar}
                                     >
-                                        {linking ? 'Guardando…' : 'Confirmar y guardar vinculación'}
+                                        {linking ? t('Guardando…', 'Saving…') : t('Confirmar y guardar vinculación', 'Confirm and save linking')}
                                     </button>
                                 </div>
                             </div>
@@ -781,7 +813,7 @@ export default function GestionarBoveda() {
                     onClose={() => setEditor(null)}
                     onSaved={async () => {
                         setEditor(null);
-                        notifySuccess(editor.modo === 'editar' ? 'Plantilla actualizada.' : 'Plantilla agregada.');
+                        notifySuccess(editor.modo === 'editar' ? t('Plantilla actualizada.', 'Template updated.') : t('Plantilla agregada.', 'Template added.'));
                         await recargarActivos();
                     }}
                 />

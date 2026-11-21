@@ -12,9 +12,10 @@ class PlanResponse(BaseModel):
     nombre: str
     costo_anual: float  # único ciclo de facturación; 0 = gratuito
     costo_reserva: float  # año de reserva; 0 = el plan no lo ofrece
-    max_almacenamiento_gb: int
+    max_almacenamiento_mb: int
     max_bovedas: int
     max_custodios: int
+    max_archivos: int | None = None  # archivos subidos; None = sin límite
 
 
 class UsoActual(BaseModel):
@@ -23,6 +24,7 @@ class UsoActual(BaseModel):
     bovedas: int
     custodios: int
     almacenamiento_bytes: int
+    archivos: int = 0  # archivos subidos (sin plantillas)
 
 
 class ReservaEstado(BaseModel):

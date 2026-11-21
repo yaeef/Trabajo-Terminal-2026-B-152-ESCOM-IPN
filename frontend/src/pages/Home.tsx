@@ -3,101 +3,178 @@ import { Link } from 'react-router-dom';
 import { getTheme, toggleTheme } from '../theme';
 import './Home.css';
 import KleimosLogo from '../components/brand/KleimosLogo';
+import DemoShamir from '../components/home/DemoShamir';
+import LanguageToggle from '../components/common/LanguageToggle';
+import { getLang, t } from '../i18n';
 
 // ---------------------------------------------------------------------------
 // Datos estáticos de las secciones
 // ---------------------------------------------------------------------------
 
-const CONCEPTS = [
+// Son funciones (no constantes) para que los textos salgan en el idioma activo.
+
+const concepts = () => [
     {
         icon: 'fa-puzzle-piece',
-        title: '1. Los Fragmentos',
+        title: t('1. Los Fragmentos', '1. The Shares'),
         paragraphs: [
-            'Imagina que tu llave de acceso a tu patrimonio es un mapa del tesoro. En lugar de darle el mapa a una persona, lo dividimos en piezas llamadas fragmentos.',
-            'Tener un solo fragmento no sirve de nada; no revela ninguna pista sobre la ubicación del tesoro.',
+            t(
+                'Imagina que tu llave de acceso a tu patrimonio es un mapa del tesoro. En lugar de darle el mapa a una persona, lo dividimos en piezas llamadas fragmentos.',
+                "Imagine the key to your estate is a treasure map. Instead of giving the map to one person, we split it into pieces called shares.",
+            ),
+            t(
+                'Tener un solo fragmento no sirve de nada; no revela ninguna pista sobre la ubicación del tesoro.',
+                "A single share is useless on its own; it doesn't reveal any clue about where the treasure is.",
+            ),
         ],
     },
     {
         icon: 'fa-users-cog',
-        title: '2. El Umbral (k)',
+        title: t('2. El Umbral (k)', '2. The Threshold (k)'),
         paragraphs: [
-            'Aquí está la magia: no necesitas todas las piezas para reconstruir el mapa. Tú decides cuántas son necesarias.',
-            'Si repartes 5 fragmentos y pones un umbral de 3, el secreto se revelará en cuanto 3 de tus familiares, o amigos, se reúnan.',
+            t(
+                'Aquí está la magia: no necesitas todas las piezas para reconstruir el mapa. Tú decides cuántas son necesarias.',
+                "Here's the magic: you don't need every piece to rebuild the map. You decide how many are required.",
+            ),
+            t(
+                'Si repartes 5 fragmentos y pones un umbral de 3, el secreto se revelará en cuanto 3 de tus familiares, o amigos, se reúnan.',
+                'If you hand out 5 shares and set a threshold of 3, the secret is revealed as soon as 3 of your relatives or friends come together.',
+            ),
         ],
     },
     {
         icon: 'fa-lock',
-        title: '3. Seguridad Total',
+        title: t('3. Seguridad Total', '3. Total Security'),
         paragraphs: [
-            'Matemáticamente, es imposible adivinar tu llave de acceso si te falta aunque sea una sola pieza del umbral.',
-            'Tus llaves están resguardadas por un esquema de Secreto Compartido.',
+            t(
+                'Matemáticamente, es imposible adivinar tu llave de acceso si te falta aunque sea una sola pieza del umbral.',
+                "Mathematically, it's impossible to guess your access key if even a single piece of the threshold is missing.",
+            ),
+            t(
+                'Tus llaves están resguardadas por un esquema de Secreto Compartido.',
+                'Your keys are protected by a Secret Sharing scheme.',
+            ),
         ],
     },
 ];
 
-const CHECKLIST = [
-    { title: 'Cero Conocimiento:', text: 'Nunca vemos tus archivos ni conocemos tus llaves.' },
-    { title: 'Descentralizado:', text: 'Tus familiares guardan las llaves, no nosotros.' },
-    { title: 'Validación VSS:', text: 'Verificamos que nadie te dé una pieza falsa.' },
+const checklist = () => [
+    {
+        title: t('Cero Conocimiento:', 'Zero Knowledge:'),
+        text: t('Nunca vemos tus archivos ni conocemos tus llaves.', 'We never see your files or know your keys.'),
+    },
+    {
+        title: t('Descentralizado:', 'Decentralized:'),
+        text: t('Tus familiares guardan las llaves, no nosotros.', 'Your loved ones keep the keys, not us.'),
+    },
+    {
+        title: t('Piezas verificadas:', 'Verified pieces:'),
+        text: t('Verificamos que nadie te dé una pieza falsa.', 'We check that nobody hands you a fake piece.'),
+    },
 ];
 
-const ASSET_TYPES = [
+const assetTypes = () => [
     {
         icon: 'fa-key',
-        title: 'Contraseñas',
-        text: 'Todos tus accesos y cuentas importantes, cifrados en un solo lugar.',
+        title: t('Contraseñas', 'Passwords'),
+        text: t(
+            'Todos tus accesos y cuentas importantes, cifrados en un solo lugar.',
+            'All your important logins and accounts, encrypted in one place.',
+        ),
     },
     {
         icon: 'fa-wallet',
         title: 'Seed Phrases',
-        text: 'Las frases de recuperación de tus wallets cripto, sin exponerlas nunca.',
+        text: t(
+            'Las frases de recuperación de tus wallets cripto, sin exponerlas nunca.',
+            'The recovery phrases of your crypto wallets, never exposed.',
+        ),
     },
     {
         icon: 'fa-file-contract',
-        title: 'Documentos',
-        text: 'Testamentos, escrituras, pólizas o cualquier archivo sensible.',
+        title: t('Documentos', 'Documents'),
+        text: t(
+            'Testamentos, escrituras, pólizas o cualquier archivo sensible.',
+            'Wills, deeds, policies or any sensitive file.',
+        ),
     },
     {
         icon: 'fa-id-badge',
-        title: 'Credenciales',
-        text: 'Accesos a plataformas, licencias digitales y cuentas corporativas.',
+        title: t('Credenciales', 'Credentials'),
+        text: t(
+            'Accesos a plataformas, licencias digitales y cuentas corporativas.',
+            'Platform logins, digital licenses and corporate accounts.',
+        ),
     },
 ];
 
-const BEFORE_ITEMS = [
-    'Contraseñas y seed phrases dispersas en notas, correos o la memoria de una sola persona.',
-    'Si te pasa algo, tu familia no sabe ni por dónde empezar a buscar tus accesos.',
-    'Un solo punto de fallo: si pierdes ese papel o USB, se pierde todo para siempre.',
-    'Dependes de que un tercero (banco, plataforma) decida qué hacer con tus claves.',
+const beforeItems = () => [
+    t(
+        'Contraseñas y seed phrases dispersas en notas, correos o la memoria de una sola persona.',
+        "Passwords and seed phrases scattered across notes, emails or a single person's memory.",
+    ),
+    t(
+        'Si te pasa algo, tu familia no sabe ni por dónde empezar a buscar tus accesos.',
+        "If something happens to you, your family doesn't even know where to start looking for your logins.",
+    ),
+    t(
+        'Un solo punto de fallo: si pierdes ese papel o USB, se pierde todo para siempre.',
+        'A single point of failure: if you lose that paper or USB drive, everything is lost forever.',
+    ),
+    t(
+        'Dependes de que un tercero (banco, plataforma) decida qué hacer con tus claves.',
+        'You depend on a third party (bank, platform) deciding what to do with your keys.',
+    ),
 ];
 
-const AFTER_ITEMS = [
-    'Todo cifrado en un solo lugar, con una llave que solo tú controlas.',
-    'Un protocolo automático detecta tu inactividad y activa la sucesión.',
-    'Ningún custodio, por sí solo, puede acceder a tu bóveda (Shamir, k de n).',
-    'Tus seres queridos reciben exactamente lo que definiste, sin intermediarios.',
+const afterItems = () => [
+    t('Todo cifrado en un solo lugar, con una llave que solo tú controlas.', 'Everything encrypted in one place, with a key only you control.'),
+    t('Un protocolo automático detecta tu inactividad y activa la sucesión.', 'An automatic protocol detects your inactivity and triggers the succession.'),
+    t('Ningún custodio, por sí solo, puede acceder a tu bóveda.', 'No custodian can access your vault on their own.'),
+    t(
+        'Tus seres queridos reciben exactamente lo que definiste, sin intermediarios.',
+        'Your loved ones receive exactly what you defined, with no intermediaries.',
+    ),
 ];
 
-const FAQ_ITEMS = [
+const faqItems = () => [
     {
-        question: '¿Ustedes pueden ver mis contraseñas o archivos?',
-        answer: 'No. Todo se cifra en tu navegador antes de subirse. Nosotros solo guardamos compromisos criptográficos (Feldman VSS) para validar fragmentos, nunca la llave ni tus activos en claro.',
+        question: t('¿Ustedes pueden ver mis contraseñas o archivos?', 'Can you see my passwords or files?'),
+        answer: t(
+            'No. Todo se cifra en tu navegador antes de subirse. Solo guardamos lo necesario para comprobar que los fragmentos son auténticos, nunca la llave ni tus archivos.',
+            'No. Everything is encrypted in your browser before it is uploaded. We only store what is needed to check that the shares are authentic, never the key or your files.',
+        ),
     },
     {
-        question: '¿Un solo custodio puede acceder a mi bóveda?',
-        answer: 'No. Usamos Shamir Secret Sharing: se necesita un mínimo de k fragmentos (que tú defines) para reconstruir la llave. Ningún custodio individual tiene acceso por sí solo.',
+        question: t('¿Un solo custodio puede acceder a mi bóveda?', 'Can a single custodian access my vault?'),
+        answer: t(
+            'No. La llave se divide en partes y se necesita un mínimo de ellas (tú decides cuántas) para reconstruirla. Ningún custodio individual tiene acceso por sí solo.',
+            'No. The key is split into parts and a minimum of them (you decide how many) is needed to rebuild it. No individual custodian has access on their own.',
+        ),
     },
     {
-        question: '¿Qué pasa si un custodio pierde su fragmento o no responde?',
-        answer: 'Por eso se recomienda repartir más fragmentos (n) de los que se necesitan (k). Mientras sigan disponibles al menos k fragmentos válidos, la recuperación sigue siendo posible.',
+        question: t('¿Qué pasa si un custodio pierde su fragmento o no responde?', "What if a custodian loses their share or doesn't respond?"),
+        answer: t(
+            'Por eso se recomienda repartir más fragmentos (n) de los que se necesitan (k). Mientras sigan disponibles al menos k fragmentos válidos, la recuperación sigue siendo posible.',
+            "That's why it's recommended to hand out more shares (n) than are needed (k). As long as at least k valid shares remain available, recovery is still possible.",
+        ),
     },
     {
-        question: '¿Qué pasa si no respondo las pruebas de vida pero sigo bien?',
-        answer: 'Existe un periodo de gracia configurable antes de que se active cualquier alerta o proceso de recuperación, para evitar falsas alarmas.',
+        question: t('¿Qué pasa si no respondo las pruebas de vida pero sigo bien?', "What if I don't answer the proof-of-life checks but I'm fine?"),
+        answer: t(
+            'Existe un periodo de gracia configurable antes de que se active cualquier alerta o proceso de recuperación, para evitar falsas alarmas.',
+            'There is a configurable grace period before any alert or recovery process is triggered, to avoid false alarms.',
+        ),
     },
     {
-        question: '¿Cuánto tiempo tienen mis beneficiarios para completar la recuperación?',
-        answer: 'Una vez confirmada la inactividad, hay un plazo único e improrrogable de 12 meses. Si no se completa en ese periodo, los archivos se eliminan.',
+        question: t(
+            '¿Cuánto tiempo tienen mis beneficiarios para completar la recuperación?',
+            'How long do my beneficiaries have to complete the recovery?',
+        ),
+        answer: t(
+            'Una vez confirmada la inactividad, hay un plazo único e improrrogable de 12 meses. Si no se completa en ese periodo, los archivos se eliminan.',
+            "Once inactivity is confirmed, there is a single, non-extendable 12-month window. If recovery isn't completed in that time, the files are deleted.",
+        ),
     },
 ];
 
@@ -126,12 +203,13 @@ const STEP_DURATION_MS: Record<Step, number> = {
     success: 4500,
 };
 
-const STEP_LABEL: Record<Step, string> = {
-    idle: 'Protegiendo acceso...',
-    split: 'Dividiendo en 5 piezas...',
-    quorum: 'Recuperación: 3 personas se reúnen...',
-    success: '¡Acceso Restaurado!',
-};
+const stepLabel = (s: Step): string =>
+    ({
+        idle: t('Protegiendo acceso...', 'Protecting access...'),
+        split: t('Dividiendo en 5 piezas...', 'Splitting into 5 pieces...'),
+        quorum: t('Recuperación: 3 personas se reúnen...', 'Recovery: 3 people come together...'),
+        success: t('¡Acceso Restaurado!', 'Access Restored!'),
+    })[s];
 
 function ShamirAnimation() {
     const [step, setStep] = useState<Step>('idle');
@@ -165,7 +243,7 @@ function ShamirAnimation() {
 
     return (
         <div className="anim-box">
-            <div className="anim-label">{STEP_LABEL[step]}</div>
+            <div className="anim-label">{stepLabel(step)}</div>
 
             <div
                 className="main-secret"
@@ -246,7 +324,7 @@ function FaqAccordion() {
 
     return (
         <div className="faq-accordion">
-            {FAQ_ITEMS.map((item, i) => {
+            {faqItems().map((item, i) => {
                 const isOpen = openIndex === i;
                 return (
                     <div className={`faq-item ${isOpen ? 'is-open' : ''}`} key={item.question}>
@@ -277,15 +355,18 @@ export default function Home() {
     const closeMenu = () => setMenuOpen(false);
 
     const themeBtn = (
-        <button
-            type="button"
-            className="theme-toggle"
-            onClick={() => setTheme(toggleTheme())}
-            title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
-            aria-label="Cambiar tema"
-        >
-            <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`}></i>
-        </button>
+        <>
+            <LanguageToggle />
+            <button
+                type="button"
+                className="theme-toggle"
+                onClick={() => setTheme(toggleTheme())}
+                title={theme === 'dark' ? t('Modo claro', 'Light mode') : t('Modo oscuro', 'Dark mode')}
+                aria-label={t('Cambiar tema', 'Toggle theme')}
+            >
+                <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`}></i>
+            </button>
+        </>
     );
 
     return (
@@ -293,7 +374,7 @@ export default function Home() {
             {/* Navbar */}
             <nav className="navbar navbar-expand-lg navbar-clean sticky-top">
                 <div className="container">
-                    <a className="navbar-brand" href="#top" aria-label="Kleimos Legacy, inicio">
+                    <a className="navbar-brand" href="#top" aria-label={t('Kleimos Legacy, inicio', 'Kleimos Legacy, home')}>
                         <KleimosLogo tamano="sm" />
                     </a>
 
@@ -302,7 +383,7 @@ export default function Home() {
                         type="button"
                         className="home-nav-toggler d-lg-none"
                         onClick={() => setMenuOpen((o) => !o)}
-                        aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+                        aria-label={menuOpen ? t('Cerrar menú', 'Close menu') : t('Abrir menú', 'Open menu')}
                         aria-expanded={menuOpen}
                     >
                         <i className={`fas ${menuOpen ? 'fa-times' : 'fa-bars'}`}></i>
@@ -310,15 +391,18 @@ export default function Home() {
 
                     {/* Acciones en línea — solo escritorio */}
                     <div className="ms-auto d-none d-lg-flex gap-2 align-items-center">
-                        <a href="#conceptos" className="home-nav-link">Conceptos</a>
-                        <a href="#proceso" className="home-nav-link">Proceso</a>
+                        <a href="#conceptos" className="home-nav-link">{t('Conceptos', 'Concepts')}</a>
+                        <a href="#demo" className="home-nav-link home-nav-link--demo">
+                            <i className="fas fa-puzzle-piece me-1"></i>{t('Pruébalo', 'Try it')}
+                        </a>
+                        <a href="#proceso" className="home-nav-link">{t('Proceso', 'Process')}</a>
                         <a href="#faq" className="home-nav-link">FAQ</a>
                         {themeBtn}
                         <Link to="/login" className="btn btn-outline-secondary rounded-pill px-4">
-                            Ingresar
+                            {t('Ingresar', 'Sign in')}
                         </Link>
                         <Link to="/recuperacion" className="btn-ipn">
-                            Comenzar Recuperación
+                            {t('Comenzar Recuperación', 'Start Recovery')}
                         </Link>
                     </div>
                 </div>
@@ -326,17 +410,20 @@ export default function Home() {
                 {/* Panel colapsable — solo móvil, al abrir */}
                 {menuOpen && (
                     <div className="home-nav-menu d-lg-none">
-                        <a href="#conceptos" onClick={closeMenu}>Conceptos</a>
-                        <a href="#proceso" onClick={closeMenu}>Proceso</a>
+                        <a href="#conceptos" onClick={closeMenu}>{t('Conceptos', 'Concepts')}</a>
+                        <a href="#demo" className="home-nav-link--demo" onClick={closeMenu}>
+                            <i className="fas fa-puzzle-piece me-2"></i>{t('Pruébalo', 'Try it')}
+                        </a>
+                        <a href="#proceso" onClick={closeMenu}>{t('Proceso', 'Process')}</a>
                         <a href="#faq" onClick={closeMenu}>FAQ</a>
                         <div className="d-flex align-items-center gap-2 mt-2">
                             {themeBtn}
                             <Link to="/login" className="btn btn-outline-secondary rounded-pill flex-grow-1" onClick={closeMenu}>
-                                Ingresar
+                                {t('Ingresar', 'Sign in')}
                             </Link>
                         </div>
                         <Link to="/recuperacion" className="btn-ipn w-100 text-center mt-2" onClick={closeMenu}>
-                            Comenzar Recuperación
+                            {t('Comenzar Recuperación', 'Start Recovery')}
                         </Link>
                     </div>
                 )}
@@ -354,14 +441,13 @@ export default function Home() {
                                 <KleimosLogo tamano="md" tono="oscuro" />
                             </div>
 
-                            <h1 className="home-hero-titulo">Protege tu patrimonio digital</h1>
+                            <h1 className="home-hero-titulo">{t('Protege tu patrimonio digital', 'Protect your digital estate')}</h1>
                             <p className="home-hero-sub">
-                                Tus archivos, cifrados y repartidos entre personas de confianza, llegan a quien tú elijas
-                                si algo te pasa.
+                                {t('Tus archivos, cifrados y repartidos entre personas de confianza, llegan a quien tú elijas si algo te pasa.', 'Your files, encrypted and shared among people you trust, reach whoever you choose if something happens to you.')}
                             </p>
 
                             <a href="#conceptos" className="btn btn-lg rounded-pill fw-bold px-5 shadow-lg home-hero-btn">
-                                <i className="fas fa-microchip me-2"></i>Empezar
+                                <i className="fas fa-microchip me-2"></i>{t('Empezar', 'Get started')}
                             </a>
                         </div>
                     </div>
@@ -372,7 +458,7 @@ export default function Home() {
             <section className="section-band section-band--white">
             <div className="container">
                 <div className="text-center mb-5">
-                    <h2 className="fw-bold">Tu patrimonio digital, hoy vs. con Kleimos</h2>
+                    <h2 className="fw-bold">{t('Tu patrimonio digital, hoy vs. con Kleimos', 'Your digital estate, today vs. with Kleimos')}</h2>
                     <div
                         className="mx-auto my-3"
                         style={{ width: '80px', height: '4px', background: 'var(--ipn-maroon)' }}
@@ -383,10 +469,10 @@ export default function Home() {
                     <div className="col-md-6">
                         <div className="card risk-card risk-card--before p-4 h-100">
                             <span className="risk-badge risk-badge--before">
-                                <i className="fas fa-triangle-exclamation me-2"></i>Hoy, sin protección
+                                <i className="fas fa-triangle-exclamation me-2"></i>{t('Hoy, sin protección', 'Today, unprotected')}
                             </span>
                             <ul className="list-unstyled mt-4 mb-0">
-                                {BEFORE_ITEMS.map((text) => (
+                                {beforeItems().map((text) => (
                                     <li className="mb-3 d-flex" key={text}>
                                         <i className="fas fa-circle-xmark text-danger me-2 mt-1"></i>
                                         <span className="text-muted">{text}</span>
@@ -398,10 +484,10 @@ export default function Home() {
                     <div className="col-md-6">
                         <div className="card risk-card risk-card--after p-4 h-100">
                             <span className="risk-badge risk-badge--after">
-                                <i className="fas fa-shield-heart me-2"></i>Con Kleimos
+                                <i className="fas fa-shield-heart me-2"></i>{t('Con Kleimos', 'With Kleimos')}
                             </span>
                             <ul className="list-unstyled mt-4 mb-0">
-                                {AFTER_ITEMS.map((text) => (
+                                {afterItems().map((text) => (
                                     <li className="mb-3 d-flex" key={text}>
                                         <i className="fas fa-circle-check text-success me-2 mt-1"></i>
                                         <span className="text-muted">{text}</span>
@@ -418,7 +504,7 @@ export default function Home() {
             <section className="section-band section-band--tint">
             <div className="container">
                 <div className="text-center mb-5">
-                    <h2 className="fw-bold">¿Qué puedes guardar en tu bóveda?</h2>
+                    <h2 className="fw-bold">{t('¿Qué puedes guardar en tu bóveda?', 'What can you keep in your vault?')}</h2>
                     <div
                         className="mx-auto my-3"
                         style={{ width: '80px', height: '4px', background: 'var(--ipn-maroon)' }}
@@ -426,7 +512,7 @@ export default function Home() {
                 </div>
 
                 <div className="row g-4">
-                    {ASSET_TYPES.map((a) => (
+                    {assetTypes().map((a) => (
                         <div className="col-6 col-lg-3" key={a.title}>
                             <div className="card asset-card p-4 text-center h-100">
                                 <div className="icon-box icon-box--sm mx-auto">
@@ -445,7 +531,7 @@ export default function Home() {
             <section className="section-band section-band--white" id="conceptos">
             <div className="container">
                 <div className="text-center mb-5">
-                    <h2 className="fw-bold">¿Cómo funciona Kleimos Legacy?</h2>
+                    <h2 className="fw-bold">{t('¿Cómo funciona Kleimos Legacy?', 'How does Kleimos Legacy work?')}</h2>
                     <div
                         className="mx-auto my-3"
                         style={{ width: '80px', height: '4px', background: 'var(--ipn-maroon)' }}
@@ -453,7 +539,7 @@ export default function Home() {
                 </div>
 
                 <div className="row g-4">
-                    {CONCEPTS.map((c) => (
+                    {concepts().map((c) => (
                         <div className="col-md-4" key={c.title}>
                             <div className="card concept-card p-4">
                                 <div className="icon-box">
@@ -478,24 +564,35 @@ export default function Home() {
                 <div className="row align-items-center">
                     <div className="col-lg-5 mb-5 mb-lg-0">
                         <h2 className="fw-bold mb-4">
-                            Un Secreto que <span style={{ color: 'var(--sim-light-purple)' }}>nadie</span> posee solo
+                            {getLang() === 'es' ? (
+                                <>
+                                    Un Secreto que <span style={{ color: 'var(--sim-light-purple)' }}>nadie</span> posee solo
+                                </>
+                            ) : (
+                                <>
+                                    A Secret that <span style={{ color: 'var(--sim-light-purple)' }}>nobody</span> holds alone
+                                </>
+                            )}
                         </h2>
                         <p className="text-muted lead">
-                            Kleimos convierte tu acceso en un rompecabezas digital. Lo repartimos entre personas de
-                            confianza, y solo cuando se reúnen las piezas necesarias, puedes recuperar tu patrimonio.
+                            {t('Kleimos convierte tu acceso en un rompecabezas digital. Lo repartimos entre personas de confianza, y solo cuando se reúnen las piezas necesarias, puedes recuperar tu patrimonio.', 'Kleimos turns your access into a digital puzzle. We share it among people you trust, and only when the required pieces come together can your estate be recovered.')}
                         </p>
 
                         <div className="d-flex align-items-center gap-4 mt-4">
                             <div className="text-center">
                                 <h3 className="fw-bold mb-0">5</h3>
-                                <small className="text-muted text-uppercase fw-bold">Elegidos</small>
+                                <small className="text-muted text-uppercase fw-bold">{t('Elegidos', 'Chosen')}</small>
                             </div>
                             <div className="vr"></div>
                             <div className="text-center">
                                 <h3 className="fw-bold mb-0 text-success">3</h3>
-                                <small className="text-muted text-uppercase fw-bold">Necesarios</small>
+                                <small className="text-muted text-uppercase fw-bold">{t('Necesarios', 'Required')}</small>
                             </div>
                         </div>
+
+                        <a href="#demo" className="btn-ipn mt-4">
+                            <i className="fas fa-puzzle-piece me-2"></i>{t('Pruébalo tú mismo', 'Try it yourself')}
+                        </a>
                     </div>
                     <div className="col-lg-7">
                         <ShamirAnimation />
@@ -503,6 +600,10 @@ export default function Home() {
                 </div>
             </div>
             </section>
+
+            {/* Actividad interactiva: fragmentar y recuperar una palabra (simulación, sin el motor SSS).
+                Trae su propia banda destacada, ver components/home/DemoShamir. */}
+            <DemoShamir />
 
             {/* Proceso / protocolo de emergencia */}
             <section className="section-band section-band--white" id="proceso">
@@ -512,19 +613,18 @@ export default function Home() {
                         <img
                             src="https://images.unsplash.com/photo-1558494949-ef010cbdcc31?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
                             className="img-fluid rounded-4 shadow"
-                            alt="Servidores seguros"
+                            alt={t('Servidores seguros', 'Secure servers')}
                         />
                     </div>
                     <div className="col-lg-6 ps-lg-5">
                         <h3 className="fw-bold" style={{ color: 'var(--ipn-maroon)' }}>
-                            Un protocolo de emergencia real
+                            {t('Un protocolo de emergencia real', 'A real emergency protocol')}
                         </h3>
                         <p className="my-4 text-muted">
-                            Kleimos no es una base de datos. Es un sistema efímero. Solo existimos cuando necesitas
-                            recuperar tus activos. Nunca conocemos tus llaves y tampoco tus activos.
+                            {t('Kleimos no es una base de datos. Es un sistema efímero. Solo existimos cuando necesitas recuperar tus activos. Nunca conocemos tus llaves y tampoco tus activos.', "Kleimos isn't a database. It's an ephemeral system. We only exist when you need to recover your assets. We never know your keys or your assets.")}
                         </p>
                         <ul className="list-unstyled">
-                            {CHECKLIST.map((item) => (
+                            {checklist().map((item) => (
                                 <li className="mb-3" key={item.title}>
                                     <i className="fas fa-check-circle text-success me-2"></i>
                                     <strong>{item.title}</strong> {item.text}
@@ -542,18 +642,27 @@ export default function Home() {
                 <div className="legal-notice d-flex align-items-start gap-3 mb-5">
                     <i className="fas fa-triangle-exclamation fa-2x flex-shrink-0"></i>
                     <div>
-                        <h5 className="fw-bold mb-1">Aviso importante</h5>
-                        <p className="mb-0">
-                            Kleimos <strong>no es un testamento digital</strong> ni sustituye a un testamento físico
-                            ante notario. Es una herramienta técnica para transferir el acceso a tus activos
-                            digitales a las personas que elijas. Para la sucesión legal de tu patrimonio (bienes,
-                            propiedades y disposiciones legales), siempre debes acudir con un notario público.
-                        </p>
+                        <h5 className="fw-bold mb-1">{t('Aviso importante', 'Important notice')}</h5>
+                        {getLang() === 'es' ? (
+                            <p className="mb-0">
+                                Kleimos <strong>no es un testamento digital</strong> ni sustituye a un testamento físico
+                                ante notario. Es una herramienta técnica para transferir el acceso a tus activos
+                                digitales a las personas que elijas. Para la sucesión legal de tu patrimonio (bienes,
+                                propiedades y disposiciones legales), siempre debes acudir con un notario público.
+                            </p>
+                        ) : (
+                            <p className="mb-0">
+                                Kleimos <strong>is not a digital will</strong> and doesn't replace a will made before a
+                                notary. It's a technical tool to transfer access to your digital assets to the people you
+                                choose. For the legal succession of your estate (goods, property and legal provisions),
+                                you should always see a notary public.
+                            </p>
+                        )}
                     </div>
                 </div>
 
                 <div className="text-center mb-5">
-                    <h2 className="fw-bold">Preguntas frecuentes</h2>
+                    <h2 className="fw-bold">{t('Preguntas frecuentes', 'Frequently asked questions')}</h2>
                     <div
                         className="mx-auto my-3"
                         style={{ width: '80px', height: '4px', background: 'var(--ipn-maroon)' }}
@@ -584,7 +693,7 @@ export default function Home() {
                         />
                     </div>
                     <p className="small text-white-50">
-                        © 2026 Kleimos Legacy · Ingeniería en Sistemas Computacionales · ESCOM-IPN
+                        {t('© 2026 Kleimos Legacy · Ingeniería en Sistemas Computacionales · ESCOM-IPN', '© 2026 Kleimos Legacy · Computer Systems Engineering · ESCOM-IPN')}
                     </p>
                 </div>
             </footer>

@@ -52,7 +52,9 @@ class IniciarSubidaRequest(BaseModel):
     @classmethod
     def _tamano_en_rango(cls, v: int) -> int:
         if v < 0 or v > MAX_BYTES_ARCHIVO:
-            raise ValueError(f"Tamaño fuera de rango (máx. {MAX_BYTES_ARCHIVO} bytes por archivo).")
+            raise ValueError(
+                f"El archivo es demasiado grande (máximo {MAX_BYTES_ARCHIVO // 1024**3} GB por archivo)."
+            )
         return v
 
 

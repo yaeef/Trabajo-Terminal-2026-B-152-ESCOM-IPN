@@ -1,3 +1,5 @@
+import { t } from '../i18n';
+
 // 1:1 con backend/app/schemas/custodio.py (rutas /api/v1/custodios)
 
 export interface CustodioResponse {
@@ -49,13 +51,23 @@ export const custodioNotificable = (c: {
     telegram_verificado: boolean;
 }): boolean => c.correo_verificado || c.telegram_verificado;
 
-export const PARENTESCO_OPCIONES = [
-    'Cónyuge',
-    'Hijo/a',
-    'Padre/Madre',
-    'Hermano/a',
-    'Familiar',
-    'Amigo/a',
-    'Abogado/Notario',
-    'Otro',
-];
+// El valor que se guarda en el backend es siempre el español; parentescoLabel
+// solo cambia lo que se muestra según el idioma activo.
+const PARENTESCOS: Record<string, string> = {
+    'Cónyuge': 'Spouse',
+    'Hijo/a': 'Son/Daughter',
+    'Padre/Madre': 'Father/Mother',
+    'Hermano/a': 'Brother/Sister',
+    'Familiar': 'Relative',
+    'Amigo/a': 'Friend',
+    'Abogado/Notario': 'Lawyer/Notary',
+    'Otro': 'Other',
+};
+
+export const PARENTESCO_OPCIONES = Object.keys(PARENTESCOS);
+
+/** Texto a mostrar de un parentesco guardado (valores libres se muestran tal cual). */
+export const parentescoLabel = (v: string): string => {
+    if (v === 'Beneficiario Principal') return t(v, 'Primary Beneficiary'); // vínculo fijo de quien funda la sesión
+    return PARENTESCOS[v] ? t(v, PARENTESCOS[v]) : v;
+};

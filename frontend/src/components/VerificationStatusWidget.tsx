@@ -1,6 +1,7 @@
 import type { ProtocoloVidaResponse } from '../types/dms.types';
 import { calcularProximaVerificacion, formatFechaCorta } from '../utils/dms';
 import './VerificationStatusWidget.css';
+import { t } from '../i18n';
 
 interface VerificationStatusWidgetProps {
     protocoloVida: ProtocoloVidaResponse | null;
@@ -21,9 +22,9 @@ export default function VerificationStatusWidget({ protocoloVida, loading }: Ver
         return (
             <div className="verification-status">
                 <div>
-                    <div className="verif-label">Protocolo de vida</div>
+                    <div className="verif-label">{t('Protocolo de vida', 'Life protocol')}</div>
                     <p className="verif-date" style={{ fontSize: '0.85rem' }}>
-                        Aún sin check-ins registrados
+                        {t('Aún sin check-ins registrados', 'No check-ins recorded yet')}
                     </p>
                 </div>
             </div>
@@ -37,10 +38,10 @@ export default function VerificationStatusWidget({ protocoloVida, loading }: Ver
                 <div className={`status-pulse ${proxima.estado}`}></div>
             </div>
             <div>
-                <div className="verif-label">Próxima Verificación</div>
+                <div className="verif-label">{t('Próxima Verificación', 'Next Check-in')}</div>
                 <p className="verif-date">{formatFechaCorta(proxima.fecha)}</p>
             </div>
-            <div className="verif-tag">{proxima.estado === 'ok' ? 'Al día' : 'Requiere atención'}</div>
+            <div className="verif-tag">{proxima.estado === 'ok' ? t('Al día', 'Up to date') : t('Requiere atención', 'Needs attention')}</div>
         </div>
     );
 }

@@ -2,6 +2,8 @@
 #
 # runtime: imagen de ejecución (solo dependencias de producción, usuario sin
 #          privilegios, sin recarga automática).
+# dev:     runtime + herramientas (pytest, ruff, mypy) y --reload; es la que
+#          usa docker-compose en desarrollo.
 
 FROM python:3.11-slim AS base
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -21,3 +23,10 @@ COPY --chown=app:app . .
 USER app
 EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+FROM runtime AS dev
+USER root
+COPY requirements-dev.txt .
+RUN pip install -r requirements-dev.txt
+USER app
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

@@ -51,9 +51,11 @@ def _nombre_requerido(v: str) -> str:
 
 def _username(v: str) -> str:
     if not (3 <= len(v) <= 50):
-        raise ValueError("El username debe tener entre 3 y 50 caracteres.")
+        raise ValueError("El nombre de usuario debe tener entre 3 y 50 caracteres.")
     if not re.match(r"^[a-zA-Z0-9_.]+$", v):
-        raise ValueError("El username solo puede contener letras, números, '_' y '.'.")
+        raise ValueError(
+            "El nombre de usuario solo puede tener letras, números, guion bajo (_) y punto (.)."
+        )
     return v
 
 

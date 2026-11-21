@@ -12,6 +12,7 @@
 
 import { toHex } from './vaultCrypto';
 import { trackSecret } from './sensitiveMemory';
+import { t } from '../i18n';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -45,7 +46,7 @@ function loadBridge(): Promise<SSSBridge> {
             window.__B152_SSS__ = SSS.load(createSSSModule).then((sss) => ({ sss, files }));
             window.dispatchEvent(new Event('b152-sss-ready'));
         `;
-        s.onerror = () => reject(new Error('No se pudo cargar el motor WASM (sss.js).'));
+        s.onerror = () => reject(new Error(t('No se pudo cargar el motor WASM (sss.js).', "Couldn't load the WASM engine (sss.js).")));
         window.addEventListener('b152-sss-ready', done, { once: true });
         document.head.appendChild(s);
     });

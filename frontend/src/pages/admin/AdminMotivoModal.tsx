@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { t } from '../../i18n';
 
 interface Props {
     title: string;
@@ -14,14 +15,14 @@ interface Props {
  * motivo (queda en la auditoría — ver services/admin/auditoria.py). Mismo
  * markup `.modal.fade.show.d-block` que ya usa Custodios.tsx.
  */
-export default function AdminMotivoModal({ title, description, confirmLabel = 'Confirmar', danger, onConfirm, onClose }: Props) {
+export default function AdminMotivoModal({ title, description, confirmLabel = t('Confirmar', 'Confirm'), danger, onConfirm, onClose }: Props) {
     const [motivo, setMotivo] = useState('');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
 
     const submit = async () => {
         if (motivo.trim().length < 5) {
-            setError('Escribe un motivo de al menos 5 caracteres.');
+            setError(t('Escribe un motivo de al menos 5 caracteres.', 'Write a reason of at least 5 characters.'));
             return;
         }
         setSaving(true);
@@ -44,17 +45,17 @@ export default function AdminMotivoModal({ title, description, confirmLabel = 'C
                         <h4 className="fw-bold mb-1">{title}</h4>
                         {description && <p className="text-muted small mb-4">{description}</p>}
                         {error && <div className="alert alert-danger py-2 small">{error}</div>}
-                        <label className="form-label-b d-block">Motivo (queda en la auditoría)</label>
+                        <label className="form-label-b d-block">{t('Motivo (queda en la auditoría)', 'Reason (recorded in the audit log)')}</label>
                         <textarea
                             className="form-control shadow-none mb-4"
                             rows={3}
                             value={motivo}
                             onChange={(e) => setMotivo(e.target.value)}
-                            placeholder="Ej: el custodio reportó por soporte no haber recibido el correo."
+                            placeholder={t('Ej: el custodio reportó por soporte no haber recibido el correo.', "e.g. the custodian reported to support that they didn't receive the email.")}
                         />
                         <div className="d-flex gap-3">
                             <button className="btn btn-light w-100 rounded-pill" onClick={onClose} disabled={saving}>
-                                Cancelar
+                                {t('Cancelar', 'Cancel')}
                             </button>
                             <button
                                 className={danger ? 'btn w-100 rounded-pill text-white' : 'btn btn-ipn w-100'}
@@ -62,7 +63,7 @@ export default function AdminMotivoModal({ title, description, confirmLabel = 'C
                                 onClick={submit}
                                 disabled={saving}
                             >
-                                {saving ? 'Enviando…' : confirmLabel}
+                                {saving ? t('Enviando…', 'Sending…') : confirmLabel}
                             </button>
                         </div>
                     </div>

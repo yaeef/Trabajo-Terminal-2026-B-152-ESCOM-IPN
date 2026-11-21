@@ -221,9 +221,10 @@ def _plan_a_dict(s: Suscripcion) -> dict[str, Any]:
         "nombre": s.nombre,
         "costo_anual": float(s.costo_anual),
         "costo_reserva": float(s.costo_reserva),
-        "max_almacenamiento_gb": s.max_almacenamiento,
+        "max_almacenamiento_mb": s.max_almacenamiento_mb,
         "max_bovedas": s.max_bovedas,
         "max_custodios": s.max_custodios,
+        "max_archivos": s.max_archivos,
     }
 
 

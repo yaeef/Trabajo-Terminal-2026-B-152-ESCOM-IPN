@@ -6,13 +6,14 @@ import { userService } from '../services/user.service';
 import { purgeAll } from '../crypto/sensitiveMemory';
 import { getApiErrorMessage } from '../utils/errors';
 import './CuentaEnEliminacion.css';
+import LanguageToggle from '../components/common/LanguageToggle';
+import { getLang, locale, t } from '../i18n';
 
-const CONFIRM_WORD = 'ELIMINAR';
 
 function fmtFecha(iso?: string | null): string {
     if (!iso) return '—';
     const d = new Date(iso);
-    return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
+    return d.toLocaleDateString(locale(), { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
 export default function CuentaEnEliminacion() {
@@ -29,6 +30,8 @@ export default function CuentaEnEliminacion() {
     const [modalErr, setModalErr] = useState('');
 
     const purgaEn = fmtFecha(user?.eliminacion_purga_en);
+    // Palabra de confirmación (solo la valida el frontend; el backend pide la contraseña).
+    const CONFIRM_WORD = t('ELIMINAR', 'DELETE');
 
     const restaurar = async () => {
         setRestaurando(true);
@@ -37,7 +40,7 @@ export default function CuentaEnEliminacion() {
             await refreshUser();
             navigate('/dashboard', { replace: true });
         } catch (e) {
-            notifyError(getApiErrorMessage(e, 'No se pudo restaurar la cuenta.'));
+            notifyError(getApiErrorMessage(e, t('No se pudo restaurar la cuenta.', "Couldn't restore the account.")));
             setRestaurando(false);
         }
     };
@@ -51,7 +54,7 @@ export default function CuentaEnEliminacion() {
             logout(); // quita el JWT
             window.location.assign('/'); // recarga completa: destruye heap JS + WASM
         } catch (e) {
-            setModalErr(getApiErrorMessage(e, 'No se pudo eliminar la cuenta.'));
+            setModalErr(getApiErrorMessage(e, t('No se pudo eliminar la cuenta.', "Couldn't delete the account.")));
             setBorrando(false);
         }
     };
@@ -60,19 +63,30 @@ export default function CuentaEnEliminacion() {
 
     return (
         <div className="cuenta-elim-page">
+            <div className="auth-theme-toggle">
+                <LanguageToggle />
+            </div>
             <div className="cuenta-elim-card">
                 <div className="cuenta-elim-bar" />
                 <div className="p-5">
                     <div className="text-center mb-3 text-danger">
                         <i className="fas fa-hourglass-half fa-3x" />
                     </div>
-                    <h3 className="fw-bold text-center mb-2">Tu cuenta está en cola de eliminación</h3>
-                    <p className="text-muted text-center mb-4">
-                        Se eliminarán de forma permanente todas tus bóvedas, sus activos cifrados, los
-                        compromisos criptográficos y tu directorio de custodios el{' '}
-                        <strong>{purgaEn}</strong>. Mientras tanto la aplicación queda bloqueada y el
-                        protocolo de vida está en pausa.
-                    </p>
+                    <h3 className="fw-bold text-center mb-2">{t('Tu cuenta está en cola de eliminación', 'Your account is queued for deletion')}</h3>
+                    {getLang() === 'es' ? (
+                        <p className="text-muted text-center mb-4">
+                            Se eliminarán de forma permanente todas tus bóvedas, sus archivos y tu directorio de
+                            custodios el{' '}
+                            <strong>{purgaEn}</strong>. Mientras tanto la aplicación queda bloqueada y el
+                            protocolo de vida está en pausa.
+                        </p>
+                    ) : (
+                        <p className="text-muted text-center mb-4">
+                            All your vaults, their files and your custodian directory will be permanently deleted on{' '}
+                            <strong>{purgaEn}</strong>. Until then the app is locked and the life protocol is
+                            paused.
+                        </p>
+                    )}
 
                     <div className="d-grid gap-2">
                         <button
@@ -80,7 +94,7 @@ export default function CuentaEnEliminacion() {
                             onClick={restaurar}
                             disabled={restaurando}
                         >
-                            {restaurando ? 'Restaurando…' : 'Restaurar mi cuenta'}
+                            {restaurando ? t('Restaurando…', 'Restoring…') : t('Restaurar mi cuenta', 'Restore my account')}
                         </button>
                         <button
                             className="btn btn-outline-danger rounded-pill py-2"
@@ -91,7 +105,7 @@ export default function CuentaEnEliminacion() {
                                 setModalAbierto(true);
                             }}
                         >
-                            Eliminar ahora
+                            {t('Eliminar ahora', 'Delete now')}
                         </button>
                         <button
                             className="btn btn-link text-muted mt-1"
@@ -100,7 +114,7 @@ export default function CuentaEnEliminacion() {
                                 window.location.assign('/');
                             }}
                         >
-                            Cerrar sesión
+                            {t('Cerrar sesión', 'Sign out')}
                         </button>
                     </div>
                 </div>
@@ -119,15 +133,14 @@ export default function CuentaEnEliminacion() {
                                 <div className="text-center mb-3 text-danger">
                                     <i className="fas fa-triangle-exclamation fa-3x" />
                                 </div>
-                                <h4 className="fw-bold text-center mb-1">Eliminar ahora</h4>
+                                <h4 className="fw-bold text-center mb-1">{t('Eliminar ahora', 'Delete now')}</h4>
                                 <p className="text-muted small text-center mb-4">
-                                    No esperará al plazo: tu patrimonio se borra ya y tu identidad queda
-                                    anonimizada. No se puede deshacer.
+                                    {t('No esperará al plazo: tu patrimonio se borra ya y tu identidad queda anonimizada. No se puede deshacer.', "It won't wait for the deadline: your estate is deleted right away and your identity is anonymized. This can't be undone.")}
                                 </p>
 
                                 {modalErr && <div className="alert alert-danger py-2 small">{modalErr}</div>}
 
-                                <label className="cuenta-elim-label d-block mb-1">Contraseña de la cuenta</label>
+                                <label className="cuenta-elim-label d-block mb-1">{t('Contraseña de la cuenta', 'Account password')}</label>
                                 <input
                                     type="password"
                                     className="form-control shadow-none mb-3"
@@ -138,7 +151,7 @@ export default function CuentaEnEliminacion() {
                                 />
 
                                 <label className="cuenta-elim-label d-block mb-1">
-                                    Escribe <code>{CONFIRM_WORD}</code> para confirmar
+                                    {t('Escribe', 'Type')} <code>{CONFIRM_WORD}</code> {t('para confirmar', 'to confirm')}
                                 </label>
                                 <input
                                     type="text"
@@ -154,14 +167,14 @@ export default function CuentaEnEliminacion() {
                                         onClick={() => setModalAbierto(false)}
                                         disabled={borrando}
                                     >
-                                        Cancelar
+                                        {t('Cancelar', 'Cancel')}
                                     </button>
                                     <button
                                         className="btn btn-danger w-100 rounded-pill"
                                         onClick={eliminarAhora}
                                         disabled={!puedeBorrar || borrando}
                                     >
-                                        {borrando ? 'Eliminando…' : 'Eliminar permanentemente'}
+                                        {borrando ? t('Eliminando…', 'Deleting…') : t('Eliminar permanentemente', 'Delete permanently')}
                                     </button>
                                 </div>
                             </div>

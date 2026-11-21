@@ -4,6 +4,8 @@ import { custodiosService } from '../services/custodios.service';
 import { getApiErrorMessage } from '../utils/errors';
 import './auth/AuthTheme.css';
 import KleimosLogo from '../components/brand/KleimosLogo';
+import LanguageToggle from '../components/common/LanguageToggle';
+import { t } from '../i18n';
 
 /**
  * CU-011 (paso 2): el custodio llega desde el link del correo
@@ -19,7 +21,7 @@ export default function ConfirmarCustodio() {
     useEffect(() => {
         if (!token) {
             setEstado('error');
-            setMensaje('Este enlace no incluye un token válido.');
+            setMensaje(t('Este enlace no es válido. Ábrelo de nuevo desde tu correo.', 'This link is not valid. Open it again from your email.'));
             return;
         }
         custodiosService
@@ -27,12 +29,15 @@ export default function ConfirmarCustodio() {
             .then(() => setEstado('exito'))
             .catch((err) => {
                 setEstado('error');
-                setMensaje(getApiErrorMessage(err, 'No se pudo confirmar el canal.'));
+                setMensaje(getApiErrorMessage(err, t('No se pudo confirmar el canal.', "Couldn't confirm the channel.")));
             });
     }, [token]);
 
     return (
         <div className="auth-page">
+            <div className="auth-theme-toggle">
+                <LanguageToggle />
+            </div>
             <div className="card-auth animate__animated animate__fadeInUp">
                 <div className="top-gradient" />
                 <div className="card-body p-4 p-md-5 text-center">
@@ -44,8 +49,8 @@ export default function ConfirmarCustodio() {
                             <div className="d-inline-block p-3 rounded-circle bg-light shadow-sm">
                                 <i className="fas fa-shield-halved fa-3x" style={{ color: 'var(--escom-blue)' }} />
                             </div>
-                            <h3 className="fw-bold mt-3" style={{ color: 'var(--escom-blue)' }}>Confirmando…</h3>
-                            <p className="text-muted">Un momento por favor.</p>
+                            <h3 className="fw-bold mt-3" style={{ color: 'var(--escom-blue)' }}>{t('Confirmando…', 'Confirming…')}</h3>
+                            <p className="text-muted">{t('Un momento por favor.', 'One moment please.')}</p>
                         </>
                     )}
                     {estado === 'exito' && (
@@ -53,13 +58,15 @@ export default function ConfirmarCustodio() {
                             <div className="success-icon-circle animate__animated animate__bounceIn">
                                 <i className="fas fa-check fa-3x" />
                             </div>
-                            <h3 className="fw-bold" style={{ color: 'var(--escom-blue)' }}>Custodio confirmado</h3>
+                            <h3 className="fw-bold" style={{ color: 'var(--escom-blue)' }}>{t('Custodio confirmado', 'Custodian confirmed')}</h3>
                             <p className="text-muted">
-                                Quedaste registrado como custodio de confianza. Recibirás instrucciones si algún día se
-                                activa un proceso de recuperación.
+                                {t(
+                                    'Quedaste registrado como custodio de confianza. Recibirás instrucciones si algún día se activa un proceso de recuperación.',
+                                    "You're now registered as a trusted custodian. You'll receive instructions if a recovery process is ever started.",
+                                )}
                             </p>
                             <Link to="/" className="btn btn-ipn w-100 mt-3 py-3 shadow-sm">
-                                Entendido
+                                {t('Entendido', 'Got it')}
                             </Link>
                         </>
                     )}
@@ -68,10 +75,10 @@ export default function ConfirmarCustodio() {
                             <div className="error-icon-circle animate__animated animate__bounceIn">
                                 <i className="fas fa-link-slash fa-3x" />
                             </div>
-                            <h3 className="fw-bold" style={{ color: 'var(--escom-blue)' }}>Enlace inválido</h3>
+                            <h3 className="fw-bold" style={{ color: 'var(--escom-blue)' }}>{t('Enlace inválido', 'Invalid link')}</h3>
                             <p className="text-muted">{mensaje}</p>
                             <Link to="/" className="btn btn-ipn w-100 mt-3 py-3 shadow-sm">
-                                Volver al inicio
+                                {t('Volver al inicio', 'Back to home')}
                             </Link>
                         </>
                     )}

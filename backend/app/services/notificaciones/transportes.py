@@ -7,6 +7,9 @@ límite de tasa) y `ErrorPermanente` si no (destinatario rechazado, chat
 inexistente o bot bloqueado, transporte sin configurar).
 """
 
+import base64
+import binascii
+import contextlib
 import logging
 import re
 import smtplib
@@ -38,12 +41,35 @@ def _asunto_seguro(asunto: str) -> str:
     return re.sub(r"[\r\n]+", " ", asunto).strip()
 
 
+# <img> con un PNG embebido como data URI (el QR del correo a custodios).
+_IMG_DATA_URI = re.compile(r'<img\b[^>]*\bsrc="data:image/png;base64,([A-Za-z0-9+/=]+)"[^>]*>\s*')
+
+
+def _qr_como_adjuntos(html: str) -> tuple[str, list[bytes]]:
+    """
+    Gmail no muestra imágenes data: (deja un recuadro roto). Quita cada
+    <img> así del cuerpo y devuelve los PNG para mandarlos como adjuntos.
+    """
+    adjuntos: list[bytes] = []
+
+    def quitar(m: re.Match[str]) -> str:
+        with contextlib.suppress(binascii.Error, ValueError):
+            adjuntos.append(base64.b64decode(m.group(1), validate=True))
+        return ""
+
+    return _IMG_DATA_URI.sub(quitar, html), adjuntos
+
+
 def enviar_correo(destino: str, asunto: str, html: str) -> None:
     mensaje = EmailMessage()
     mensaje["Subject"] = _asunto_seguro(asunto)
     mensaje["From"] = formataddr((settings.MARCA, settings.SMTP_FROM_EMAIL))
     mensaje["To"] = destino
+    html, adjuntos = _qr_como_adjuntos(html)
     mensaje.set_content(html, subtype="html", charset="utf-8")
+    for numero, datos in enumerate(adjuntos, start=1):
+        nombre = "codigo-qr.png" if len(adjuntos) == 1 else f"codigo-qr-{numero}.png"
+        mensaje.add_attachment(datos, maintype="image", subtype="png", filename=nombre)
 
     try:
         with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as servidor:

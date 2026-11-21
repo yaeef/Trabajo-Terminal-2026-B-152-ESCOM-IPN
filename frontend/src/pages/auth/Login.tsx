@@ -6,6 +6,8 @@ import { useNotice } from '../../store/NoticeContext';
 import { getApiErrorMessage } from '../../utils/errors';
 import { getTheme, toggleTheme } from '../../theme';
 import ReenviarConfirmacion from '../../components/common/ReenviarConfirmacion';
+import LanguageToggle from '../../components/common/LanguageToggle';
+import { t } from '../../i18n';
 import './Login.css';
 import KleimosLogo from '../../components/brand/KleimosLogo';
 
@@ -48,9 +50,9 @@ export default function Login() {
             if (isAxiosError(err) && err.response?.status === 403) {
                 // Contraseña correcta pero correo sin confirmar: se ofrece
                 // reenviar el enlace (no se reenvía solo: invalida el anterior).
-                setSinConfirmar(getApiErrorMessage(err, 'Tu cuenta aún no está activada.'));
+                setSinConfirmar(getApiErrorMessage(err, t('Tu cuenta aún no está activada.', 'Your account is not activated yet.')));
             } else {
-                notifyError(getApiErrorMessage(err, 'Credenciales inválidas'));
+                notifyError(getApiErrorMessage(err, t('Credenciales inválidas', 'Invalid credentials')));
             }
         } finally {
             setIsSubmitting(false);
@@ -59,15 +61,18 @@ export default function Login() {
 
     return (
         <div className="login-page">
-            <button
-                type="button"
-                className="theme-toggle auth-theme-toggle"
-                onClick={() => setTheme(toggleTheme())}
-                title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
-                aria-label="Cambiar tema"
-            >
-                <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`}></i>
-            </button>
+            <div className="auth-theme-toggle">
+                <LanguageToggle />
+                <button
+                    type="button"
+                    className="theme-toggle"
+                    onClick={() => setTheme(toggleTheme())}
+                    title={theme === 'dark' ? t('Modo claro', 'Light mode') : t('Modo oscuro', 'Dark mode')}
+                    aria-label={t('Cambiar tema', 'Toggle theme')}
+                >
+                    <i className={`fas ${theme === 'dark' ? 'fa-sun' : 'fa-moon'}`}></i>
+                </button>
+            </div>
 
             <div className="card card-login animate__animated animate__zoomIn">
                 <div className="top-gradient"></div>
@@ -79,15 +84,15 @@ export default function Login() {
                     {/* Header */}
                     <div className="text-center mb-4">
                         <h3 className="fw-bold mb-1" style={{ color: 'var(--escom-blue)' }}>
-                            Iniciar sesión
+                            {t('Iniciar sesión', 'Sign in')}
                         </h3>
-                        <p className="text-muted small">Ingresa tus credenciales</p>
+                        <p className="text-muted small">{t('Ingresa tus credenciales', 'Enter your credentials')}</p>
                     </div>
 
                     <form onSubmit={handleSubmit}>
                         {/* Usuario o correo */}
                         <div className="mb-3">
-                            <label className="form-label small fw-bold text-muted">Usuario o Correo</label>
+                            <label className="form-label small fw-bold text-muted">{t('Usuario o Correo', 'Username or Email')}</label>
                             <div className="input-group">
                                 <span className="input-group-text">
                                     <i className="fas fa-fingerprint"></i>
@@ -95,7 +100,7 @@ export default function Login() {
                                 <input
                                     type="text"
                                     className="form-control shadow-none"
-                                    placeholder="ejemplo@correo.com"
+                                    placeholder={t('ejemplo@correo.com', 'example@email.com')}
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     required
@@ -106,13 +111,13 @@ export default function Login() {
                         {/* Contraseña */}
                         <div className="mb-4">
                             <div className="d-flex justify-content-between">
-                                <label className="form-label small fw-bold text-muted">Contraseña</label>
+                                <label className="form-label small fw-bold text-muted">{t('Contraseña', 'Password')}</label>
                                 <Link
                                     to="/recuperar-password"
                                     className="text-decoration-none small fw-bold"
                                     style={{ color: 'var(--ipn-maroon)' }}
                                 >
-                                    ¿Olvidaste la contraseña?
+                                    {t('¿Olvidaste la contraseña?', 'Forgot your password?')}
                                 </Link>
                             </div>
                             <div className="input-group">
@@ -131,8 +136,8 @@ export default function Login() {
                                     type="button"
                                     className="input-group-text"
                                     onClick={() => setShowPassword((prev) => !prev)}
-                                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                                    title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                    aria-label={showPassword ? t('Ocultar contraseña', 'Hide password') : t('Mostrar contraseña', 'Show password')}
+                                    title={showPassword ? t('Ocultar contraseña', 'Hide password') : t('Mostrar contraseña', 'Show password')}
                                     style={{ cursor: 'pointer' }}
                                 >
                                     <i className={showPassword ? 'fas fa-eye-slash' : 'fas fa-eye'}></i>
@@ -142,10 +147,10 @@ export default function Login() {
 
                         <button type="submit" className="btn btn-ipn w-100 py-3 mb-3 shadow-sm" disabled={isSubmitting}>
                             {isSubmitting ? (
-                                'Entrando...'
+                                t('Entrando...', 'Signing in...')
                             ) : (
                                 <>
-                                    Ingresar <i className="fas fa-shield-halved ms-2"></i>
+                                    {t('Ingresar', 'Sign in')} <i className="fas fa-shield-halved ms-2"></i>
                                 </>
                             )}
                         </button>
@@ -153,7 +158,7 @@ export default function Login() {
                             <div className="alert alert-warning small mt-2 mb-3" role="alert">
                                 <p className="fw-bold mb-1">
                                     <i className="fas fa-envelope-open-text me-2" />
-                                    Confirma tu correo
+                                    {t('Confirma tu correo', 'Confirm your email')}
                                 </p>
                                 <p className="mb-3">{sinConfirmar}</p>
                                 <ReenviarConfirmacion usuario={username} password={password} className="w-100" />
@@ -162,16 +167,16 @@ export default function Login() {
                     </form>
 
                     <div className="text-center mt-4">
-                        <p className="small text-muted mb-0">¿Primera vez?</p>
+                        <p className="small text-muted mb-0">{t('¿Primera vez?', 'First time?')}</p>
                         <Link to="/register" className="text-decoration-none fw-bold small" style={{ color: 'var(--escom-blue)' }}>
-                            Crear una Cuenta
+                            {t('Crear una Cuenta', 'Create an Account')}
                         </Link>
                     </div>
                 </div>
 
                 <div className="bg-light p-3 text-center border-top">
                     <Link to="/" className="text-decoration-none small fw-bold" style={{ color: 'var(--ipn-maroon)' }}>
-                        <i className="fas fa-arrow-left me-1"></i> Regresar
+                        <i className="fas fa-arrow-left me-1"></i> {t('Regresar', 'Back')}
                     </Link>
                 </div>
             </div>
